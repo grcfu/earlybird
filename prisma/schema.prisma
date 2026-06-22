@@ -1,0 +1,111 @@
+// EarlyBird — Prisma schema
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: the connection URL lives in prisma.config.ts (migrations) and is
+  // supplied to PrismaClient at runtime via a driver adapter (see src/lib/prisma.ts).
+}
+
+// Broad job family, inferred from the listing title during normalization.
+enum Category {
+  SWE
+  ML_AI
+  DATA
+  QUANT
+  HARDWARE
+  PM
+  OTHER
+}
+
+// Where a notification is delivered.
+enum Channel {
+  EMAIL
+  DISCORD
+  TELEGRAM
+}
+
+// How often a user is alerted.
+enum Frequency {
+  INSTANT
+  DAILY_DIGEST
+}
+
+// A single internship posting, normalized across all sources.
+model Listing {
+  // Stable hash of source + company + title + url (see lib/ingest/hash.ts).
+  id          String    @id
+  source      String // which repo this row came from (e.g. "vanshb03")
+  company     String
+  title       String
+  category    Category  @default(OTHER)
+  locations   String[] // may be empty if the source omits it
+  applyUrl    String
+  sponsorship String? // free-text from the source, nullable
+  season      String? // e.g. "Summer", "Winter"
+  datePosted  DateTime? // from the source's date_posted (nullable)
+
+  // firstSeenAt: when OUR system first ingested this row. Set once, never updated.
+  firstSeenAt DateTime @default(now())
+  // lastSeenAt: refreshed on every ingest run the row appears in.
+  lastSeenAt  DateTime @default(now())
+  active      Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sentNotifications SentNotification[]
+
+  // Hot paths: newest-first queries and recency-window filters.
+  @@index([datePosted])
+  @@index([firstSeenAt])
+  @@index([active])
+}
+
+// Minimal user for v1 — just an email identity.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  preferences       NotificationPreference[]
+  sentNotifications SentNotification[]
+}
+
+// A user's alert rule. A user may have several (e.g. instant email + daily Discord digest).
+model NotificationPreference {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories         String[] // Category names to alert on; empty = all categories
+  keywords           String[] // optional title keyword filters (case-insensitive)
+  locationsFilter    String[] // optional location substrings
+  activeOnly         Boolean   @default(true)
+  channel            Channel
+  channelTarget      String // email address, webhook URL, or chat id
+  frequency          Frequency @default(INSTANT)
+  recencyWindowHours Int       @default(48)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Ledger ensuring a listing is never alerted to the same user twice.
+model SentNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sentAt    DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
