@@ -1,26 +1,119 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================================
+   EarlyBird — "Dawn Terminal"
+   A live-feed / monitoring aesthetic warmed by a sunrise palette: deep warm-ink
+   night, an amber dawn-sun accent, and a coral burst for the freshest roles.
+   ========================================================================== */
+
+@theme {
+  /* Surfaces — deep warm ink, not flat black */
+  --color-ink: #0a0a0f;
+  --color-ink-2: #0e0e15;
+  --color-surface: #14141d;
+  --color-surface-2: #1b1b27;
+  --color-line: #262633;
+
+  /* Text — warm off-white through to muted */
+  --color-cream: #ece6da;
+  --color-fog: #a6a090;
+  --color-faint: #6b6658;
+
+  /* Accents */
+  --color-amber: #ff9f1c; /* the dawn sun — primary accent */
+  --color-amber-2: #ffbf5e;
+  --color-coral: #ff5630; /* freshest burst (<24h) */
+  --color-indigo: #4338ca; /* night horizon */
+
+  /* Category hues */
+  --color-cat-swe: #ff9f1c;
+  --color-cat-ml: #b794f6;
+  --color-cat-data: #4fd1c5;
+  --color-cat-quant: #68d391;
+  --color-cat-hardware: #fc8181;
+  --color-cat-pm: #63b3ed;
+  --color-cat-other: #a6a090;
+
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Dawn horizon: an indigo night fading up into an amber sunrise band, fixed
+     so the feed scrolls past a stable sky. */
+  background:
+    radial-gradient(
+      120% 60% at 50% -10%,
+      color-mix(in oklab, var(--color-amber) 14%, transparent) 0%,
+      transparent 42%
+    ),
+    radial-gradient(
+      90% 50% at 85% 0%,
+      color-mix(in oklab, var(--color-indigo) 30%, transparent) 0%,
+      transparent 50%
+    ),
+    var(--color-ink);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Subtle grain so the dark surfaces have texture, not dead flatness. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Staggered entrance for feed rows. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Slow pulse for the "live" dot. */
+@keyframes livepulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-coral) 70%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+.animate-livepulse {
+  animation: livepulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-livepulse {
+    animation: none;
+  }
+}
+
+/* Custom scrollbar to match the terminal feel. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
 }
