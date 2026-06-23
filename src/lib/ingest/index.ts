@@ -1,12 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { sources } from "@/lib/ingest/sources";
-import type { IngestResult, NormalizedListing, Source } from "@/lib/ingest/types";
+import { sources, sourcePriority } from "@/lib/ingest/sources";
+import { mergeListings } from "@/lib/ingest/dedupe";
+import type {
+  IngestSummary,
+  NormalizedListing,
+  Source,
+  SourceResult,
+} from "@/lib/ingest/types";
 
-// Fetch a source's raw JSON. Kept separate so it's easy to add ETag caching later.
+// Fetch a source's raw JSON. Separate so ETag caching can slot in later.
 async function fetchRaw(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: { "User-Agent": "earlybird-ingest" },
-    // Always pull fresh data on an ingest run.
     cache: "no-store",
   });
   if (!res.ok) {
@@ -15,118 +20,143 @@ async function fetchRaw(url: string): Promise<unknown> {
   return res.json();
 }
 
-// Run upserts in small concurrent chunks so a full source (~hundreds of rows)
-// doesn't open hundreds of connections at once against Neon.
-async function chunked<T>(
-  items: T[],
-  size: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  for (let i = 0; i < items.length; i += size) {
-    await Promise.all(items.slice(i, i + size).map(fn));
-  }
-}
-
-// Upsert one source's listings. firstSeenAt is set only on insert; lastSeenAt
-// and the mutable fields are refreshed every run.
-async function persist(
-  listings: NormalizedListing[],
-  runAt: Date,
-): Promise<{ created: number; updated: number }> {
-  // Which of these ids already exist? One query, then partition for counting.
-  const ids = listings.map((l) => l.id);
-  const existing = await prisma.listing.findMany({
-    where: { id: { in: ids } },
-    select: { id: true },
-  });
-  const existingIds = new Set(existing.map((e) => e.id));
-
-  let created = 0;
-  let updated = 0;
-
-  await chunked(listings, 10, async (l) => {
-    await prisma.listing.upsert({
-      where: { id: l.id },
-      create: {
-        id: l.id,
-        source: l.source,
-        company: l.company,
-        title: l.title,
-        category: l.category,
-        locations: l.locations,
-        applyUrl: l.applyUrl,
-        sponsorship: l.sponsorship,
-        season: l.season,
-        datePosted: l.datePosted,
-        firstSeenAt: runAt,
-        lastSeenAt: runAt,
-        active: l.active,
-      },
-      update: {
-        // Refresh fields that can legitimately change upstream.
-        company: l.company,
-        title: l.title,
-        category: l.category,
-        locations: l.locations,
-        applyUrl: l.applyUrl,
-        sponsorship: l.sponsorship,
-        season: l.season,
-        datePosted: l.datePosted,
-        active: l.active,
-        lastSeenAt: runAt,
-        // NOTE: firstSeenAt is intentionally never updated.
-      },
-    });
-    if (existingIds.has(l.id)) updated++;
-    else created++;
-  });
-
-  return { created, updated };
-}
-
-// Ingest a single source, isolating failures so one bad source can't abort the run.
-async function ingestSource(source: Source, runAt: Date): Promise<IngestResult> {
+// Pull + normalize one source. Failures are caught so a single bad source can't
+// abort the whole run (we still ingest the others).
+async function loadSource(
+  source: Source,
+): Promise<{ result: SourceResult; listings: NormalizedListing[] }> {
   try {
     const raw = await fetchRaw(source.url);
-    const normalized = source.adapt(raw);
-    const fetched = Array.isArray(raw) ? raw.length : 0;
-    const { created, updated } = await persist(normalized, runAt);
+    const listings = source.adapt(raw);
     return {
-      source: source.name,
-      fetched,
-      normalized: normalized.length,
-      created,
-      updated,
+      result: {
+        source: source.name,
+        fetched: Array.isArray(raw) ? raw.length : 0,
+        normalized: listings.length,
+      },
+      listings,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[ingest] source "${source.name}" failed: ${message}`);
     return {
-      source: source.name,
-      fetched: 0,
-      normalized: 0,
-      created: 0,
-      updated: 0,
-      error: message,
+      result: { source: source.name, fetched: 0, normalized: 0, error: message },
+      listings: [],
     };
   }
 }
 
-// Ingest every configured source. Never throws — returns a per-source report.
-export async function ingestAll(): Promise<IngestResult[]> {
-  const runAt = new Date();
-  const results: IngestResult[] = [];
-  for (const source of sources) {
-    const result = await ingestSource(source, runAt);
-    results.push(result);
-    if (result.error) {
-      console.log(`[ingest] ${result.source}: FAILED — ${result.error}`);
-    } else {
-      console.log(
-        `[ingest] ${result.source}: fetched ${result.fetched}, ` +
-          `normalized ${result.normalized}, new ${result.created}, updated ${result.updated}`,
+// 15 columns per row; Postgres caps a statement at 65535 bind params, so keep
+// chunks well under 65535/15 ≈ 4369 rows.
+const COLUMNS_PER_ROW = 15;
+const UPSERT_CHUNK_ROWS = 1000;
+
+// Bulk INSERT ... ON CONFLICT upsert. firstSeenAt + createdAt are set on insert
+// and never overwritten; everything else is refreshed from the incoming row.
+async function bulkUpsert(
+  rows: NormalizedListing[],
+  runAt: Date,
+): Promise<{ created: number; updated: number }> {
+  if (rows.length === 0) return { created: 0, updated: 0 };
+
+  // Which ids already exist? Determines created-vs-updated counts.
+  const ids = rows.map((r) => r.id);
+  const existing = (await prisma.$queryRawUnsafe<{ id: string }[]>(
+    'SELECT id FROM "Listing" WHERE id = ANY($1)',
+    ids,
+  )).map((r) => r.id);
+  const existingIds = new Set(existing);
+  const created = rows.filter((r) => !existingIds.has(r.id)).length;
+  const updated = rows.length - created;
+
+  for (let i = 0; i < rows.length; i += UPSERT_CHUNK_ROWS) {
+    const chunk = rows.slice(i, i + UPSERT_CHUNK_ROWS);
+    const valueTuples: string[] = [];
+    const params: unknown[] = [];
+
+    chunk.forEach((r, idx) => {
+      const b = idx * COLUMNS_PER_ROW;
+      // category gets an explicit enum cast; the rest bind positionally.
+      valueTuples.push(
+        `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5}::"Category",` +
+          `$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},` +
+          `$${b + 11},$${b + 12},$${b + 13},$${b + 14},$${b + 15})`,
       );
-    }
+      params.push(
+        r.id,
+        r.source,
+        r.company,
+        r.title,
+        r.category,
+        r.locations,
+        r.applyUrl,
+        r.sponsorship,
+        r.season,
+        r.datePosted,
+        runAt, // firstSeenAt
+        runAt, // lastSeenAt
+        r.active,
+        runAt, // createdAt
+        runAt, // updatedAt
+      );
+    });
+
+    const sql =
+      `INSERT INTO "Listing" ` +
+      `(id, source, company, title, category, locations, "applyUrl", sponsorship, ` +
+      `season, "datePosted", "firstSeenAt", "lastSeenAt", active, "createdAt", "updatedAt") ` +
+      `VALUES ${valueTuples.join(",")} ` +
+      `ON CONFLICT (id) DO UPDATE SET ` +
+      `source = EXCLUDED.source, company = EXCLUDED.company, title = EXCLUDED.title, ` +
+      `category = EXCLUDED.category, locations = EXCLUDED.locations, "applyUrl" = EXCLUDED."applyUrl", ` +
+      `sponsorship = EXCLUDED.sponsorship, season = EXCLUDED.season, "datePosted" = EXCLUDED."datePosted", ` +
+      `"lastSeenAt" = EXCLUDED."lastSeenAt", active = EXCLUDED.active, "updatedAt" = EXCLUDED."updatedAt"`;
+    // firstSeenAt and createdAt are deliberately absent from the UPDATE set.
+
+    await prisma.$executeRawUnsafe(sql, ...params);
   }
-  return results;
+
+  return { created, updated };
+}
+
+// Run a full ingest: load every source, merge across sources, bulk-upsert.
+// Never throws — returns a summary even if some sources failed.
+export async function ingestAll(): Promise<IngestSummary> {
+  const start = Date.now();
+  const runAt = new Date();
+
+  // Load sources sequentially to be polite to GitHub raw hosting.
+  const loaded = [];
+  for (const source of sources) {
+    loaded.push(await loadSource(source));
+  }
+
+  const allListings = loaded.flatMap((l) => l.listings);
+  const { merged, collapsed } = mergeListings(allListings, sourcePriority);
+  const { created, updated } = await bulkUpsert(merged, runAt);
+
+  const summary: IngestSummary = {
+    sources: loaded.map((l) => l.result),
+    collapsed,
+    persisted: merged.length,
+    created,
+    updated,
+    failedSources: loaded.filter((l) => l.result.error).length,
+    durationMs: Date.now() - start,
+  };
+
+  for (const s of summary.sources) {
+    console.log(
+      s.error
+        ? `[ingest] ${s.source}: FAILED — ${s.error}`
+        : `[ingest] ${s.source}: fetched ${s.fetched}, normalized ${s.normalized}`,
+    );
+  }
+  console.log(
+    `[ingest] merged ${allListings.length} → ${merged.length} rows ` +
+      `(${collapsed} cross-source dupes collapsed); ` +
+      `${created} new, ${updated} updated in ${summary.durationMs}ms`,
+  );
+
+  return summary;
 }

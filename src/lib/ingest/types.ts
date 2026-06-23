@@ -26,12 +26,22 @@ export interface Source {
   adapt: (raw: unknown) => NormalizedListing[];
 }
 
-// Per-source result for logging.
-export interface IngestResult {
+// Per-source fetch/normalize stats. created/updated are computed at the run
+// level (after cross-source dedup), so they live on IngestSummary instead.
+export interface SourceResult {
   source: string;
   fetched: number; // raw rows pulled
-  normalized: number; // rows after filtering (is_visible etc.)
+  normalized: number; // rows after filtering (is_visible, recency, etc.)
+  error?: string; // set if the source failed
+}
+
+// Outcome of a full ingest run across all sources.
+export interface IngestSummary {
+  sources: SourceResult[];
+  collapsed: number; // duplicate rows merged across sources
+  persisted: number; // distinct rows written (created + updated)
   created: number; // brand-new rows
   updated: number; // existing rows refreshed
-  error?: string; // set if the source failed
+  failedSources: number;
+  durationMs: number;
 }

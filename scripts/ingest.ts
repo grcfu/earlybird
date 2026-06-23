@@ -5,22 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { ingestAll } from "@/lib/ingest";
 
 async function main() {
-  const start = Date.now();
-  const results = await ingestAll();
-
-  const totals = results.reduce(
-    (acc, r) => {
-      acc.created += r.created;
-      acc.updated += r.updated;
-      acc.failed += r.error ? 1 : 0;
-      return acc;
-    },
-    { created: 0, updated: 0, failed: 0 },
-  );
-
+  const summary = await ingestAll();
   console.log(
-    `\n[ingest] done in ${Date.now() - start}ms — ` +
-      `${totals.created} new, ${totals.updated} updated, ${totals.failed} source(s) failed`,
+    `\n[ingest] done in ${summary.durationMs}ms — ` +
+      `${summary.created} new, ${summary.updated} updated, ` +
+      `${summary.collapsed} collapsed, ${summary.failedSources} source(s) failed`,
   );
 }
 
