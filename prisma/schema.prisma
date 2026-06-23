@@ -56,15 +56,21 @@ model Listing {
   lastSeenAt  DateTime @default(now())
   active      Boolean  @default(true)
 
+  // effectiveAt: the materialized "how new is this" timestamp used for sorting
+  // and recency windows. = datePosted when present & sane, else firstSeenAt.
+  // Computed at ingest time so feed queries stay a simple, indexed sort.
+  effectiveAt DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   sentNotifications SentNotification[]
 
   // Hot paths: newest-first queries and recency-window filters.
-  @@index([datePosted])
+  @@index([effectiveAt])
   @@index([firstSeenAt])
   @@index([active])
+  @@index([category])
 }
 
 // Minimal user for v1 — just an email identity.

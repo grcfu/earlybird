@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sources, sourcePriority } from "@/lib/ingest/sources";
 import { mergeListings } from "@/lib/ingest/dedupe";
+import { effectiveDate } from "@/lib/recency";
 import type {
   IngestSummary,
   NormalizedListing,
@@ -46,9 +47,9 @@ async function loadSource(
   }
 }
 
-// 15 columns per row; Postgres caps a statement at 65535 bind params, so keep
-// chunks well under 65535/15 ≈ 4369 rows.
-const COLUMNS_PER_ROW = 15;
+// 16 columns per row; Postgres caps a statement at 65535 bind params, so keep
+// chunks well under 65535/16 ≈ 4095 rows.
+const COLUMNS_PER_ROW = 16;
 const UPSERT_CHUNK_ROWS = 1000;
 
 // Bulk INSERT ... ON CONFLICT upsert. firstSeenAt + createdAt are set on insert
@@ -80,7 +81,7 @@ async function bulkUpsert(
       valueTuples.push(
         `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5}::"Category",` +
           `$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},` +
-          `$${b + 11},$${b + 12},$${b + 13},$${b + 14},$${b + 15})`,
+          `$${b + 11},$${b + 12},$${b + 13},$${b + 14},$${b + 15},$${b + 16})`,
       );
       params.push(
         r.id,
@@ -96,6 +97,8 @@ async function bulkUpsert(
         runAt, // firstSeenAt
         runAt, // lastSeenAt
         r.active,
+        // effectiveAt for a new row: datePosted (if sane) else firstSeenAt=runAt.
+        effectiveDate({ datePosted: r.datePosted, firstSeenAt: runAt, now: runAt }),
         runAt, // createdAt
         runAt, // updatedAt
       );
@@ -104,13 +107,17 @@ async function bulkUpsert(
     const sql =
       `INSERT INTO "Listing" ` +
       `(id, source, company, title, category, locations, "applyUrl", sponsorship, ` +
-      `season, "datePosted", "firstSeenAt", "lastSeenAt", active, "createdAt", "updatedAt") ` +
+      `season, "datePosted", "firstSeenAt", "lastSeenAt", active, "effectiveAt", "createdAt", "updatedAt") ` +
       `VALUES ${valueTuples.join(",")} ` +
       `ON CONFLICT (id) DO UPDATE SET ` +
       `source = EXCLUDED.source, company = EXCLUDED.company, title = EXCLUDED.title, ` +
       `category = EXCLUDED.category, locations = EXCLUDED.locations, "applyUrl" = EXCLUDED."applyUrl", ` +
       `sponsorship = EXCLUDED.sponsorship, season = EXCLUDED.season, "datePosted" = EXCLUDED."datePosted", ` +
-      `"lastSeenAt" = EXCLUDED."lastSeenAt", active = EXCLUDED.active, "updatedAt" = EXCLUDED."updatedAt"`;
+      `"lastSeenAt" = EXCLUDED."lastSeenAt", active = EXCLUDED.active, "updatedAt" = EXCLUDED."updatedAt", ` +
+      // Recompute effectiveAt against the PRESERVED firstSeenAt on update.
+      `"effectiveAt" = CASE WHEN EXCLUDED."datePosted" IS NOT NULL ` +
+      `AND EXCLUDED."datePosted" <= now() + interval '1 day' ` +
+      `THEN EXCLUDED."datePosted" ELSE "Listing"."firstSeenAt" END`;
     // firstSeenAt and createdAt are deliberately absent from the UPDATE set.
 
     await prisma.$executeRawUnsafe(sql, ...params);
