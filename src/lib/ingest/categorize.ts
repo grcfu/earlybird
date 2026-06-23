@@ -75,3 +75,31 @@ export function categorize(title: string): Category {
   }
   return Category.OTHER;
 }
+
+// Map a source-provided category label (e.g. SimplifyJobs' "AI/ML/Data") onto
+// our enum. Returns null when the label is unrecognized so callers can fall back.
+function fromSourceLabel(label: string): Category | null {
+  const c = label.trim().toLowerCase();
+  if (!c) return null;
+  if (/quant/.test(c)) return Category.QUANT;
+  if (/hardware/.test(c)) return Category.HARDWARE;
+  if (/product/.test(c)) return Category.PM;
+  if (/software|\bswe\b|\bsde\b/.test(c)) return Category.SWE;
+  // Pure-data labels before the broad AI/ML check.
+  if (/data scien|data engineer|data analy|^data\b/.test(c)) return Category.DATA;
+  if (/\bai\b|\bml\b|machine learning|\bdata\b/.test(c)) return Category.ML_AI;
+  return null;
+}
+
+// Resolve a Category using the source's explicit label first (when usable),
+// otherwise inferring from the title. This is the entry point adapters call.
+export function normalizeCategory(
+  sourceLabel: string | null | undefined,
+  title: string,
+): Category {
+  if (sourceLabel) {
+    const mapped = fromSourceLabel(sourceLabel);
+    if (mapped) return mapped;
+  }
+  return categorize(title);
+}
