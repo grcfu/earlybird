@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "ingest": "tsx scripts/ingest.ts",
+    "notify": "tsx scripts/notify.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
