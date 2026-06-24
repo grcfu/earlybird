@@ -93,9 +93,17 @@ model NotificationPreference {
   locationsFilter    String[] // optional location substrings
   activeOnly         Boolean   @default(true)
   channel            Channel
-  channelTarget      String // email address, webhook URL, or chat id
+  channelTarget      String // email address, webhook URL, or "botToken|chatId" (Telegram)
   frequency          Frequency @default(INSTANT)
   recencyWindowHours Int       @default(48)
+
+  // Daily-digest scheduling. digestHour is the local-to-UTC hour (0-23) the
+  // digest should go out; lastDigestAt records when we last sent one so we send
+  // at most once per day even if /api/notify is hit several times that hour.
+  digestHour   Int       @default(8)
+  lastDigestAt DateTime?
+
+  enabled Boolean @default(true) // soft on/off switch for the rule
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
