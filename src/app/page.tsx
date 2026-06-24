@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { parseListingQuery, queryListings } from "@/lib/listings";
 import { Header } from "@/components/Header";
 import { FilterBar } from "@/components/FilterBar";
@@ -34,6 +35,14 @@ export default async function Home({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
+      <div className="relative z-10 mb-6 flex justify-end">
+        <Link
+          href="/settings"
+          className="rounded-lg border border-line bg-surface/60 px-3 py-1.5 font-mono text-[11px] text-fog transition hover:border-amber/40 hover:text-amber"
+        >
+          ⚙ manage alerts
+        </Link>
+      </div>
       <Header
         count={page.count}
         windowLabel={WINDOW_LABEL[q.window]}
