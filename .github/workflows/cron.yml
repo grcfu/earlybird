@@ -23,18 +23,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Ingest first so notifications see the freshest listings.
+      # --retry rides out transient network blips / cold starts. -f makes HTTP
+      # errors fail the step; we additionally surface per-source failures (which
+      # the endpoint reports in its 200 body) as a warning.
       - name: Ingest new listings
         run: |
-          curl -fsS --max-time 300 -X POST "$DEPLOY_URL/api/ingest" \
-            -H "x-cron-secret: $CRON_SECRET"
+          resp=$(curl -fsS --max-time 300 --retry 3 --retry-delay 10 --retry-all-errors \
+            -X POST "$DEPLOY_URL/api/ingest" -H "x-cron-secret: $CRON_SECRET")
+          echo "$resp" | jq .
+          failed=$(echo "$resp" | jq '.summary.failedSources // 0')
+          if [ "$failed" -gt 0 ]; then
+            echo "::warning title=Ingest::$failed source(s) failed to fetch this run"
+          fi
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
       - name: Send notifications
         run: |
-          curl -fsS --max-time 300 -X POST "$DEPLOY_URL/api/notify" \
-            -H "x-cron-secret: $CRON_SECRET"
+          resp=$(curl -fsS --max-time 300 --retry 3 --retry-delay 10 --retry-all-errors \
+            -X POST "$DEPLOY_URL/api/notify" -H "x-cron-secret: $CRON_SECRET")
+          echo "$resp" | jq .
+          errs=$(echo "$resp" | jq '[.summary.results[]? | select(.error)] | length')
+          if [ "$errs" -gt 0 ]; then
+            echo "::warning title=Notify::$errs preference(s) failed to send this run"
+          fi
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
