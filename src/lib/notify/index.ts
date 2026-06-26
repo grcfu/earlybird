@@ -38,12 +38,17 @@ function sameUtcDay(a: Date, b: Date): boolean {
 }
 
 // Decide whether a daily-digest preference is due right now.
+//
+// We fire on the first run at or after the configured hour each UTC day, rather
+// than requiring an exact hour match. The scheduler (hourly GitHub Actions cron)
+// can be delayed or skipped under load, so an exact-hour check could miss a
+// user's slot entirely; "at or after, once per day" tolerates that.
 function digestDue(
   digestHour: number,
   lastDigestAt: Date | null,
   now: Date,
 ): boolean {
-  if (now.getUTCHours() !== digestHour) return false;
+  if (now.getUTCHours() < digestHour) return false; // not yet their hour today
   if (lastDigestAt && sameUtcDay(lastDigestAt, now)) return false; // already today
   return true;
 }
