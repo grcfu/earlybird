@@ -5,6 +5,9 @@ import { isCronAuthorized } from "@/lib/cron-auth";
 // pg driver adapter + channel SDKs need the Node.js runtime.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Sending across many preferences/channels can take a while; give it headroom.
+// 60s is the max on Vercel's Hobby plan.
+export const maxDuration = 60;
 
 // POST /api/notify — send pending notifications. Cron-triggered; guarded by
 // CRON_SECRET (see lib/cron-auth). Vercel Cron calls this daily.

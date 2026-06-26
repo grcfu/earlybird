@@ -5,6 +5,9 @@ import { isCronAuthorized } from "@/lib/cron-auth";
 // The pg driver adapter needs the Node.js runtime (not Edge).
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Ingest fetches two remote feeds then bulk-upserts; give it headroom so a cold
+// start isn't killed mid-run. 60s is the max on Vercel's Hobby plan.
+export const maxDuration = 60;
 
 // POST /api/ingest — run ingestion across all sources. Cron-triggered; guarded
 // by CRON_SECRET (see lib/cron-auth). Vercel Cron calls this daily.
