@@ -20,65 +20,58 @@ export function ListingCard({
 
   return (
     <article
-      className="group animate-rise relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line bg-surface/70 pl-0 pr-4 py-4 backdrop-blur-sm transition-all duration-200 hover:border-amber/40 hover:bg-surface-2/80 sm:gap-5"
+      className="group animate-rise pop relative flex items-stretch gap-4 border-2 border-ink bg-card py-4 pl-0 pr-4 shadow-pop sm:gap-5"
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
     >
-      {/* Freshness rail — coral when <24h, otherwise a dim category tint. */}
+      {/* Freshness rail — pink when <24h, otherwise the category hue. */}
       <div
-        className="w-[3px] shrink-0 self-stretch rounded-full"
-        style={{
-          background: fresh ? "var(--color-coral)" : cat.color,
-          opacity: fresh ? 1 : 0.45,
-          boxShadow: fresh
-            ? "0 0 12px color-mix(in oklab, var(--color-coral) 60%, transparent)"
-            : "none",
-        }}
+        className="w-2 shrink-0 self-stretch border-r-2 border-ink"
+        style={{ background: fresh ? "var(--color-pink-pop)" : cat.color }}
         aria-hidden
       />
 
       <div className="min-w-0 flex-1 py-0.5">
         {/* Top line: company · category · fresh flag */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="truncate font-medium text-cream">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <span className="truncate text-[15px] font-bold text-ink">
             {listing.company}
           </span>
           <span
-            className="rounded-full px-2 py-[2px] font-mono text-[10px] uppercase tracking-wider"
+            className="border border-ink px-2 py-[1px] font-mono text-[10px] font-bold uppercase tracking-wider text-ink"
             style={{
-              color: cat.color,
-              background: "color-mix(in oklab, currentColor 14%, transparent)",
+              background: "color-mix(in oklab, " + cat.color + " 38%, white)",
             }}
           >
             {cat.label}
           </span>
           {fresh && (
-            <span className="font-mono text-[10px] uppercase tracking-wider text-coral">
-              🔥 new
+            <span className="border border-ink bg-blush px-2 py-[1px] font-mono text-[10px] font-bold uppercase tracking-wider text-ink">
+              🌸 new
             </span>
           )}
         </div>
 
         {/* Title */}
-        <h3 className="mt-1 truncate text-[17px] leading-snug text-cream/95">
+        <h3 className="mt-1.5 truncate font-display text-xl leading-snug text-ink">
           {listing.title}
         </h3>
 
         {/* Meta line */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-fog">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-ink-soft">
           <span className="truncate">{locations}</span>
           {listing.sponsorship && (
-            <span className="text-faint" title="Sponsorship">
+            <span className="text-ink-faint" title="Sponsorship">
               {listing.sponsorship}
             </span>
           )}
-          <span className="text-faint">via {listing.source}</span>
+          <span className="text-ink-faint">via {listing.source}</span>
         </div>
       </div>
 
       {/* Right: time + apply */}
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         <time
-          className="font-mono text-[11px] tabular-nums text-fog"
+          className="font-mono text-[11px] font-bold tabular-nums text-pesto-deep"
           dateTime={listing.effectiveAt}
           title={new Date(listing.effectiveAt).toLocaleString()}
         >
@@ -88,7 +81,7 @@ export function ListingCard({
           href={listing.applyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg bg-amber px-4 py-1.5 text-sm font-semibold text-ink transition-all duration-150 hover:bg-amber-2 hover:shadow-[0_0_20px_color-mix(in_oklab,var(--color-amber)_40%,transparent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/60"
+          className="pop border-2 border-ink bg-pesto px-4 py-1.5 text-sm font-bold text-white shadow-pop-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-pop"
         >
           Apply ↗
         </a>
