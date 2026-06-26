@@ -10,7 +10,7 @@ name: Cron — ingest & notify
 #   CRON_SECRET  the same value set as CRON_SECRET in the Vercel project env
 on:
   schedule:
-    - cron: "0 * * * *" # every hour, on the hour (UTC)
+    - cron: "5 * * * *" # every hour at :05 past (UTC) — offset off the busy top-of-hour
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
 # Don't pile up overlapping runs if one is slow.

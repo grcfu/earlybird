@@ -98,7 +98,7 @@ deployed endpoints every hour (ingest first, then notify):
 ```yaml
 on:
   schedule:
-    - cron: "0 * * * *" # hourly, UTC
+    - cron: "5 * * * *" # hourly at :05 past, UTC
 ```
 
 **One-time setup.** Add two repository secrets under
