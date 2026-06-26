@@ -153,18 +153,21 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-10 sm:pt-16">
       <div className="flex items-center justify-between">
-        <Link href="/" className="font-mono text-xs text-fog hover:text-amber">
+        <Link
+          href="/"
+          className="pop border-2 border-ink bg-card px-3 py-1.5 font-mono text-[11px] font-bold text-ink shadow-pop-sm"
+        >
           ← back to feed
         </Link>
-        <span className="font-mono text-[11px] uppercase tracking-widest text-faint">
+        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-ink-soft">
           alert settings
         </span>
       </div>
 
-      <h1 className="mt-6 font-display text-4xl text-cream sm:text-5xl">
-        Your <span className="italic text-amber">alerts</span>
+      <h1 className="mt-7 font-display text-5xl font-semibold text-ink sm:text-6xl">
+        Your <span className="italic text-pink-pop">alerts</span> 🌸
       </h1>
-      <p className="mt-2 max-w-lg font-mono text-[11px] leading-relaxed text-fog">
+      <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-soft">
         Get pinged the moment matching roles appear — by email, Discord, or
         Telegram. Identify yourself by email (no password needed for v1).
       </p>
@@ -177,12 +180,12 @@ export default function SettingsPage() {
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onLoad()}
           placeholder="you@example.com"
-          className="flex-1 rounded-lg border border-line bg-surface/60 px-3 py-2 font-mono text-sm text-cream placeholder:text-faint focus:border-amber/50 focus:outline-none"
+          className="flex-1 border-2 border-ink bg-card px-3 py-2 font-mono text-sm text-ink placeholder:text-ink-faint focus:bg-blush-soft focus:outline-none"
         />
         <button
           onClick={onLoad}
           disabled={busy}
-          className="rounded-lg bg-amber px-5 py-2 text-sm font-semibold text-ink transition hover:bg-amber-2 disabled:opacity-50"
+          className="pop border-2 border-ink bg-pesto px-5 py-2 text-sm font-bold text-white shadow-pop-sm disabled:opacity-50"
         >
           Load
         </button>
@@ -190,8 +193,10 @@ export default function SettingsPage() {
 
       {status && (
         <p
-          className={`mt-3 font-mono text-xs ${
-            status.kind === "ok" ? "text-cat-quant" : "text-coral"
+          className={`mt-3 inline-block border-2 border-ink px-3 py-1 font-mono text-xs font-bold ${
+            status.kind === "ok"
+              ? "bg-pesto-soft text-pesto-deep"
+              : "bg-blush-soft text-berry"
           }`}
         >
           {status.msg}
@@ -201,28 +206,28 @@ export default function SettingsPage() {
       {loadedEmail && (
         <>
           {/* Existing rules */}
-          <h2 className="mt-10 font-mono text-[11px] uppercase tracking-widest text-fog">
+          <h2 className="mt-10 font-mono text-[11px] font-bold uppercase tracking-widest text-ink-soft">
             rules for {loadedEmail}
           </h2>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="mt-3 flex flex-col gap-2.5">
             {prefs.length === 0 && (
-              <p className="font-mono text-xs text-faint">No alerts yet — add one below.</p>
+              <p className="font-mono text-xs text-ink-faint">No alerts yet — add one below.</p>
             )}
             {prefs.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface/60 px-4 py-3"
+                className="flex items-center justify-between gap-3 border-2 border-ink bg-card px-4 py-3 shadow-pop-sm"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-                    <span className="rounded bg-surface-2 px-2 py-0.5 text-cream">
+                    <span className="border border-ink bg-pesto-soft px-2 py-0.5 font-bold text-ink">
                       {p.channel}
                     </span>
-                    <span className="text-fog">{p.frequency === "INSTANT" ? "instant" : `digest @ ${p.digestHour}:00 UTC`}</span>
-                    <span className="text-faint">· {p.recencyWindowHours}h window</span>
-                    {!p.enabled && <span className="text-coral">· paused</span>}
+                    <span className="text-ink-soft">{p.frequency === "INSTANT" ? "instant" : `digest @ ${p.digestHour}:00 UTC`}</span>
+                    <span className="text-ink-faint">· {p.recencyWindowHours}h window</span>
+                    {!p.enabled && <span className="font-bold text-berry">· paused</span>}
                   </div>
-                  <div className="mt-1 truncate font-mono text-[11px] text-faint">
+                  <div className="mt-1 truncate font-mono text-[11px] text-ink-faint">
                     {p.categories.length ? p.categories.join(", ") : "all categories"}
                     {p.keywords.length ? ` · kw: ${p.keywords.join(", ")}` : ""}
                     {p.locationsFilter.length ? ` · loc: ${p.locationsFilter.join(", ")}` : ""}
@@ -231,13 +236,13 @@ export default function SettingsPage() {
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => editPref(p)}
-                    className="font-mono text-[11px] text-fog hover:text-amber"
+                    className="font-mono text-[11px] font-bold text-pesto-deep hover:text-pesto"
                   >
                     edit
                   </button>
                   <button
                     onClick={() => remove(p.id)}
-                    className="font-mono text-[11px] text-faint hover:text-coral"
+                    className="font-mono text-[11px] font-bold text-ink-faint hover:text-berry"
                   >
                     delete
                   </button>
@@ -247,8 +252,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Editor */}
-          <div className="mt-10 rounded-2xl border border-line bg-surface/60 p-5">
-            <h2 className="font-display text-2xl text-cream">
+          <div className="mt-10 border-2 border-ink bg-card p-5 shadow-pop">
+            <h2 className="font-display text-3xl font-semibold text-ink">
               {form.id ? "Edit alert" : "New alert"}
             </h2>
 
@@ -268,11 +273,11 @@ export default function SettingsPage() {
                           return { ...f, categories: next };
                         })
                       }
-                      className="rounded-full border px-3 py-1 font-mono text-[11px]"
+                      className="border-2 border-ink px-3 py-1 font-mono text-[11px] font-bold text-ink"
                       style={{
-                        color: on ? "var(--color-ink)" : meta.color,
-                        background: on ? meta.color : "transparent",
-                        borderColor: on ? meta.color : "var(--color-line)",
+                        background: on
+                          ? meta.color
+                          : "color-mix(in oklab, " + meta.color + " 16%, white)",
                       }}
                     >
                       {meta.label}
@@ -358,12 +363,12 @@ export default function SettingsPage() {
             </div>
 
             {/* Active only */}
-            <label className="mt-4 flex items-center gap-2 font-mono text-xs text-fog">
+            <label className="mt-5 flex items-center gap-2 font-mono text-xs text-ink-soft">
               <input
                 type="checkbox"
                 checked={form.activeOnly}
                 onChange={(e) => setForm((f) => ({ ...f, activeOnly: e.target.checked }))}
-                className="accent-amber"
+                className="h-4 w-4 accent-pesto"
               />
               only alert about active (still-open) roles
             </label>
@@ -372,14 +377,14 @@ export default function SettingsPage() {
               <button
                 onClick={save}
                 disabled={busy}
-                className="rounded-lg bg-amber px-5 py-2 text-sm font-semibold text-ink transition hover:bg-amber-2 disabled:opacity-50"
+                className="pop border-2 border-ink bg-pesto px-5 py-2 text-sm font-bold text-white shadow-pop-sm disabled:opacity-50"
               >
                 {form.id ? "Update alert" : "Create alert"}
               </button>
               {form.id && (
                 <button
                   onClick={resetForm}
-                  className="rounded-lg border border-line px-4 py-2 font-mono text-xs text-fog hover:text-cream"
+                  className="border-2 border-ink bg-card px-4 py-2 font-mono text-xs font-bold text-ink-soft hover:bg-paper-2 hover:text-ink"
                 >
                   cancel edit
                 </button>
@@ -411,10 +416,10 @@ function Field({
   return (
     <div className="mt-4">
       <div className="mb-1.5 flex items-baseline gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-fog">
+        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-ink">
           {label}
         </span>
-        {hint && <span className="font-mono text-[10px] text-faint">{hint}</span>}
+        {hint && <span className="font-mono text-[10px] text-ink-faint">{hint}</span>}
       </div>
       {children}
     </div>
@@ -435,7 +440,7 @@ function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-lg border border-line bg-ink/60 px-3 py-2 font-mono text-xs text-cream placeholder:text-faint focus:border-amber/50 focus:outline-none"
+      className="w-full border-2 border-ink bg-paper px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:bg-blush-soft focus:outline-none"
     />
   );
 }
@@ -453,10 +458,10 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-line bg-ink/60 px-3 py-2 font-mono text-xs text-cream focus:border-amber/50 focus:outline-none"
+      className="w-full border-2 border-ink bg-paper px-3 py-2 font-mono text-xs text-ink focus:bg-blush-soft focus:outline-none"
     >
       {options.map(([v, label]) => (
-        <option key={v} value={v} className="bg-surface">
+        <option key={v} value={v} className="bg-card">
           {label}
         </option>
       ))}
