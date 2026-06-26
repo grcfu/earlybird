@@ -1,38 +1,47 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   EarlyBird — "Dawn Terminal"
-   A live-feed / monitoring aesthetic warmed by a sunrise palette: deep warm-ink
-   night, an amber dawn-sun accent, and a coral burst for the freshest roles.
+   EarlyBird — "Spring Almanac"
+   A bright field-guide aesthetic: warm cream paper, deep pesto-green ink, and
+   pastel-pink accents. Sharp rectangular cards with hard offset shadows give a
+   cute riso-print / sticker pop while staying crisp and professional.
    ========================================================================== */
 
 @theme {
-  /* Surfaces — deep warm ink, not flat black */
-  --color-ink: #0a0a0f;
-  --color-ink-2: #0e0e15;
-  --color-surface: #14141d;
-  --color-surface-2: #1b1b27;
-  --color-line: #262633;
+  /* Surfaces — warm cream paper, clean white cards */
+  --color-paper: #faf4e8;
+  --color-paper-2: #f2e9d7;
+  --color-card: #ffffff;
 
-  /* Text — warm off-white through to muted */
-  --color-cream: #ece6da;
-  --color-fog: #a6a090;
-  --color-faint: #6b6658;
+  /* Ink — deep pesto-charcoal for text + the signature sharp borders */
+  --color-ink: #2b3320;
+  --color-ink-soft: #5c6647;
+  --color-ink-faint: #97a07e;
 
-  /* Accents */
-  --color-amber: #ff9f1c; /* the dawn sun — primary accent */
-  --color-amber-2: #ffbf5e;
-  --color-coral: #ff5630; /* freshest burst (<24h) */
-  --color-indigo: #4338ca; /* night horizon */
+  /* Pesto green — the primary accent */
+  --color-pesto: #6d8a3a;
+  --color-pesto-deep: #50692a;
+  --color-pesto-soft: #d9e7bd;
 
-  /* Category hues */
-  --color-cat-swe: #ff9f1c;
-  --color-cat-ml: #b794f6;
-  --color-cat-data: #4fd1c5;
-  --color-cat-quant: #68d391;
-  --color-cat-hardware: #fc8181;
-  --color-cat-pm: #63b3ed;
-  --color-cat-other: #a6a090;
+  /* Pastel pink — the secondary accent */
+  --color-blush: #f2b6c9;
+  --color-blush-soft: #fce0e8;
+  --color-pink-pop: #e86c95;
+  --color-berry: #cf4670; /* errors / destructive */
+
+  /* Category hues — spring pastels */
+  --color-cat-swe: #6d8a3a;
+  --color-cat-ml: #a98fd8;
+  --color-cat-data: #3faab6;
+  --color-cat-quant: #d99a25;
+  --color-cat-hardware: #ec7f5a;
+  --color-cat-pm: #5f93d6;
+  --color-cat-other: #8a9670;
+
+  /* Hard offset "sticker" shadows — the core of the look */
+  --shadow-pop: 4px 4px 0 0 var(--color-ink);
+  --shadow-pop-sm: 3px 3px 0 0 var(--color-ink);
+  --shadow-pop-lg: 6px 6px 0 0 var(--color-ink);
 
   --font-display: var(--font-display), ui-serif, Georgia, serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -40,46 +49,50 @@
 }
 
 html {
-  background: var(--color-ink);
-  color: var(--color-cream);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
 }
 
 body {
-  /* Dawn horizon: an indigo night fading up into an amber sunrise band, fixed
-     so the feed scrolls past a stable sky. */
+  /* Soft spring sky: a pink dawn glow and a green meadow glow over warm paper,
+     fixed so the feed scrolls past a stable backdrop. */
   background:
     radial-gradient(
-      120% 60% at 50% -10%,
-      color-mix(in oklab, var(--color-amber) 14%, transparent) 0%,
-      transparent 42%
+      110% 55% at 12% -8%,
+      color-mix(in oklab, var(--color-blush) 55%, transparent) 0%,
+      transparent 46%
     ),
     radial-gradient(
-      90% 50% at 85% 0%,
-      color-mix(in oklab, var(--color-indigo) 30%, transparent) 0%,
+      100% 55% at 92% -4%,
+      color-mix(in oklab, var(--color-pesto) 28%, transparent) 0%,
       transparent 50%
     ),
-    var(--color-ink);
+    var(--color-paper);
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
 
-/* Subtle grain so the dark surfaces have texture, not dead flatness. */
+/* Faint graph-paper dot grid for almanac texture. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-ink) 14%, transparent) 1px,
+    transparent 1.4px
+  );
+  background-size: 22px 22px;
 }
 
 /* Staggered entrance for feed rows. */
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -90,12 +103,25 @@ body::before {
   animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Slow pulse for the "live" dot. */
+/* Gentle bob for the bird wordmark. */
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(4deg);
+  }
+}
+.animate-bob {
+  animation: bob 3s ease-in-out infinite;
+}
+
+/* Pulse ring for the "live" dot. */
 @keyframes livepulse {
   0%,
   100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-coral) 70%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-pink-pop) 70%, transparent);
   }
   70% {
     box-shadow: 0 0 0 6px transparent;
@@ -107,13 +133,31 @@ body::before {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
-  .animate-livepulse {
+  .animate-livepulse,
+  .animate-bob {
     animation: none;
   }
 }
 
-/* Custom scrollbar to match the terminal feel. */
+/* The signature press-down interaction for poppable controls. */
+.pop {
+  transition:
+    transform 0.12s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.12s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+.pop:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-pop-lg);
+}
+.pop:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--color-ink);
+}
+
+/* Custom scrollbar to match the paper feel. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: var(--color-pesto) transparent;
 }

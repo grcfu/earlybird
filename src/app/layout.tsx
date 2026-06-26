@@ -1,24 +1,25 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Hanken_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-// Editorial display serif for the wordmark + big numbers (dawn / characterful).
-const displaySerif = Instrument_Serif({
+// Wonky, soft display serif for the wordmark + big numbers — characterful and
+// editorial, cute when set in italic.
+const displaySerif = Fraunces({
   variable: "--font-display",
-  weight: "400",
   style: ["normal", "italic"],
   subsets: ["latin"],
 });
 
-// Clean, slightly warm grotesque for UI/body — deliberately not Inter.
+// Clean, friendly grotesque for UI/body.
 const bodySans = Hanken_Grotesk({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-// Mono for timestamps, counts, and the terminal-feed details.
-const mono = JetBrains_Mono({
+// Characterful mono for timestamps, counts, and tag-like labels.
+const mono = Space_Mono({
   variable: "--font-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -37,7 +38,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${displaySerif.variable} ${bodySans.variable} ${mono.variable} h-full antialiased`}
-      style={{ colorScheme: "dark" }}
+      style={{ colorScheme: "light" }}
     >
       <body className="min-h-full">{children}</body>
     </html>
