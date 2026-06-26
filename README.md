@@ -88,33 +88,40 @@ npm run notify   # scripts/notify.ts
 
 ## Cron & deployment
 
-Deployed to **Vercel**. Scheduling lives in [`vercel.json`](./vercel.json):
+The app is **hosted on Vercel** (the free Hobby plan is fine — it runs the
+Node/Postgres app without issue). Scheduling, however, is driven by **GitHub
+Actions**, not Vercel Cron: Vercel's Hobby plan caps cron at once per day, whereas
+a GitHub Actions schedule runs **hourly for free**. The workflow lives in
+[`.github/workflows/cron.yml`](./.github/workflows/cron.yml) and simply `curl`s the
+deployed endpoints every hour (ingest first, then notify):
 
-```json
-{
-  "crons": [
-    { "path": "/api/ingest", "schedule": "0 7 * * *" },
-    { "path": "/api/notify", "schedule": "0 8 * * *" }
-  ]
-}
+```yaml
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly, UTC
 ```
 
-Both run **daily** (07:00 and 08:00 UTC). This is tuned for Vercel's **Hobby**
-plan, which allows at most 2 cron jobs and only once-per-day schedules. On a
-**Pro** plan you can raise these to hourly (`0 * * * *`) for near-real-time
-ingestion and more flexible digest hours.
+**One-time setup.** Add two repository secrets under
+*Settings → Secrets and variables → Actions*:
 
-**Securing the endpoints:** set `CRON_SECRET` in the Vercel project's environment
-variables. Vercel Cron then automatically attaches it as
-`Authorization: Bearer <CRON_SECRET>`, which the routes verify. Requests without
-the secret get a `401`. For manual triggering you can instead pass the secret as an
-`x-cron-secret` header or a `?secret=` query param. When `CRON_SECRET` is unset
-(local dev), the guard falls open so the routes stay easy to hit by hand.
+| Secret | Value |
+| --- | --- |
+| `DEPLOY_URL` | Public base URL of the deployment, e.g. `https://earlybird.vercel.app` |
+| `CRON_SECRET` | Same value you set as `CRON_SECRET` in the Vercel project env |
 
-> **Daily-digest note (Hobby):** because notify only runs once a day at 08:00 UTC,
-> a `DAILY_DIGEST` preference fires only if its `digestHour` is `8` (the schema
-> default). Users wanting a different hour need the notify cron moved to match, or a
-> Pro plan with hourly runs.
+> Scheduled workflows only run from the **default branch**, and GitHub disables
+> them after ~60 days of repo inactivity. You can also trigger a run any time from
+> the Actions tab (`workflow_dispatch`).
+
+**Securing the endpoints.** `/api/ingest` and `/api/notify` require `CRON_SECRET`
+when it is set. The GitHub workflow sends it as an `x-cron-secret` header. You can
+also pass it as `Authorization: Bearer <secret>` or a `?secret=` query param. When
+`CRON_SECRET` is unset (local dev), the guard falls open so the routes stay easy to
+hit by hand.
+
+Because notify runs **hourly**, daily-digest preferences fire at each user's chosen
+`digestHour` (UTC) — the digest is sent on the first run at or after that hour each
+day, so an occasionally delayed cron run won't skip it.
 
 ## Testing
 
