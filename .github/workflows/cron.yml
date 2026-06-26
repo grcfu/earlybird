@@ -1,0 +1,40 @@
+name: Cron — ingest & notify
+
+# Hourly scheduler for EarlyBird. The app is hosted on Vercel (free Hobby plan,
+# which only allows once-a-day Vercel Cron), so we drive ingestion + notifications
+# from GitHub Actions instead — its scheduled trigger is free and runs hourly.
+#
+# Setup (one time): add two repository secrets under
+# Settings → Secrets and variables → Actions:
+#   DEPLOY_URL   the public base URL of the deployment, e.g. https://earlybird.vercel.app
+#   CRON_SECRET  the same value set as CRON_SECRET in the Vercel project env
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour, on the hour (UTC)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+# Don't pile up overlapping runs if one is slow.
+concurrency:
+  group: earlybird-cron
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      # Ingest first so notifications see the freshest listings.
+      - name: Ingest new listings
+        run: |
+          curl -fsS --max-time 300 -X POST "$DEPLOY_URL/api/ingest" \
+            -H "x-cron-secret: $CRON_SECRET"
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+      - name: Send notifications
+        run: |
+          curl -fsS --max-time 300 -X POST "$DEPLOY_URL/api/notify" \
+            -H "x-cron-secret: $CRON_SECRET"
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
