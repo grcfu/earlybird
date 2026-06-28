@@ -73,6 +73,26 @@ const BOARDS: AtsCompany[] = [
   { company: "PDT Partners", token: "pdtpartners" },
   { company: "Squarepoint Capital", token: "squarepointcapital" },
   { company: "Flow Traders", token: "flowtraders" },
+  // More verified additions:
+  { company: "Gong", token: "gongio" },
+  { company: "LaunchDarkly", token: "launchdarkly" },
+  { company: "Lattice", token: "lattice" },
+  { company: "Calendly", token: "calendly" },
+  { company: "Marqeta", token: "marqeta" },
+  { company: "Bill.com", token: "billcom" },
+  { company: "Lithic", token: "lithic" },
+  { company: "Fireblocks", token: "fireblocks" },
+  { company: "Abnormal Security", token: "abnormalsecurity" },
+  { company: "Tailscale", token: "tailscale" },
+  { company: "Orca Security", token: "orcasecurity" },
+  { company: "Dremio", token: "dremio" },
+  { company: "Zipline", token: "flyzipline" },
+  { company: "Figure", token: "figureai" },
+  { company: "Aurora", token: "aurorainnovation" },
+  { company: "Stability AI", token: "stabilityai" },
+  { company: "Hume AI", token: "humeai" },
+  { company: "AssemblyAI", token: "assemblyai" },
+  { company: "Imbue", token: "imbue" },
 ];
 
 interface GhJob {

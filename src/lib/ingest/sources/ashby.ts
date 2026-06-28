@@ -37,6 +37,14 @@ const BOARDS: AtsCompany[] = [
   { company: "Railway", token: "railway" },
   { company: "Browserbase", token: "browserbase" },
   { company: "Zed", token: "zed" },
+  // More verified additions:
+  { company: "Harvey", token: "harvey" },
+  { company: "Vanta", token: "vanta" },
+  { company: "Synthesia", token: "synthesia" },
+  { company: "Lovable", token: "lovable" },
+  { company: "Drata", token: "drata" },
+  { company: "Granola", token: "granola" },
+  { company: "Pika", token: "pika" },
 ];
 
 interface AshbyJob {

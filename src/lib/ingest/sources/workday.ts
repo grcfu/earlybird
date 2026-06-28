@@ -55,6 +55,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "paypal.wd1.myworkdayjobs.com",
     site: "jobs",
   },
+  {
+    company: "Citi",
+    token: "citi",
+    host: "citi.wd5.myworkdayjobs.com",
+    site: "2",
+  },
+  {
+    company: "Target",
+    token: "target",
+    host: "target.wd5.myworkdayjobs.com",
+    site: "targetcareers",
+  },
 ];
 
 interface WdPosting {
