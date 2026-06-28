@@ -28,7 +28,7 @@ export function ListingCard({
       className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
         applied ? "opacity-55 saturate-[0.5]" : ""
       }`}
-      style={{ borderLeftColor: fresh ? "var(--color-sky)" : cat.color }}
+      style={{ borderLeftColor: fresh ? "var(--color-accent-bright)" : cat.color }}
     >
       <div className="min-w-0 flex-1 py-0.5">
         {/* Top line: company · category · fresh flag */}
@@ -40,18 +40,19 @@ export function ListingCard({
             className="rounded-md border border-line px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider"
             style={{
               color: cat.color,
-              background: "color-mix(in oklab, " + cat.color + " 12%, white)",
+              background:
+                "color-mix(in oklab, " + cat.color + " 18%, var(--color-surface))",
             }}
           >
             {cat.label}
           </span>
           {fresh && (
-            <span className="rounded-md bg-blue-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-blue-ink">
+            <span className="rounded-md bg-accent-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-accent-ink">
               new
             </span>
           )}
           {applied && (
-            <span className="rounded-md bg-blue-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-blue-deep">
+            <span className="rounded-md bg-leaf-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-leaf">
               ✓ applied
             </span>
           )}
@@ -89,10 +90,10 @@ export function ListingCard({
             onClick={onToggleApplied}
             aria-pressed={applied}
             title={applied ? "Mark as not applied" : "Mark as applied"}
-            className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-sm font-bold leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${
+            className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-sm font-bold leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-leaf ${
               applied
-                ? "border-blue bg-blue text-white"
-                : "border-line bg-canvas text-transparent hover:border-blue-bright hover:bg-blue-soft"
+                ? "border-leaf bg-leaf text-canvas"
+                : "border-line bg-canvas text-transparent hover:border-leaf hover:bg-leaf-soft"
             }`}
           >
             ✓
@@ -102,7 +103,7 @@ export function ListingCard({
           href={listing.applyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="pop rounded-lg bg-blue px-4 py-1.5 text-sm font-semibold text-white shadow-pop-sm hover:bg-blue-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          className="pop rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           Apply ↗
         </a>

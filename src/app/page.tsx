@@ -38,7 +38,7 @@ export default async function Home({
       <div className="relative z-10 mb-6 flex justify-end">
         <Link
           href="/settings"
-          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-blue-deep shadow-pop-sm hover:border-blue-bright"
+          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
         >
           ⚙ manage alerts
         </Link>

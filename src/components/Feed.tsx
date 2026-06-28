@@ -139,12 +139,12 @@ export function Feed({
               onClick={() => setAppliedFilter(f.key)}
               className={`rounded-md px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-all ${
                 active
-                  ? "bg-blue text-white shadow-pop-sm"
+                  ? "bg-accent text-canvas shadow-pop-sm"
                   : "text-ink-soft hover:text-ink"
               }`}
             >
               {f.label}
-              <span className={active ? "text-white/75" : "text-ink-faint"}>
+              <span className={active ? "text-canvas/75" : "text-ink-faint"}>
                 {" "}
                 {f.count}
               </span>
@@ -186,7 +186,7 @@ export function Feed({
       <div className="py-8 text-center font-mono text-xs text-ink-soft">
         {loading && "loading more…"}
         {!loading && error && (
-          <button onClick={loadMore} className="text-danger hover:text-blue">
+          <button onClick={loadMore} className="text-danger hover:text-accent">
             failed — retry ↻
           </button>
         )}

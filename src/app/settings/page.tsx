@@ -155,7 +155,7 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between">
         <Link
           href="/"
-          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-blue-deep shadow-pop-sm hover:border-blue-bright"
+          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
         >
           ← back to feed
         </Link>
@@ -165,7 +165,7 @@ export default function SettingsPage() {
       </div>
 
       <h1 className="mt-7 font-display text-4xl font-extrabold text-ink sm:text-5xl">
-        Your <span className="text-blue">alerts</span>
+        Your <span className="text-accent">alerts</span>
       </h1>
       <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-soft">
         Get pinged the moment matching roles appear — by email, Discord, or
@@ -180,12 +180,12 @@ export default function SettingsPage() {
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onLoad()}
           placeholder="you@example.com"
-          className="flex-1 rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-sm text-ink placeholder:text-ink-faint focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft"
+          className="flex-1 rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-sm text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
         />
         <button
           onClick={onLoad}
           disabled={busy}
-          className="pop rounded-lg bg-blue px-5 py-2 text-sm font-semibold text-white shadow-pop-sm hover:bg-blue-deep disabled:opacity-50"
+          className="pop rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
         >
           Load
         </button>
@@ -195,7 +195,7 @@ export default function SettingsPage() {
         <p
           className={`mt-3 inline-block rounded-lg border px-3 py-1 font-mono text-xs ${
             status.kind === "ok"
-              ? "border-line bg-blue-soft text-blue-deep"
+              ? "border-leaf/30 bg-leaf-soft text-leaf"
               : "border-danger/30 bg-danger/10 text-danger"
           }`}
         >
@@ -220,7 +220,7 @@ export default function SettingsPage() {
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-                    <span className="rounded-md border border-line bg-blue-soft px-2 py-0.5 font-medium text-blue-ink">
+                    <span className="rounded-md border border-line bg-accent-soft px-2 py-0.5 font-medium text-accent-ink">
                       {p.channel}
                     </span>
                     <span className="text-ink-soft">{p.frequency === "INSTANT" ? "instant" : `digest @ ${p.digestHour}:00 UTC`}</span>
@@ -236,7 +236,7 @@ export default function SettingsPage() {
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => editPref(p)}
-                    className="font-mono text-[11px] text-blue-deep hover:text-blue"
+                    className="font-mono text-[11px] text-accent-deep hover:text-accent"
                   >
                     edit
                   </button>
@@ -275,13 +275,13 @@ export default function SettingsPage() {
                       }
                       className="rounded-md border px-3 py-1 font-mono text-[11px]"
                       style={{
-                        color: on ? "#ffffff" : meta.color,
+                        color: on ? "var(--color-canvas)" : meta.color,
                         background: on
                           ? meta.color
-                          : "color-mix(in oklab, " + meta.color + " 9%, white)",
+                          : "color-mix(in oklab, " + meta.color + " 16%, var(--color-surface))",
                         borderColor: on
                           ? meta.color
-                          : "color-mix(in oklab, " + meta.color + " 30%, white)",
+                          : "color-mix(in oklab, " + meta.color + " 38%, var(--color-surface))",
                       }}
                     >
                       {meta.label}
@@ -372,7 +372,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={form.activeOnly}
                 onChange={(e) => setForm((f) => ({ ...f, activeOnly: e.target.checked }))}
-                className="h-4 w-4 accent-blue"
+                className="h-4 w-4 accent-accent"
               />
               only alert about active (still-open) roles
             </label>
@@ -381,7 +381,7 @@ export default function SettingsPage() {
               <button
                 onClick={save}
                 disabled={busy}
-                className="pop rounded-lg bg-blue px-5 py-2 text-sm font-semibold text-white shadow-pop-sm hover:bg-blue-deep disabled:opacity-50"
+                className="pop rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
               >
                 {form.id ? "Update alert" : "Create alert"}
               </button>
@@ -444,7 +444,7 @@ function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft"
+      className="w-full rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
     />
   );
 }
@@ -462,7 +462,7 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft"
+      className="w-full rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
     >
       {options.map(([v, label]) => (
         <option key={v} value={v} className="bg-surface">

@@ -83,7 +83,7 @@ export function FilterBar() {
                 onClick={() => commit((p) => p.set("window", w.key))}
                 className={`rounded-md px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider transition-all ${
                   active
-                    ? "bg-blue text-white shadow-pop-sm"
+                    ? "bg-accent text-canvas shadow-pop-sm"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
@@ -100,7 +100,7 @@ export function FilterBar() {
               value={loc}
               onChange={(e) => onLoc(e.target.value)}
               placeholder="location…"
-              className="w-36 rounded-lg border border-line bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft sm:w-44"
+              className="w-36 rounded-lg border border-line bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft sm:w-44"
             />
           </div>
 
@@ -112,7 +112,7 @@ export function FilterBar() {
                 onClick={() => commit((p) => p.set("sponsorship", s.key))}
                 className={`rounded-md px-2.5 py-1 font-mono text-[11px] transition-all ${
                   sponsorship === s.key
-                    ? "bg-surface text-blue-deep shadow-pop-sm"
+                    ? "bg-accent text-canvas shadow-pop-sm"
                     : "text-ink-faint hover:text-ink"
                 }`}
               >
@@ -130,13 +130,13 @@ export function FilterBar() {
             }
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] transition-all ${
               activeOnly
-                ? "border-blue-bright bg-blue-soft text-blue-deep"
+                ? "border-accent-bright bg-accent-soft text-accent-deep"
                 : "border-line bg-canvas text-ink-faint hover:text-ink"
             }`}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                activeOnly ? "bg-blue" : "bg-ink-faint"
+                activeOnly ? "bg-accent" : "bg-ink-faint"
               }`}
             />
             active only
@@ -155,13 +155,13 @@ export function FilterBar() {
               onClick={() => toggleCat(key)}
               className="rounded-md border px-3 py-1 font-mono text-[11px] tracking-wide transition-all"
               style={{
-                color: active ? "#ffffff" : meta.color,
+                color: active ? "var(--color-canvas)" : meta.color,
                 background: active
                   ? meta.color
-                  : "color-mix(in oklab, " + meta.color + " 9%, white)",
+                  : "color-mix(in oklab, " + meta.color + " 16%, var(--color-surface))",
                 borderColor: active
                   ? meta.color
-                  : "color-mix(in oklab, " + meta.color + " 30%, white)",
+                  : "color-mix(in oklab, " + meta.color + " 38%, var(--color-surface))",
               }}
             >
               {meta.label}
