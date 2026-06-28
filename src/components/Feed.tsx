@@ -27,6 +27,11 @@ export function Feed({
   // Applied roles, kept in localStorage. Starts empty so server + first client
   // render match; the real set is hydrated in the effect below.
   const [applied, setApplied] = useState<Set<string>>(new Set());
+  // Client-side view filter over the loaded roles (applied state isn't known to
+  // the server, so this can't live in the URL like the other filters).
+  const [appliedFilter, setAppliedFilter] = useState<
+    "all" | "unapplied" | "applied"
+  >("all");
 
   useEffect(() => {
     try {
@@ -106,20 +111,81 @@ export function Feed({
     );
   }
 
+  const appliedCount = listings.reduce(
+    (n, l) => (applied.has(l.id) ? n + 1 : n),
+    0,
+  );
+  const FILTERS: { key: typeof appliedFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: listings.length },
+    { key: "unapplied", label: "Unapplied", count: listings.length - appliedCount },
+    { key: "applied", label: "Applied", count: appliedCount },
+  ];
+
+  const visible =
+    appliedFilter === "all"
+      ? listings
+      : listings.filter((l) =>
+          appliedFilter === "applied"
+            ? applied.has(l.id)
+            : !applied.has(l.id),
+        );
+
   return (
     <div>
-      <div className="flex flex-col gap-3">
-        {listings.map((l, i) => (
-          <ListingCard
-            key={l.id}
-            listing={l}
-            now={now}
-            index={i}
-            applied={applied.has(l.id)}
-            onToggleApplied={() => toggleApplied(l.id)}
-          />
-        ))}
+      {/* Applied view filter */}
+      <div className="mb-3 inline-flex border-2 border-ink bg-card p-1 shadow-pop-sm">
+        {FILTERS.map((f) => {
+          const active = appliedFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setAppliedFilter(f.key)}
+              className={`px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider transition-all ${
+                active
+                  ? "bg-pesto text-white"
+                  : "text-ink-soft hover:bg-pesto-soft hover:text-ink"
+              }`}
+            >
+              {f.label}
+              <span className={active ? "text-white/75" : "text-ink-faint"}>
+                {" "}
+                {f.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {visible.length === 0 ? (
+        <div className="border-2 border-dashed border-ink bg-card/70 px-6 py-16 text-center">
+          <p className="text-3xl" aria-hidden>
+            {appliedFilter === "applied" ? "🌱" : "🎉"}
+          </p>
+          <p className="mt-2 font-display text-xl text-ink">
+            {appliedFilter === "applied"
+              ? "Nothing checked off yet."
+              : "You've applied to everything here!"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-ink-soft">
+            {appliedFilter === "applied"
+              ? "Tick the ✓ on a role to track it here."
+              : "Switch to All or load more roles."}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {visible.map((l, i) => (
+            <ListingCard
+              key={l.id}
+              listing={l}
+              now={now}
+              index={i}
+              applied={applied.has(l.id)}
+              onToggleApplied={() => toggleApplied(l.id)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Sentinel + status */}
       <div ref={sentinelRef} className="h-px" />
