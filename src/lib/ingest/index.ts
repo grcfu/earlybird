@@ -139,6 +139,19 @@ async function bulkUpsert(
   return { created, updated };
 }
 
+// Mark roles inactive once they've gone unseen for a while. Every run bumps
+// lastSeenAt for roles still present on a source, so anything older than the
+// grace window has dropped off every source (i.e. the posting closed). The
+// 2-day grace tolerates transient single-run source failures without flipping
+// still-open roles to inactive. Returns the number deactivated.
+async function deactivateStale(): Promise<number> {
+  const res = await prisma.$executeRawUnsafe(
+    `UPDATE "Listing" SET active = false, "updatedAt" = now()
+     WHERE active = true AND "lastSeenAt" < now() - interval '2 days'`,
+  );
+  return typeof res === "number" ? res : 0;
+}
+
 // Run a full ingest: load every source, merge across sources, bulk-upsert.
 // Never throws — returns a summary even if some sources failed.
 export async function ingestAll(): Promise<IngestSummary> {
@@ -155,12 +168,17 @@ export async function ingestAll(): Promise<IngestSummary> {
   const { merged, collapsed } = mergeListings(allListings, sourcePriority);
   const { created, updated } = await bulkUpsert(merged, runAt);
 
+  // Only sweep for stale roles when this run actually ingested something —
+  // guards against deactivating everything if every source happened to fail.
+  const deactivated = merged.length > 0 ? await deactivateStale() : 0;
+
   const summary: IngestSummary = {
     sources: loaded.map((l) => l.result),
     collapsed,
     persisted: merged.length,
     created,
     updated,
+    deactivated,
     failedSources: loaded.filter((l) => l.result.error).length,
     durationMs: Date.now() - start,
   };
@@ -175,7 +193,8 @@ export async function ingestAll(): Promise<IngestSummary> {
   console.log(
     `[ingest] merged ${allListings.length} → ${merged.length} rows ` +
       `(${collapsed} cross-source dupes collapsed); ` +
-      `${created} new, ${updated} updated in ${summary.durationMs}ms`,
+      `${created} new, ${updated} updated, ${deactivated} deactivated ` +
+      `in ${summary.durationMs}ms`,
   );
 
   return summary;

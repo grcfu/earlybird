@@ -46,6 +46,7 @@ export interface IngestSummary {
   persisted: number; // distinct rows written (created + updated)
   created: number; // brand-new rows
   updated: number; // existing rows refreshed
+  deactivated: number; // rows marked inactive after vanishing from sources
   failedSources: number;
   durationMs: number;
 }
