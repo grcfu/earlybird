@@ -194,6 +194,21 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
     `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level'`,
   );
 
+  // Grad-cycle eligibility (always on): keep a role if neither its title nor its
+  // season names a year (cycle unknown → keep), OR the named year is one of the
+  // summers you're eligible for. Drops only roles positively tagged a wrong
+  // cycle (stale past years, or summers after you've graduated). Auto-adjusts
+  // because the eligible years are computed from today + your grad date.
+  const eligYears = eligibleSummerYears(new Date());
+  params.push(eligYears);
+  const yp = params.length;
+  conditions.push(
+    `((substring(title from '20[0-9]{2}') IS NULL ` +
+      `AND substring(coalesce(season, '') from '20[0-9]{2}') IS NULL) ` +
+      `OR substring(title from '20[0-9]{2}')::int = ANY($${yp}::int[]) ` +
+      `OR substring(coalesce(season, '') from '20[0-9]{2}')::int = ANY($${yp}::int[]))`,
+  );
+
   const clause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   return { clause, params };
 }
