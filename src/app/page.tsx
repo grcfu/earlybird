@@ -38,7 +38,7 @@ export default async function Home({
       <div className="relative z-10 mb-6 flex justify-end">
         <Link
           href="/settings"
-          className="pop border-2 border-ink bg-blush px-3 py-1.5 font-mono text-[11px] font-bold text-ink shadow-pop-sm"
+          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-blue-deep shadow-pop-sm hover:border-blue-bright"
         >
           ⚙ manage alerts
         </Link>
@@ -62,8 +62,8 @@ export default async function Home({
         />
       </main>
 
-      <footer className="mt-16 border-t-2 border-ink pt-6 font-mono text-[11px] text-ink-soft">
-        🐦 EarlyBird aggregates community-maintained internship lists · data via
+      <footer className="mt-16 border-t border-line pt-6 font-mono text-[11px] text-ink-faint">
+        EarlyBird aggregates community-maintained internship lists · data via
         vanshb03 + SimplifyJobs · newest first by posting time
       </footer>
     </div>

@@ -25,18 +25,11 @@ export function ListingCard({
   return (
     <article
       data-applied={applied}
-      className={`group animate-rise pop relative flex items-stretch gap-4 border-2 border-ink bg-card py-4 pl-0 pr-4 shadow-pop transition-all sm:gap-5 ${
-        applied ? "opacity-55 saturate-[0.45]" : ""
+      className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
+        applied ? "opacity-55 saturate-[0.5]" : ""
       }`}
-      style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
+      style={{ borderLeftColor: fresh ? "var(--color-sky)" : cat.color }}
     >
-      {/* Freshness rail — pink when <24h, otherwise the category hue. */}
-      <div
-        className="w-2 shrink-0 self-stretch border-r-2 border-ink"
-        style={{ background: fresh ? "var(--color-pink-pop)" : cat.color }}
-        aria-hidden
-      />
-
       <div className="min-w-0 flex-1 py-0.5">
         {/* Top line: company · category · fresh flag */}
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
@@ -44,27 +37,28 @@ export function ListingCard({
             {listing.company}
           </span>
           <span
-            className="border border-ink px-2 py-[1px] font-mono text-[10px] font-bold uppercase tracking-wider text-ink"
+            className="rounded-md border border-line px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider"
             style={{
-              background: "color-mix(in oklab, " + cat.color + " 38%, white)",
+              color: cat.color,
+              background: "color-mix(in oklab, " + cat.color + " 12%, white)",
             }}
           >
             {cat.label}
           </span>
           {fresh && (
-            <span className="border border-ink bg-blush px-2 py-[1px] font-mono text-[10px] font-bold uppercase tracking-wider text-ink">
-              🌸 new
+            <span className="rounded-md bg-blue-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-blue-ink">
+              new
             </span>
           )}
           {applied && (
-            <span className="border border-ink bg-pesto-soft px-2 py-[1px] font-mono text-[10px] font-bold uppercase tracking-wider text-pesto-deep">
+            <span className="rounded-md bg-blue-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-blue-deep">
               ✓ applied
             </span>
           )}
         </div>
 
         {/* Title */}
-        <h3 className="mt-1.5 truncate font-display text-xl leading-snug text-ink">
+        <h3 className="mt-1.5 truncate font-display text-lg font-bold leading-snug text-ink">
           {listing.title}
         </h3>
 
@@ -84,7 +78,7 @@ export function ListingCard({
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         <div className="flex items-center gap-2">
           <time
-            className="font-mono text-[11px] font-bold tabular-nums text-pesto-deep"
+            className="font-mono text-[11px] tabular-nums text-ink-soft"
             dateTime={listing.effectiveAt}
             title={new Date(listing.effectiveAt).toLocaleString()}
           >
@@ -95,10 +89,10 @@ export function ListingCard({
             onClick={onToggleApplied}
             aria-pressed={applied}
             title={applied ? "Mark as not applied" : "Mark as applied"}
-            className={`grid h-6 w-6 shrink-0 place-items-center border-2 border-ink text-sm font-bold leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-pop ${
+            className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-sm font-bold leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${
               applied
-                ? "bg-pesto text-white"
-                : "bg-card text-transparent hover:bg-pesto-soft"
+                ? "border-blue bg-blue text-white"
+                : "border-line bg-canvas text-transparent hover:border-blue-bright hover:bg-blue-soft"
             }`}
           >
             ✓
@@ -108,7 +102,7 @@ export function ListingCard({
           href={listing.applyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="pop border-2 border-ink bg-pesto px-4 py-1.5 text-sm font-bold text-white shadow-pop-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-pop"
+          className="pop rounded-lg bg-blue px-4 py-1.5 text-sm font-semibold text-white shadow-pop-sm hover:bg-blue-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
         >
           Apply ↗
         </a>

@@ -155,17 +155,17 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between">
         <Link
           href="/"
-          className="pop border-2 border-ink bg-card px-3 py-1.5 font-mono text-[11px] font-bold text-ink shadow-pop-sm"
+          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-blue-deep shadow-pop-sm hover:border-blue-bright"
         >
           ← back to feed
         </Link>
-        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-ink-soft">
+        <span className="font-mono text-[11px] uppercase tracking-widest text-ink-faint">
           alert settings
         </span>
       </div>
 
-      <h1 className="mt-7 font-display text-5xl font-semibold text-ink sm:text-6xl">
-        Your <span className="italic text-pink-pop">alerts</span> 🌸
+      <h1 className="mt-7 font-display text-4xl font-extrabold text-ink sm:text-5xl">
+        Your <span className="text-blue">alerts</span>
       </h1>
       <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-soft">
         Get pinged the moment matching roles appear — by email, Discord, or
@@ -180,12 +180,12 @@ export default function SettingsPage() {
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onLoad()}
           placeholder="you@example.com"
-          className="flex-1 border-2 border-ink bg-card px-3 py-2 font-mono text-sm text-ink placeholder:text-ink-faint focus:bg-blush-soft focus:outline-none"
+          className="flex-1 rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-sm text-ink placeholder:text-ink-faint focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft"
         />
         <button
           onClick={onLoad}
           disabled={busy}
-          className="pop border-2 border-ink bg-pesto px-5 py-2 text-sm font-bold text-white shadow-pop-sm disabled:opacity-50"
+          className="pop rounded-lg bg-blue px-5 py-2 text-sm font-semibold text-white shadow-pop-sm hover:bg-blue-deep disabled:opacity-50"
         >
           Load
         </button>
@@ -193,10 +193,10 @@ export default function SettingsPage() {
 
       {status && (
         <p
-          className={`mt-3 inline-block border-2 border-ink px-3 py-1 font-mono text-xs font-bold ${
+          className={`mt-3 inline-block rounded-lg border px-3 py-1 font-mono text-xs ${
             status.kind === "ok"
-              ? "bg-pesto-soft text-pesto-deep"
-              : "bg-blush-soft text-berry"
+              ? "border-line bg-blue-soft text-blue-deep"
+              : "border-danger/30 bg-danger/10 text-danger"
           }`}
         >
           {status.msg}
@@ -206,7 +206,7 @@ export default function SettingsPage() {
       {loadedEmail && (
         <>
           {/* Existing rules */}
-          <h2 className="mt-10 font-mono text-[11px] font-bold uppercase tracking-widest text-ink-soft">
+          <h2 className="mt-10 font-mono text-[11px] uppercase tracking-widest text-ink-faint">
             rules for {loadedEmail}
           </h2>
           <div className="mt-3 flex flex-col gap-2.5">
@@ -216,16 +216,16 @@ export default function SettingsPage() {
             {prefs.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between gap-3 border-2 border-ink bg-card px-4 py-3 shadow-pop-sm"
+                className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-pop-sm"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-                    <span className="border border-ink bg-pesto-soft px-2 py-0.5 font-bold text-ink">
+                    <span className="rounded-md border border-line bg-blue-soft px-2 py-0.5 font-medium text-blue-ink">
                       {p.channel}
                     </span>
                     <span className="text-ink-soft">{p.frequency === "INSTANT" ? "instant" : `digest @ ${p.digestHour}:00 UTC`}</span>
                     <span className="text-ink-faint">· {p.recencyWindowHours}h window</span>
-                    {!p.enabled && <span className="font-bold text-berry">· paused</span>}
+                    {!p.enabled && <span className="font-medium text-danger">· paused</span>}
                   </div>
                   <div className="mt-1 truncate font-mono text-[11px] text-ink-faint">
                     {p.categories.length ? p.categories.join(", ") : "all categories"}
@@ -236,13 +236,13 @@ export default function SettingsPage() {
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => editPref(p)}
-                    className="font-mono text-[11px] font-bold text-pesto-deep hover:text-pesto"
+                    className="font-mono text-[11px] text-blue-deep hover:text-blue"
                   >
                     edit
                   </button>
                   <button
                     onClick={() => remove(p.id)}
-                    className="font-mono text-[11px] font-bold text-ink-faint hover:text-berry"
+                    className="font-mono text-[11px] text-ink-faint hover:text-danger"
                   >
                     delete
                   </button>
@@ -252,8 +252,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Editor */}
-          <div className="mt-10 border-2 border-ink bg-card p-5 shadow-pop">
-            <h2 className="font-display text-3xl font-semibold text-ink">
+          <div className="mt-10 rounded-xl border border-line bg-surface p-5 shadow-pop">
+            <h2 className="font-display text-2xl font-bold text-ink">
               {form.id ? "Edit alert" : "New alert"}
             </h2>
 
@@ -273,11 +273,15 @@ export default function SettingsPage() {
                           return { ...f, categories: next };
                         })
                       }
-                      className="border-2 border-ink px-3 py-1 font-mono text-[11px] font-bold text-ink"
+                      className="rounded-md border px-3 py-1 font-mono text-[11px]"
                       style={{
+                        color: on ? "#ffffff" : meta.color,
                         background: on
                           ? meta.color
-                          : "color-mix(in oklab, " + meta.color + " 16%, white)",
+                          : "color-mix(in oklab, " + meta.color + " 9%, white)",
+                        borderColor: on
+                          ? meta.color
+                          : "color-mix(in oklab, " + meta.color + " 30%, white)",
                       }}
                     >
                       {meta.label}
@@ -368,7 +372,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={form.activeOnly}
                 onChange={(e) => setForm((f) => ({ ...f, activeOnly: e.target.checked }))}
-                className="h-4 w-4 accent-pesto"
+                className="h-4 w-4 accent-blue"
               />
               only alert about active (still-open) roles
             </label>
@@ -377,14 +381,14 @@ export default function SettingsPage() {
               <button
                 onClick={save}
                 disabled={busy}
-                className="pop border-2 border-ink bg-pesto px-5 py-2 text-sm font-bold text-white shadow-pop-sm disabled:opacity-50"
+                className="pop rounded-lg bg-blue px-5 py-2 text-sm font-semibold text-white shadow-pop-sm hover:bg-blue-deep disabled:opacity-50"
               >
                 {form.id ? "Update alert" : "Create alert"}
               </button>
               {form.id && (
                 <button
                   onClick={resetForm}
-                  className="border-2 border-ink bg-card px-4 py-2 font-mono text-xs font-bold text-ink-soft hover:bg-paper-2 hover:text-ink"
+                  className="rounded-lg border border-line bg-surface px-4 py-2 font-mono text-xs text-ink-soft hover:bg-mist hover:text-ink"
                 >
                   cancel edit
                 </button>
@@ -416,7 +420,7 @@ function Field({
   return (
     <div className="mt-4">
       <div className="mb-1.5 flex items-baseline gap-2">
-        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-ink">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
           {label}
         </span>
         {hint && <span className="font-mono text-[10px] text-ink-faint">{hint}</span>}
@@ -440,7 +444,7 @@ function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full border-2 border-ink bg-paper px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:bg-blush-soft focus:outline-none"
+      className="w-full rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft"
     />
   );
 }
@@ -458,10 +462,10 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full border-2 border-ink bg-paper px-3 py-2 font-mono text-xs text-ink focus:bg-blush-soft focus:outline-none"
+      className="w-full rounded-lg border border-line bg-canvas px-3 py-2 font-mono text-xs text-ink focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft"
     >
       {options.map(([v, label]) => (
-        <option key={v} value={v} className="bg-card">
+        <option key={v} value={v} className="bg-surface">
           {label}
         </option>
       ))}

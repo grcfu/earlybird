@@ -68,23 +68,23 @@ export function FilterBar() {
 
   return (
     <div
-      className={`relative z-10 border-2 border-ink bg-card p-3 shadow-pop transition-opacity sm:p-4 ${
+      className={`relative z-10 rounded-xl border border-line bg-surface p-3 shadow-pop transition-opacity sm:p-4 ${
         isPending ? "opacity-70" : "opacity-100"
       }`}
     >
       {/* Recency toggle — the headline control */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex border-2 border-ink bg-paper p-1">
+        <div className="inline-flex rounded-lg border border-line bg-mist p-1">
           {WINDOWS.map((w) => {
             const active = window === w.key;
             return (
               <button
                 key={w.key}
                 onClick={() => commit((p) => p.set("window", w.key))}
-                className={`px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                className={`rounded-md px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider transition-all ${
                   active
-                    ? "bg-pesto text-white"
-                    : "text-ink-soft hover:bg-pesto-soft hover:text-ink"
+                    ? "bg-blue text-white shadow-pop-sm"
+                    : "text-ink-soft hover:text-ink"
                 }`}
               >
                 {w.label}
@@ -100,19 +100,19 @@ export function FilterBar() {
               value={loc}
               onChange={(e) => onLoc(e.target.value)}
               placeholder="location…"
-              className="w-36 border-2 border-ink bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint focus:bg-blush-soft focus:outline-none sm:w-44"
+              className="w-36 rounded-lg border border-line bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-blue-bright focus:outline-none focus:ring-2 focus:ring-blue-soft sm:w-44"
             />
           </div>
 
           {/* Sponsorship */}
-          <div className="hidden border-2 border-ink bg-paper p-1 sm:inline-flex">
+          <div className="hidden rounded-lg border border-line bg-mist p-1 sm:inline-flex">
             {SPONSORSHIP.map((s) => (
               <button
                 key={s.key}
                 onClick={() => commit((p) => p.set("sponsorship", s.key))}
-                className={`px-2.5 py-1 font-mono text-[11px] font-bold transition-all ${
+                className={`rounded-md px-2.5 py-1 font-mono text-[11px] transition-all ${
                   sponsorship === s.key
-                    ? "bg-blush text-ink"
+                    ? "bg-surface text-blue-deep shadow-pop-sm"
                     : "text-ink-faint hover:text-ink"
                 }`}
               >
@@ -128,15 +128,15 @@ export function FilterBar() {
                 activeOnly ? p.set("activeOnly", "false") : p.delete("activeOnly"),
               )
             }
-            className={`inline-flex items-center gap-1.5 border-2 border-ink px-3 py-1.5 font-mono text-[11px] font-bold transition-all ${
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] transition-all ${
               activeOnly
-                ? "bg-pesto-soft text-ink"
-                : "bg-paper text-ink-faint hover:text-ink"
+                ? "border-blue-bright bg-blue-soft text-blue-deep"
+                : "border-line bg-canvas text-ink-faint hover:text-ink"
             }`}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                activeOnly ? "bg-pesto" : "bg-ink-faint"
+                activeOnly ? "bg-blue" : "bg-ink-faint"
               }`}
             />
             active only
@@ -153,12 +153,15 @@ export function FilterBar() {
             <button
               key={key}
               onClick={() => toggleCat(key)}
-              className="border-2 border-ink px-3 py-1 font-mono text-[11px] font-bold tracking-wide transition-all"
+              className="rounded-md border px-3 py-1 font-mono text-[11px] tracking-wide transition-all"
               style={{
-                color: "var(--color-ink)",
+                color: active ? "#ffffff" : meta.color,
                 background: active
                   ? meta.color
-                  : "color-mix(in oklab, " + meta.color + " 16%, white)",
+                  : "color-mix(in oklab, " + meta.color + " 9%, white)",
+                borderColor: active
+                  ? meta.color
+                  : "color-mix(in oklab, " + meta.color + " 30%, white)",
               }}
             >
               {meta.label}
@@ -168,7 +171,7 @@ export function FilterBar() {
         {selectedCats.size > 0 && (
           <button
             onClick={() => commit((p) => p.delete("categories"))}
-            className="px-2.5 py-1 font-mono text-[11px] font-bold text-ink-faint hover:text-berry"
+            className="rounded-md px-2.5 py-1 font-mono text-[11px] text-ink-faint hover:text-danger"
           >
             clear ✕
           </button>

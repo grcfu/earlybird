@@ -97,11 +97,8 @@ export function Feed({
 
   if (listings.length === 0) {
     return (
-      <div className="border-2 border-dashed border-ink bg-card/70 px-6 py-20 text-center">
-        <p className="text-4xl" aria-hidden>
-          🌱
-        </p>
-        <p className="mt-3 font-display text-2xl text-ink">
+      <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-20 text-center">
+        <p className="font-display text-2xl font-bold text-ink">
           No roles in this window.
         </p>
         <p className="mt-2 font-mono text-xs text-ink-soft">
@@ -133,17 +130,17 @@ export function Feed({
   return (
     <div>
       {/* Applied view filter */}
-      <div className="mb-3 inline-flex border-2 border-ink bg-card p-1 shadow-pop-sm">
+      <div className="mb-3 inline-flex rounded-lg border border-line bg-mist p-1">
         {FILTERS.map((f) => {
           const active = appliedFilter === f.key;
           return (
             <button
               key={f.key}
               onClick={() => setAppliedFilter(f.key)}
-              className={`px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider transition-all ${
+              className={`rounded-md px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-all ${
                 active
-                  ? "bg-pesto text-white"
-                  : "text-ink-soft hover:bg-pesto-soft hover:text-ink"
+                  ? "bg-blue text-white shadow-pop-sm"
+                  : "text-ink-soft hover:text-ink"
               }`}
             >
               {f.label}
@@ -157,11 +154,8 @@ export function Feed({
       </div>
 
       {visible.length === 0 ? (
-        <div className="border-2 border-dashed border-ink bg-card/70 px-6 py-16 text-center">
-          <p className="text-3xl" aria-hidden>
-            {appliedFilter === "applied" ? "🌱" : "🎉"}
-          </p>
-          <p className="mt-2 font-display text-xl text-ink">
+        <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
+          <p className="font-display text-xl font-bold text-ink">
             {appliedFilter === "applied"
               ? "Nothing checked off yet."
               : "You've applied to everything here!"}
@@ -189,14 +183,14 @@ export function Feed({
 
       {/* Sentinel + status */}
       <div ref={sentinelRef} className="h-px" />
-      <div className="py-8 text-center font-mono text-xs font-bold text-ink-soft">
-        {loading && "loading more… 🐛"}
+      <div className="py-8 text-center font-mono text-xs text-ink-soft">
+        {loading && "loading more…"}
         {!loading && error && (
-          <button onClick={loadMore} className="text-berry hover:text-pink-pop">
+          <button onClick={loadMore} className="text-danger hover:text-blue">
             failed — retry ↻
           </button>
         )}
-        {!loading && !error && !cursor && "— end of feed 🌷 —"}
+        {!loading && !error && !cursor && "— end of feed —"}
       </div>
     </div>
   );
