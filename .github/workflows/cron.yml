@@ -26,14 +26,22 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # Available to every step: postinstall runs `prisma generate`, and ingest
+    # writes to the DB. (prisma generate doesn't connect, but having it set is
+    # harmless and keeps all steps uniform.)
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci
-      - run: npx prisma generate
+      # `npm install` (not `npm ci`): the macOS-generated lockfile can miss
+      # Linux-only optional deps (@emnapi/*, native bindings), which makes the
+      # strict `npm ci` fail on the runner. install resolves them at runtime.
+      # postinstall generates the Prisma client.
+      - run: npm install --no-audit --no-fund
 
       # Ingest directly on the runner — all sources (aggregators + ATS boards).
       # ingestAll() never throws; per-source failures are printed in the summary.
