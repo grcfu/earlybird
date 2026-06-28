@@ -1,47 +1,51 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   EarlyBird — "Blueprint"
-   A calm, minimal interface in black, white, and many shades of blue. Clean
-   hairline borders, soft shadows, gentle rounded corners, and a friendly but
-   professional geometric sans — easy to read, quietly cute.
+   EarlyBird — "Cacao"
+   A warm, professional dark theme: deep espresso-brown surfaces, cream and
+   multi-shade pink text, with quiet sprinkles of green. Calm, legible, premium.
    ========================================================================== */
 
 @theme {
-  /* Surfaces — crisp white with a faint blue-gray for depth */
-  --color-canvas: #ffffff;
-  --color-surface: #ffffff;
-  --color-mist: #f3f6fb;
-  --color-line: #d8e2f0;
-  --color-line-strong: #c2d2ea;
+  /* Surfaces — deep warm browns, raised = lighter */
+  --color-canvas: #1b1310;
+  --color-surface: #251a15;
+  --color-mist: #2f221b;
+  --color-line: #43332a;
+  --color-line-strong: #5a4538;
 
-  /* Text — near-black through to muted slate */
-  --color-ink: #0b1220;
-  --color-ink-soft: #4a5872;
-  --color-ink-faint: #8a98b5;
+  /* Text — warm cream through to muted taupe */
+  --color-ink: #f6ece3;
+  --color-ink-soft: #cbb4a8;
+  --color-ink-faint: #9a8276;
 
-  /* Blues — the whole accent system, light to deep */
-  --color-blue-soft: #e8f0fe;
-  --color-blue-bright: #3b82f6;
-  --color-blue: #2563eb;
-  --color-blue-deep: #1d4ed8;
-  --color-blue-ink: #1b3a8f;
-  --color-sky: #0ea5e9;
-  --color-danger: #dc2626;
+  /* Pink — the accent system, light to deep */
+  --color-accent-soft: #3c2530; /* dark pink fill for chips on dark */
+  --color-accent-ink: #f7afca; /* light pink text */
+  --color-accent-bright: #f48cb2;
+  --color-accent: #ec6f9d;
+  --color-accent-deep: #d2517f;
 
-  /* Category hues — distinct shades of blue */
-  --color-cat-swe: #2563eb;
-  --color-cat-ml: #4f46e5;
-  --color-cat-data: #0ea5e9;
-  --color-cat-quant: #3b82f6;
-  --color-cat-hardware: #0891b2;
-  --color-cat-pm: #1d4ed8;
-  --color-cat-other: #64748b;
+  /* Green — the sprinkle accent (success / live) */
+  --color-leaf-soft: #213024;
+  --color-leaf: #86d3a0;
+  --color-leaf-deep: #5cab78;
 
-  /* Soft, minimal shadows */
-  --shadow-pop: 0 1px 2px rgba(11, 18, 32, 0.05), 0 6px 16px rgba(11, 18, 32, 0.06);
-  --shadow-pop-sm: 0 1px 2px rgba(11, 18, 32, 0.07);
-  --shadow-pop-lg: 0 10px 28px rgba(11, 18, 32, 0.1);
+  --color-danger: #f08a8a;
+
+  /* Category hues — pinks with a couple of greens, light for dark surfaces */
+  --color-cat-swe: #ef82ab;
+  --color-cat-ml: #d98cc8;
+  --color-cat-data: #86d3a0;
+  --color-cat-quant: #f3a6c0;
+  --color-cat-hardware: #e8916f;
+  --color-cat-pm: #b9c77e;
+  --color-cat-other: #c4a99a;
+
+  /* Soft shadows tuned for a dark backdrop */
+  --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 22px rgba(0, 0, 0, 0.32);
+  --shadow-pop-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop-lg: 0 14px 34px rgba(0, 0, 0, 0.45);
 
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
@@ -55,12 +59,17 @@ html {
 }
 
 body {
-  /* A faint blue light from the top — atmosphere without clutter. */
+  /* A soft pink glow on one side, a faint green on the other — warmth + depth. */
   background:
     radial-gradient(
-      100% 50% at 50% -12%,
-      color-mix(in oklab, var(--color-blue) 11%, transparent) 0%,
-      transparent 55%
+      95% 50% at 8% -10%,
+      color-mix(in oklab, var(--color-accent) 22%, transparent) 0%,
+      transparent 48%
+    ),
+    radial-gradient(
+      85% 45% at 95% -6%,
+      color-mix(in oklab, var(--color-leaf) 14%, transparent) 0%,
+      transparent 50%
     ),
     var(--color-canvas);
   background-attachment: fixed;
@@ -96,11 +105,11 @@ body {
   animation: bob 3.4s ease-in-out infinite;
 }
 
-/* Pulse ring for the "live" dot. */
+/* Pulse ring for the "live" dot (green). */
 @keyframes livepulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-blue) 60%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-leaf) 60%, transparent);
   }
   70% {
     box-shadow: 0 0 0 6px transparent;
@@ -135,7 +144,7 @@ body {
   transform: translateY(0);
 }
 
-/* Slim blue scrollbar. */
+/* Slim scrollbar. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-line-strong) transparent;

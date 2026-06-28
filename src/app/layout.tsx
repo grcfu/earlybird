@@ -37,7 +37,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${display.variable} ${body.variable} ${mono.variable} h-full antialiased`}
-      style={{ colorScheme: "light" }}
+      style={{ colorScheme: "dark" }}
     >
       <body className="min-h-full">{children}</body>
     </html>
