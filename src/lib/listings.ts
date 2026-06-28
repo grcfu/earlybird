@@ -6,6 +6,7 @@ import {
   windowCutoff,
   type RecencyWindow,
 } from "@/lib/recency";
+import { eligibleSummerYears } from "@/lib/eligibility";
 
 export type SponsorshipFilter = "any" | "sponsors" | "no";
 
@@ -185,6 +186,12 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
   conditions.push(
     `(cardinality(locations) = 0 OR EXISTS (` +
       `SELECT 1 FROM unnest(locations) loc WHERE loc !~* $${params.length}))`,
+  );
+
+  // Internships only (always on): drop new-grad / entry-level / full-time roles
+  // that slip past the per-source internship filter.
+  conditions.push(
+    `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level'`,
   );
 
   const clause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
