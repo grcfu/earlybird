@@ -1,25 +1,24 @@
 import type { Metadata } from "next";
-import { Fraunces, Hanken_Grotesk, Space_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 
-// Wonky, soft display serif for the wordmark + big numbers — characterful and
-// editorial, cute when set in italic.
-const displaySerif = Fraunces({
+// Friendly, geometric, highly readable sans — professional with a touch of
+// roundness. Used for both display and body to keep the look minimal.
+const display = Plus_Jakarta_Sans({
   variable: "--font-display",
-  style: ["normal", "italic"],
+  weight: ["600", "700", "800"],
   subsets: ["latin"],
 });
 
-// Clean, friendly grotesque for UI/body.
-const bodySans = Hanken_Grotesk({
+const body = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-// Characterful mono for timestamps, counts, and tag-like labels.
-const mono = Space_Mono({
+// Clean mono for timestamps, counts, and tag-like labels.
+const mono = DM_Mono({
   variable: "--font-mono",
-  weight: ["400", "700"],
+  weight: ["400", "500"],
   subsets: ["latin"],
 });
 
@@ -37,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${displaySerif.variable} ${bodySans.variable} ${mono.variable} h-full antialiased`}
+      className={`${display.variable} ${body.variable} ${mono.variable} h-full antialiased`}
       style={{ colorScheme: "light" }}
     >
       <body className="min-h-full">{children}</body>
