@@ -1,6 +1,7 @@
 import type { ListingRow } from "@/lib/listings";
 import { categoryMeta } from "@/lib/categories";
 import { relativeTime, isFresh24h } from "@/lib/time";
+import { listingCycle } from "@/lib/eligibility";
 import {
   STATUS_LABEL,
   STATUS_CLASS,
@@ -46,6 +47,7 @@ export function ListingCard({
   const cat = categoryMeta(listing.category);
   const fresh = isFresh24h(listing.effectiveAt, now);
   const applied = isApplied(status);
+  const cycle = listingCycle(listing.season, listing.title, listing.effectiveAt);
   const locations = listing.locations.length
     ? listing.locations.slice(0, 3).join("  ·  ") +
       (listing.locations.length > 3 ? `  +${listing.locations.length - 3}` : "")
@@ -57,7 +59,10 @@ export function ListingCard({
       className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
         status === "rejected" ? "opacity-50 saturate-[0.4]" : ""
       } ${unseen && !applied ? "ring-1 ring-accent/50" : ""}`}
-      style={{ borderLeftColor: fresh ? "var(--color-accent-bright)" : cat.color }}
+      style={{
+        borderLeftColor: fresh ? "var(--color-accent-bright)" : cat.color,
+        animationDelay: `${Math.min(index, 12) * 35}ms`,
+      }}
     >
       <div className="min-w-0 flex-1 py-0.5">
         {/* Top line: company · badges */}
@@ -83,6 +88,18 @@ export function ListingCard({
           >
             {cat.label}
           </span>
+          {cycle && (
+            <span
+              className="rounded-md border border-line px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-ink-soft"
+              title={
+                cycle.estimated
+                  ? "Estimated from the posting date — title/season didn't state a year"
+                  : "From the role's stated season/title"
+              }
+            >
+              {cycle.estimated ? "~" : ""}Summer {cycle.year}
+            </span>
+          )}
           {status && (
             <span
               className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STATUS_CLASS[status]}`}
