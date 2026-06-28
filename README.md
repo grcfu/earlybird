@@ -55,10 +55,20 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## How it works
 
-- **Ingestion** (`src/lib/ingest`) pulls from the configured sources (vanshb03 +
-  SimplifyJobs JSON feeds), categorizes roles, and dedupes by a hash of
-  company + title + URL host/path so the same role across sources collapses to one
-  listing.
+- **Ingestion** (`src/lib/ingest`) pulls from two kinds of sources, categorizes
+  roles, and dedupes by a hash of company + title + URL host/path so the same
+  role across sources collapses into one listing (the earliest known
+  `datePosted` wins, so the truest "went live" time is kept):
+  - **Direct company ATS** — `boards-api.greenhouse.io`, `api.lever.co`,
+    `api.ashbyhq.com`, Workday (`*.myworkdayjobs.com`), and `amazon.jobs`. These
+    are each company's own source of truth, so a new role appears within ~1h of
+    posting — typically days before the aggregators. Company registries live in
+    `src/lib/ingest/sources/*.ts`; add a verified board token to expand coverage.
+  - **Community aggregators** — vanshb03 + SimplifyJobs JSON feeds (broad, but lag).
+
+  ATS sources are listed first so their direct apply links and fresh dates win in
+  the merge. Each ATS board is filtered to internships by title
+  (`src/lib/ingest/internship.ts`).
 - **Recency** is tracked via a materialized `effectiveAt` column (the posting date
   when present and sane, otherwise the time we first saw it), which powers the
   "newest in the last N days" views.
@@ -89,11 +99,10 @@ npm run notify   # scripts/notify.ts
 ## Cron & deployment
 
 The app is **hosted on Vercel** (the free Hobby plan is fine — it runs the
-Node/Postgres app without issue). Scheduling, however, is driven by **GitHub
-Actions**, not Vercel Cron: Vercel's Hobby plan caps cron at once per day, whereas
-a GitHub Actions schedule runs **hourly for free**. The workflow lives in
-[`.github/workflows/cron.yml`](./.github/workflows/cron.yml) and simply `curl`s the
-deployed endpoints every hour (ingest first, then notify):
+Node/Postgres app without issue). Scheduling is driven by **GitHub Actions**, not
+Vercel Cron: Vercel's Hobby plan caps cron at once per day, whereas a GitHub
+Actions schedule runs **hourly for free**. The workflow lives in
+[`.github/workflows/cron.yml`](./.github/workflows/cron.yml) and runs hourly:
 
 ```yaml
 on:
@@ -101,11 +110,17 @@ on:
     - cron: "5 * * * *" # hourly at :05 past, UTC
 ```
 
-**One-time setup.** Add two repository secrets under
+**Ingest runs on the runner**, not via the Vercel endpoint — fanning out across
+40+ company ATS boards would exceed Vercel's 60s function cap, so the Action
+checks out the repo and runs `npm run ingest` directly (hitting the DB). Notify
+stays a quick `curl` to `/api/notify`.
+
+**One-time setup.** Add these repository secrets under
 *Settings → Secrets and variables → Actions*:
 
 | Secret | Value |
 | --- | --- |
+| `DATABASE_URL` | Neon Postgres connection string — the ingest step writes to it directly |
 | `DEPLOY_URL` | Public base URL of the deployment, e.g. `https://earlybird.vercel.app` |
 | `CRON_SECRET` | Same value you set as `CRON_SECRET` in the Vercel project env |
 

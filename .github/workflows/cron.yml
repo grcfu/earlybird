@@ -1,13 +1,18 @@
 name: Cron — ingest & notify
 
 # Hourly scheduler for EarlyBird. The app is hosted on Vercel (free Hobby plan,
-# which only allows once-a-day Vercel Cron), so we drive ingestion + notifications
-# from GitHub Actions instead — its scheduled trigger is free and runs hourly.
+# which only allows once-a-day Vercel Cron), so GitHub Actions drives the cron —
+# free and hourly.
 #
-# Setup (one time): add two repository secrets under
+# Ingest runs DIRECTLY on the runner (npm run ingest), not via the Vercel
+# endpoint: it fans out across 40+ company ATS boards and would blow past
+# Vercel's 60s function cap. Notify stays a quick call to the deployed endpoint.
+#
+# Setup (one time) — repository secrets under
 # Settings → Secrets and variables → Actions:
-#   DEPLOY_URL   the public base URL of the deployment, e.g. https://earlybird.vercel.app
-#   CRON_SECRET  the same value set as CRON_SECRET in the Vercel project env
+#   DATABASE_URL  the Neon Postgres connection string (for the ingest step)
+#   DEPLOY_URL    public base URL of the deployment, e.g. https://earlybird.vercel.app
+#   CRON_SECRET   the same value set as CRON_SECRET in the Vercel project env
 on:
   schedule:
     - cron: "5 * * * *" # every hour at :05 past (UTC) — offset off the busy top-of-hour
@@ -22,23 +27,23 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      # Ingest first so notifications see the freshest listings.
-      # --retry rides out transient network blips / cold starts. -f makes HTTP
-      # errors fail the step; we additionally surface per-source failures (which
-      # the endpoint reports in its 200 body) as a warning.
-      - name: Ingest new listings
-        run: |
-          resp=$(curl -fsS --max-time 300 --retry 3 --retry-delay 10 --retry-all-errors \
-            -X POST "$DEPLOY_URL/api/ingest" -H "x-cron-secret: $CRON_SECRET")
-          echo "$resp" | jq .
-          failed=$(echo "$resp" | jq '.summary.failedSources // 0')
-          if [ "$failed" -gt 0 ]; then
-            echo "::warning title=Ingest::$failed source(s) failed to fetch this run"
-          fi
-        env:
-          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
 
+      # Ingest directly on the runner — all sources (aggregators + ATS boards).
+      # ingestAll() never throws; per-source failures are printed in the summary.
+      - name: Ingest new listings (all sources)
+        run: npm run ingest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # Notify via the deployed endpoint (light; fits the 60s cap). --retry rides
+      # out transient blips; surface per-preference send failures as a warning.
       - name: Send notifications
         run: |
           resp=$(curl -fsS --max-time 300 --retry 3 --retry-delay 10 --retry-all-errors \
