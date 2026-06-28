@@ -30,6 +30,31 @@ const BOARDS: WorkdayCompany[] = [
     host: "workday.wd5.myworkdayjobs.com",
     site: "Workday",
   },
+  // Verified additions:
+  {
+    company: "Adobe",
+    token: "adobe",
+    host: "adobe.wd5.myworkdayjobs.com",
+    site: "external_experienced",
+  },
+  {
+    company: "Mastercard",
+    token: "mastercard",
+    host: "mastercard.wd1.myworkdayjobs.com",
+    site: "CorporateCareers",
+  },
+  {
+    company: "Comcast",
+    token: "comcast",
+    host: "comcast.wd5.myworkdayjobs.com",
+    site: "Comcast_Careers",
+  },
+  {
+    company: "PayPal",
+    token: "paypal",
+    host: "paypal.wd1.myworkdayjobs.com",
+    site: "jobs",
+  },
 ];
 
 interface WdPosting {
