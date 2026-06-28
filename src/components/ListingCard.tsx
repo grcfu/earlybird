@@ -11,7 +11,14 @@ import {
 
 // Sources pulled straight from a company's own ATS (vs. lagging aggregators).
 // The merged source label can be e.g. "greenhouse+Simplify", so we substring-match.
-const DIRECT_SOURCES = ["greenhouse", "lever", "ashby", "workday", "amazon"];
+const DIRECT_SOURCES = [
+  "greenhouse",
+  "lever",
+  "ashby",
+  "workday",
+  "smartrecruiters",
+  "amazon",
+];
 function isDirect(source: string): boolean {
   const s = source.toLowerCase();
   return DIRECT_SOURCES.some((d) => s.includes(d));

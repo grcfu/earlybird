@@ -43,6 +43,10 @@ export function Feed({
   const [lastVisit, setLastVisit] = useState<number | null>(null);
 
   useEffect(() => {
+    // Hydrate tracking state from localStorage once, after mount. This must be
+    // post-render (not a useState initializer) so server and first client render
+    // match; the synchronous setState here is intentional.
+    /* eslint-disable react-hooks/set-state-in-effect */
     try {
       const rawStatus = localStorage.getItem(STATUS_KEY);
       if (rawStatus) {
@@ -65,6 +69,7 @@ export function Feed({
     } catch {
       /* ignore malformed storage */
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   // A role is "unseen" if it was first seen after your previous visit.
