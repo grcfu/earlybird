@@ -8,12 +8,14 @@ export function ListingCard({
   index,
   applied = false,
   onToggleApplied,
+  unseen = false,
 }: {
   listing: ListingRow;
   now: number;
   index: number;
   applied?: boolean;
   onToggleApplied?: () => void;
+  unseen?: boolean;
 }) {
   const cat = categoryMeta(listing.category);
   const fresh = isFresh24h(listing.effectiveAt, now);
@@ -27,7 +29,7 @@ export function ListingCard({
       data-applied={applied}
       className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
         applied ? "opacity-55 saturate-[0.5]" : ""
-      }`}
+      } ${unseen && !applied ? "ring-1 ring-accent/50" : ""}`}
       style={{ borderLeftColor: fresh ? "var(--color-accent-bright)" : cat.color }}
     >
       <div className="min-w-0 flex-1 py-0.5">
@@ -46,7 +48,12 @@ export function ListingCard({
           >
             {cat.label}
           </span>
-          {fresh && (
+          {unseen && !applied && (
+            <span className="rounded-md bg-accent px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-canvas">
+              ✦ unseen
+            </span>
+          )}
+          {fresh && !unseen && (
             <span className="rounded-md bg-accent-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-accent-ink">
               new
             </span>

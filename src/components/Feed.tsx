@@ -7,6 +7,8 @@ import { ListingCard } from "@/components/ListingCard";
 // Where we remember which roles you've applied to. Anonymous feed → per-browser
 // localStorage rather than a server record.
 const APPLIED_KEY = "earlybird:applied";
+// Timestamp (ms) of the previous visit, so we can flag roles first seen since.
+const LASTVISIT_KEY = "earlybird:lastVisit";
 
 export function Feed({
   initial,
@@ -33,14 +35,28 @@ export function Feed({
     "all" | "unapplied" | "applied"
   >("all");
 
+  // Previous-visit timestamp: read the stored value (for "new since last visit"
+  // highlighting), then stamp now() so the next visit compares against this one.
+  const [lastVisit, setLastVisit] = useState<number | null>(null);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(APPLIED_KEY);
       if (raw) setApplied(new Set(JSON.parse(raw) as string[]));
+      const lv = localStorage.getItem(LASTVISIT_KEY);
+      setLastVisit(lv ? Number(lv) : null);
+      localStorage.setItem(LASTVISIT_KEY, String(Date.now()));
     } catch {
       /* ignore malformed storage */
     }
   }, []);
+
+  // A role is "unseen" if it was first seen after your previous visit.
+  const isUnseen = useCallback(
+    (l: ListingRow) =>
+      lastVisit != null && new Date(l.firstSeenAt).getTime() > lastVisit,
+    [lastVisit],
+  );
 
   const toggleApplied = useCallback((id: string) => {
     setApplied((prev) => {
@@ -127,8 +143,20 @@ export function Feed({
             : !applied.has(l.id),
         );
 
+  const unseenCount = listings.reduce((n, l) => (isUnseen(l) ? n + 1 : n), 0);
+
   return (
     <div>
+      {/* New-since-last-visit banner */}
+      {unseenCount > 0 && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="pop mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 text-sm font-semibold text-accent-ink"
+        >
+          ✦ {unseenCount} new since your last visit
+        </button>
+      )}
+
       {/* Applied view filter */}
       <div className="mb-3 inline-flex rounded-lg border border-line bg-mist p-1">
         {FILTERS.map((f) => {
@@ -176,6 +204,7 @@ export function Feed({
               index={i}
               applied={applied.has(l.id)}
               onToggleApplied={() => toggleApplied(l.id)}
+              unseen={isUnseen(l)}
             />
           ))}
         </div>
