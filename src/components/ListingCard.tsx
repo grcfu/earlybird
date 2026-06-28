@@ -6,10 +6,14 @@ export function ListingCard({
   listing,
   now,
   index,
+  applied = false,
+  onToggleApplied,
 }: {
   listing: ListingRow;
   now: number;
   index: number;
+  applied?: boolean;
+  onToggleApplied?: () => void;
 }) {
   const cat = categoryMeta(listing.category);
   const fresh = isFresh24h(listing.effectiveAt, now);
@@ -20,7 +24,10 @@ export function ListingCard({
 
   return (
     <article
-      className="group animate-rise pop relative flex items-stretch gap-4 border-2 border-ink bg-card py-4 pl-0 pr-4 shadow-pop sm:gap-5"
+      data-applied={applied}
+      className={`group animate-rise pop relative flex items-stretch gap-4 border-2 border-ink bg-card py-4 pl-0 pr-4 shadow-pop transition-all sm:gap-5 ${
+        applied ? "opacity-55 saturate-[0.45]" : ""
+      }`}
       style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
     >
       {/* Freshness rail — pink when <24h, otherwise the category hue. */}
@@ -49,6 +56,11 @@ export function ListingCard({
               🌸 new
             </span>
           )}
+          {applied && (
+            <span className="border border-ink bg-pesto-soft px-2 py-[1px] font-mono text-[10px] font-bold uppercase tracking-wider text-pesto-deep">
+              ✓ applied
+            </span>
+          )}
         </div>
 
         {/* Title */}
@@ -68,15 +80,30 @@ export function ListingCard({
         </div>
       </div>
 
-      {/* Right: time + apply */}
+      {/* Right: applied checkbox · time · apply */}
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
-        <time
-          className="font-mono text-[11px] font-bold tabular-nums text-pesto-deep"
-          dateTime={listing.effectiveAt}
-          title={new Date(listing.effectiveAt).toLocaleString()}
-        >
-          {relativeTime(listing.effectiveAt, now)}
-        </time>
+        <div className="flex items-center gap-2">
+          <time
+            className="font-mono text-[11px] font-bold tabular-nums text-pesto-deep"
+            dateTime={listing.effectiveAt}
+            title={new Date(listing.effectiveAt).toLocaleString()}
+          >
+            {relativeTime(listing.effectiveAt, now)}
+          </time>
+          <button
+            type="button"
+            onClick={onToggleApplied}
+            aria-pressed={applied}
+            title={applied ? "Mark as not applied" : "Mark as applied"}
+            className={`grid h-6 w-6 shrink-0 place-items-center border-2 border-ink text-sm font-bold leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-pop ${
+              applied
+                ? "bg-pesto text-white"
+                : "bg-card text-transparent hover:bg-pesto-soft"
+            }`}
+          >
+            ✓
+          </button>
+        </div>
         <a
           href={listing.applyUrl}
           target="_blank"

@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
 
+// Where we remember which roles you've applied to. Anonymous feed → per-browser
+// localStorage rather than a server record.
+const APPLIED_KEY = "earlybird:applied";
+
 export function Feed({
   initial,
   query,
@@ -19,6 +23,33 @@ export function Feed({
   const [error, setError] = useState(false);
   // Single time reference shared by all rows; refreshed each minute on the client.
   const [now, setNow] = useState(serverNow);
+
+  // Applied roles, kept in localStorage. Starts empty so server + first client
+  // render match; the real set is hydrated in the effect below.
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(APPLIED_KEY);
+      if (raw) setApplied(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      /* ignore malformed storage */
+    }
+  }, []);
+
+  const toggleApplied = useCallback((id: string) => {
+    setApplied((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(APPLIED_KEY, JSON.stringify([...next]));
+      } catch {
+        /* ignore quota/availability errors */
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
@@ -79,7 +110,14 @@ export function Feed({
     <div>
       <div className="flex flex-col gap-3">
         {listings.map((l, i) => (
-          <ListingCard key={l.id} listing={l} now={now} index={i} />
+          <ListingCard
+            key={l.id}
+            listing={l}
+            now={now}
+            index={i}
+            applied={applied.has(l.id)}
+            onToggleApplied={() => toggleApplied(l.id)}
+          />
         ))}
       </div>
 
