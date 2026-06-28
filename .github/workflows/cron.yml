@@ -27,8 +27,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -46,6 +46,11 @@ jobs:
       # out transient blips; surface per-preference send failures as a warning.
       - name: Send notifications
         run: |
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "DEPLOY_URL is not set — skipping notify. Deploy to Vercel and add the"
+            echo "DEPLOY_URL + CRON_SECRET repo secrets to enable email/Discord/Telegram alerts."
+            exit 0
+          fi
           resp=$(curl -fsS --max-time 300 --retry 3 --retry-delay 10 --retry-all-errors \
             -X POST "$DEPLOY_URL/api/notify" -H "x-cron-secret: $CRON_SECRET")
           echo "$resp" | jq .
