@@ -27,6 +27,19 @@ async function loadSource(
   source: Source,
 ): Promise<{ result: SourceResult; listings: NormalizedListing[] }> {
   try {
+    // Provider mode: the source fetches everything itself (e.g. one ATS call
+    // per company) and reports its own raw row count.
+    if (source.load) {
+      const { listings, fetched } = await source.load();
+      return {
+        result: { source: source.name, fetched, normalized: listings.length },
+        listings,
+      };
+    }
+    // Simple-feed mode: one URL + adapt().
+    if (!source.url || !source.adapt) {
+      throw new Error("source has neither load() nor url+adapt()");
+    }
     const raw = await fetchRaw(source.url);
     const listings = source.adapt(raw);
     return {

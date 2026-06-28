@@ -19,11 +19,15 @@ export interface NormalizedListing {
 export interface Source {
   // Short stable key stored on each Listing.source (e.g. "vanshb03").
   name: string;
-  // Raw JSON URL (we fetch raw files — no GitHub API auth needed).
-  url: string;
-  // Map this source's raw payload into the common schema.
-  // Implementations should be defensive: repos drift, so validate fields.
-  adapt: (raw: unknown) => NormalizedListing[];
+  // Simple-feed mode: raw JSON URL (we fetch raw files — no auth needed).
+  url?: string;
+  // Simple-feed mode: map this source's raw payload into the common schema.
+  // Implementations should be defensive: feeds drift, so validate fields.
+  adapt?: (raw: unknown) => NormalizedListing[];
+  // Provider mode: do the whole fetch+normalize itself (e.g. an ATS that hits
+  // one endpoint per company). Returns the mapped listings plus the raw row
+  // count (before the internship filter) for the run summary.
+  load?: () => Promise<{ listings: NormalizedListing[]; fetched: number }>;
 }
 
 // Per-source fetch/normalize stats. created/updated are computed at the run
