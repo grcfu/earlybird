@@ -2,6 +2,14 @@ import type { ListingRow } from "@/lib/listings";
 import { categoryMeta } from "@/lib/categories";
 import { relativeTime, isFresh24h } from "@/lib/time";
 
+// Sources pulled straight from a company's own ATS (vs. lagging aggregators).
+// The merged source label can be e.g. "greenhouse+Simplify", so we substring-match.
+const DIRECT_SOURCES = ["greenhouse", "lever", "ashby", "workday", "amazon"];
+function isDirect(source: string): boolean {
+  const s = source.toLowerCase();
+  return DIRECT_SOURCES.some((d) => s.includes(d));
+}
+
 export function ListingCard({
   listing,
   now,
@@ -38,6 +46,14 @@ export function ListingCard({
           <span className="truncate text-[15px] font-bold text-ink">
             {listing.company}
           </span>
+          {isDirect(listing.source) && (
+            <span
+              className="rounded-md bg-leaf-soft px-2 py-[1px] font-mono text-[10px] font-medium uppercase tracking-wider text-leaf"
+              title="Pulled directly from the company's careers site — fresher than aggregators"
+            >
+              ⚡ direct
+            </span>
+          )}
           <span
             className="rounded-md border border-line px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider"
             style={{
