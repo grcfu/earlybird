@@ -23,6 +23,8 @@ export function ListingCard({
   index,
   status,
   onSetStatus,
+  note,
+  onSetNote,
   unseen = false,
 }: {
   listing: ListingRow;
@@ -30,6 +32,8 @@ export function ListingCard({
   index: number;
   status?: TrackStatus;
   onSetStatus?: (s: TrackStatus | "") => void;
+  note?: string;
+  onSetNote?: (t: string) => void;
   unseen?: boolean;
 }) {
   const cat = categoryMeta(listing.category);
@@ -106,6 +110,16 @@ export function ListingCard({
           )}
           <span className="text-ink-faint">via {listing.source}</span>
         </div>
+
+        {/* Notes — shown once you're tracking the role */}
+        {status && (
+          <input
+            value={note ?? ""}
+            onChange={(e) => onSetNote?.(e.target.value)}
+            placeholder="Add a note…"
+            className="mt-2 w-full max-w-sm rounded-md border border-line bg-canvas px-2 py-1 font-mono text-[11px] text-ink placeholder:text-ink-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          />
+        )}
       </div>
 
       {/* Right: status tracker · time · apply */}

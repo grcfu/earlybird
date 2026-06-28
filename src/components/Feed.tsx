@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
-import { isApplied, type TrackStatus } from "@/lib/track";
+import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
 
 // Per-browser application tracking (anonymous feed → localStorage, not the DB).
 const STATUS_KEY = "earlybird:status"; // { [listingId]: TrackStatus }
+const NOTES_KEY = "earlybird:notes"; // { [listingId]: string }
 const APPLIED_KEY = "earlybird:applied"; // legacy Set<id>, migrated to STATUS_KEY
 // Timestamp (ms) of the previous visit, so we can flag roles first seen since.
 const LASTVISIT_KEY = "earlybird:lastVisit";
@@ -30,6 +31,7 @@ export function Feed({
   // Application status per role, kept in localStorage. Starts empty so server +
   // first client render match; hydrated in the effect below.
   const [statuses, setStatuses] = useState<Record<string, TrackStatus>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   // Client-side view filter over the loaded roles (status isn't known to the
   // server, so this can't live in the URL like the other filters).
   const [appliedFilter, setAppliedFilter] = useState<
@@ -55,6 +57,8 @@ export function Feed({
           localStorage.setItem(STATUS_KEY, JSON.stringify(map));
         }
       }
+      const rawNotes = localStorage.getItem(NOTES_KEY);
+      if (rawNotes) setNotes(JSON.parse(rawNotes) as Record<string, string>);
       const lv = localStorage.getItem(LASTVISIT_KEY);
       setLastVisit(lv ? Number(lv) : null);
       localStorage.setItem(LASTVISIT_KEY, String(Date.now()));
@@ -77,6 +81,20 @@ export function Feed({
       else delete next[id];
       try {
         localStorage.setItem(STATUS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore quota/availability errors */
+      }
+      return next;
+    });
+  }, []);
+
+  const setNote = useCallback((id: string, text: string) => {
+    setNotes((prev) => {
+      const next = { ...prev };
+      if (text) next[id] = text;
+      else delete next[id];
+      try {
+        localStorage.setItem(NOTES_KEY, JSON.stringify(next));
       } catch {
         /* ignore quota/availability errors */
       }
@@ -198,6 +216,44 @@ export function Feed({
 
   const unseenCount = listings.reduce((n, l) => (isUnseen(l) ? n + 1 : n), 0);
 
+  // Tracked roles currently loaded in the feed, exportable as CSV.
+  const trackedRows = listings.filter((l) => statuses[l.id]);
+  const exportCsv = () => {
+    const header = [
+      "company",
+      "title",
+      "status",
+      "note",
+      "locations",
+      "applyUrl",
+      "datePosted",
+    ];
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = [header.join(",")];
+    for (const l of trackedRows) {
+      lines.push(
+        [
+          l.company,
+          l.title,
+          STATUS_LABEL[statuses[l.id]],
+          notes[l.id] ?? "",
+          l.locations.join(" | "),
+          l.applyUrl,
+          l.datePosted ?? "",
+        ]
+          .map((v) => esc(String(v)))
+          .join(","),
+      );
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "earlybird-applications.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       {/* Live: roles that appeared since you opened the page */}
@@ -222,8 +278,9 @@ export function Feed({
         </button>
       )}
 
-      {/* Applied view filter */}
-      <div className="mb-3 inline-flex rounded-lg border border-line bg-mist p-1">
+      {/* Applied view filter + CSV export */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-lg border border-line bg-mist p-1">
         {FILTERS.map((f) => {
           const active = appliedFilter === f.key;
           return (
@@ -244,6 +301,15 @@ export function Feed({
             </button>
           );
         })}
+        </div>
+        {trackedRows.length > 0 && (
+          <button
+            onClick={exportCsv}
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+          >
+            ⬇ Export {trackedRows.length} tracked
+          </button>
+        )}
       </div>
 
       {visible.length === 0 ? (
@@ -269,6 +335,8 @@ export function Feed({
               index={i}
               status={statuses[l.id]}
               onSetStatus={(s) => setStatus(l.id, s)}
+              note={notes[l.id]}
+              onSetNote={(t) => setNote(l.id, t)}
               unseen={isUnseen(l)}
             />
           ))}
