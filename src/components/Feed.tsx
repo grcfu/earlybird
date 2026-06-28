@@ -8,7 +8,20 @@ import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
 // Per-browser application tracking (anonymous feed → localStorage, not the DB).
 const STATUS_KEY = "earlybird:status"; // { [listingId]: TrackStatus }
 const NOTES_KEY = "earlybird:notes"; // { [listingId]: string }
+// Snapshot of each tracked role's details (+ date applied), so the CSV can
+// export everything you've tracked even if it's not currently loaded in the feed.
+const META_KEY = "earlybird:meta";
 const APPLIED_KEY = "earlybird:applied"; // legacy Set<id>, migrated to STATUS_KEY
+
+interface TrackedMeta {
+  company: string;
+  title: string;
+  applyUrl: string;
+  locations: string[];
+  datePosted: string | null;
+  source: string;
+  appliedAt?: string; // YYYY-MM-DD, set when status first becomes an applied state
+}
 // Timestamp (ms) of the previous visit, so we can flag roles first seen since.
 const LASTVISIT_KEY = "earlybird:lastVisit";
 
@@ -32,6 +45,7 @@ export function Feed({
   // first client render match; hydrated in the effect below.
   const [statuses, setStatuses] = useState<Record<string, TrackStatus>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [meta, setMeta] = useState<Record<string, TrackedMeta>>({});
   // Client-side view filter over the loaded roles (status isn't known to the
   // server, so this can't live in the URL like the other filters).
   const [appliedFilter, setAppliedFilter] = useState<
@@ -49,20 +63,41 @@ export function Feed({
     /* eslint-disable react-hooks/set-state-in-effect */
     try {
       const rawStatus = localStorage.getItem(STATUS_KEY);
-      if (rawStatus) {
-        setStatuses(JSON.parse(rawStatus) as Record<string, TrackStatus>);
-      } else {
+      const statusMap: Record<string, TrackStatus> = rawStatus
+        ? (JSON.parse(rawStatus) as Record<string, TrackStatus>)
+        : {};
+      if (!rawStatus) {
         // One-time migration: legacy applied Set -> {id: "applied"}.
         const legacy = localStorage.getItem(APPLIED_KEY);
         if (legacy) {
-          const map: Record<string, TrackStatus> = {};
-          for (const id of JSON.parse(legacy) as string[]) map[id] = "applied";
-          setStatuses(map);
-          localStorage.setItem(STATUS_KEY, JSON.stringify(map));
+          for (const id of JSON.parse(legacy) as string[]) statusMap[id] = "applied";
+          localStorage.setItem(STATUS_KEY, JSON.stringify(statusMap));
         }
       }
+      setStatuses(statusMap);
+
       const rawNotes = localStorage.getItem(NOTES_KEY);
       if (rawNotes) setNotes(JSON.parse(rawNotes) as Record<string, string>);
+
+      // Hydrate the tracked-role snapshot, backfilling details for any tracked
+      // role that's on the first page but predates the snapshot store.
+      const rawMeta = localStorage.getItem(META_KEY);
+      const metaMap: Record<string, TrackedMeta> = rawMeta ? JSON.parse(rawMeta) : {};
+      for (const l of initial.listings) {
+        if (statusMap[l.id] && !metaMap[l.id]) {
+          metaMap[l.id] = {
+            company: l.company,
+            title: l.title,
+            applyUrl: l.applyUrl,
+            locations: l.locations,
+            datePosted: l.datePosted,
+            source: l.source,
+          };
+        }
+      }
+      setMeta(metaMap);
+      localStorage.setItem(META_KEY, JSON.stringify(metaMap));
+
       const lv = localStorage.getItem(LASTVISIT_KEY);
       setLastVisit(lv ? Number(lv) : null);
       localStorage.setItem(LASTVISIT_KEY, String(Date.now()));
@@ -70,7 +105,7 @@ export function Feed({
       /* ignore malformed storage */
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [initial.listings]);
 
   // A role is "unseen" if it was first seen after your previous visit.
   const isUnseen = useCallback(
@@ -79,19 +114,50 @@ export function Feed({
     [lastVisit],
   );
 
-  const setStatus = useCallback((id: string, status: TrackStatus | "") => {
-    setStatuses((prev) => {
-      const next = { ...prev };
-      if (status) next[id] = status;
-      else delete next[id];
-      try {
-        localStorage.setItem(STATUS_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore quota/availability errors */
-      }
-      return next;
-    });
-  }, []);
+  const setStatus = useCallback(
+    (listing: ListingRow, status: TrackStatus | "") => {
+      const id = listing.id;
+      setStatuses((prev) => {
+        const next = { ...prev };
+        if (status) next[id] = status;
+        else delete next[id];
+        try {
+          localStorage.setItem(STATUS_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore quota/availability errors */
+        }
+        return next;
+      });
+      // Keep a detail snapshot so the CSV can include this role later even if
+      // it's scrolled away or filtered out, plus stamp the date first applied.
+      setMeta((prev) => {
+        const next = { ...prev };
+        if (status) {
+          const existing = next[id] ?? {
+            company: listing.company,
+            title: listing.title,
+            applyUrl: listing.applyUrl,
+            locations: listing.locations,
+            datePosted: listing.datePosted,
+            source: listing.source,
+          };
+          if (isApplied(status) && !existing.appliedAt) {
+            existing.appliedAt = new Date().toISOString().slice(0, 10);
+          }
+          next[id] = existing;
+        } else {
+          delete next[id];
+        }
+        try {
+          localStorage.setItem(META_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore quota/availability errors */
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   const setNote = useCallback((id: string, text: string) => {
     setNotes((prev) => {
@@ -221,13 +287,14 @@ export function Feed({
 
   const unseenCount = listings.reduce((n, l) => (isUnseen(l) ? n + 1 : n), 0);
 
-  // Tracked roles currently loaded in the feed, exportable as CSV.
-  const trackedRows = listings.filter((l) => statuses[l.id]);
+  // Every role you've ever tracked (from the snapshot store), not just loaded ones.
+  const trackedIds = Object.keys(statuses);
   const exportCsv = () => {
     const header = [
       "company",
       "title",
       "status",
+      "dateApplied",
       "note",
       "locations",
       "applyUrl",
@@ -235,16 +302,18 @@ export function Feed({
     ];
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const lines = [header.join(",")];
-    for (const l of trackedRows) {
+    for (const id of trackedIds) {
+      const m = meta[id];
       lines.push(
         [
-          l.company,
-          l.title,
-          STATUS_LABEL[statuses[l.id]],
-          notes[l.id] ?? "",
-          l.locations.join(" | "),
-          l.applyUrl,
-          l.datePosted ?? "",
+          m?.company ?? "",
+          m?.title ?? "",
+          STATUS_LABEL[statuses[id]],
+          m?.appliedAt ?? "",
+          notes[id] ?? "",
+          (m?.locations ?? []).join(" | "),
+          m?.applyUrl ?? "",
+          m?.datePosted ?? "",
         ]
           .map((v) => esc(String(v)))
           .join(","),
@@ -307,12 +376,12 @@ export function Feed({
           );
         })}
         </div>
-        {trackedRows.length > 0 && (
+        {trackedIds.length > 0 && (
           <button
             onClick={exportCsv}
             className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
           >
-            ⬇ Export {trackedRows.length} tracked
+            ⬇ Export {trackedIds.length} tracked
           </button>
         )}
       </div>
@@ -339,7 +408,7 @@ export function Feed({
               now={now}
               index={i}
               status={statuses[l.id]}
-              onSetStatus={(s) => setStatus(l.id, s)}
+              onSetStatus={(s) => setStatus(l, s)}
               note={notes[l.id]}
               onSetNote={(t) => setNote(l.id, t)}
               unseen={isUnseen(l)}
