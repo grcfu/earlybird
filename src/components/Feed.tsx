@@ -77,6 +77,47 @@ export function Feed({
     return () => clearInterval(t);
   }, []);
 
+  // Live refresh: poll the first page for this query and buffer roles we don't
+  // already have, so a constant-checker sees brand-new postings without reloading.
+  const [incoming, setIncoming] = useState<ListingRow[]>([]);
+  const idsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    idsRef.current = new Set([
+      ...listings.map((l) => l.id),
+      ...incoming.map((l) => l.id),
+    ]);
+  }, [listings, incoming]);
+
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/listings?${query}`);
+        if (!res.ok) return;
+        const page: ListingPage = await res.json();
+        const fresh = page.listings.filter((l) => !idsRef.current.has(l.id));
+        if (fresh.length) setIncoming((prev) => [...fresh, ...prev]);
+      } catch {
+        /* transient network error — try again next tick */
+      }
+    };
+    const t = setInterval(poll, 60_000);
+    return () => clearInterval(t);
+  }, [query]);
+
+  // Reflect the pending count in the tab title so it's visible from another tab.
+  useEffect(() => {
+    document.title =
+      incoming.length > 0
+        ? `(${incoming.length}) new roles — EarlyBird`
+        : "EarlyBird — fresh internships, first light";
+  }, [incoming.length]);
+
+  const showIncoming = useCallback(() => {
+    setListings((prev) => [...incoming, ...prev]);
+    setIncoming([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [incoming]);
+
   const loadMore = useCallback(async () => {
     if (loading || !cursor) return;
     setLoading(true);
@@ -147,6 +188,18 @@ export function Feed({
 
   return (
     <div>
+      {/* Live: roles that appeared since you opened the page */}
+      {incoming.length > 0 && (
+        <div className="sticky top-3 z-30 mb-3 flex justify-center">
+          <button
+            onClick={showIncoming}
+            className="pop rounded-full border border-accent bg-accent px-5 py-2 text-sm font-bold text-canvas shadow-pop-lg"
+          >
+            ↑ {incoming.length} new role{incoming.length === 1 ? "" : "s"} — show
+          </button>
+        </div>
+      )}
+
       {/* New-since-last-visit banner */}
       {unseenCount > 0 && (
         <button
