@@ -67,6 +67,48 @@ const BOARDS: WorkdayCompany[] = [
     host: "target.wd5.myworkdayjobs.com",
     site: "targetcareers",
   },
+  {
+    company: "Morgan Stanley",
+    token: "ms",
+    host: "ms.wd5.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "eBay",
+    token: "ebay",
+    host: "ebay.wd5.myworkdayjobs.com",
+    site: "apply",
+  },
+  {
+    company: "HP",
+    token: "hp",
+    host: "hp.wd5.myworkdayjobs.com",
+    site: "ExternalCareerSite",
+  },
+  {
+    company: "HPE",
+    token: "hpe",
+    host: "hpe.wd5.myworkdayjobs.com",
+    site: "Jobsathpe",
+  },
+  {
+    company: "Autodesk",
+    token: "autodesk",
+    host: "autodesk.wd1.myworkdayjobs.com",
+    site: "Ext",
+  },
+  {
+    company: "Disney",
+    token: "disney",
+    host: "disney.wd5.myworkdayjobs.com",
+    site: "disneycareer",
+  },
+  {
+    company: "Dell",
+    token: "dell",
+    host: "dell.wd1.myworkdayjobs.com",
+    site: "External",
+  },
 ];
 
 interface WdPosting {
