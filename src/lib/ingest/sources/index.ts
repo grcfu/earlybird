@@ -5,6 +5,7 @@ import { greenhouseSource } from "@/lib/ingest/sources/greenhouse";
 import { leverSource } from "@/lib/ingest/sources/lever";
 import { ashbySource } from "@/lib/ingest/sources/ashby";
 import { workdaySource } from "@/lib/ingest/sources/workday";
+import { smartRecruitersSource } from "@/lib/ingest/sources/smartrecruiters";
 import { amazonSource } from "@/lib/ingest/sources/amazon";
 
 // The single place to add/remove data sources.
@@ -25,6 +26,7 @@ export const sources: Source[] = [
   leverSource,
   ashbySource,
   workdaySource,
+  smartRecruitersSource,
   amazonSource,
   // Community aggregators (broad, but lag):
   vanshb03Source,
