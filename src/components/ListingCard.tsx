@@ -1,6 +1,13 @@
 import type { ListingRow } from "@/lib/listings";
 import { categoryMeta } from "@/lib/categories";
 import { relativeTime, isFresh24h } from "@/lib/time";
+import {
+  STATUS_LABEL,
+  STATUS_CLASS,
+  TRACK_STATUSES,
+  isApplied,
+  type TrackStatus,
+} from "@/lib/track";
 
 // Sources pulled straight from a company's own ATS (vs. lagging aggregators).
 // The merged source label can be e.g. "greenhouse+Simplify", so we substring-match.
@@ -14,19 +21,20 @@ export function ListingCard({
   listing,
   now,
   index,
-  applied = false,
-  onToggleApplied,
+  status,
+  onSetStatus,
   unseen = false,
 }: {
   listing: ListingRow;
   now: number;
   index: number;
-  applied?: boolean;
-  onToggleApplied?: () => void;
+  status?: TrackStatus;
+  onSetStatus?: (s: TrackStatus | "") => void;
   unseen?: boolean;
 }) {
   const cat = categoryMeta(listing.category);
   const fresh = isFresh24h(listing.effectiveAt, now);
+  const applied = isApplied(status);
   const locations = listing.locations.length
     ? listing.locations.slice(0, 3).join("  ·  ") +
       (listing.locations.length > 3 ? `  +${listing.locations.length - 3}` : "")
@@ -34,14 +42,14 @@ export function ListingCard({
 
   return (
     <article
-      data-applied={applied}
+      data-status={status ?? "none"}
       className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
-        applied ? "opacity-55 saturate-[0.5]" : ""
+        status === "rejected" ? "opacity-50 saturate-[0.4]" : ""
       } ${unseen && !applied ? "ring-1 ring-accent/50" : ""}`}
       style={{ borderLeftColor: fresh ? "var(--color-accent-bright)" : cat.color }}
     >
       <div className="min-w-0 flex-1 py-0.5">
-        {/* Top line: company · category · fresh flag */}
+        {/* Top line: company · badges */}
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <span className="truncate text-[15px] font-bold text-ink">
             {listing.company}
@@ -64,6 +72,13 @@ export function ListingCard({
           >
             {cat.label}
           </span>
+          {status && (
+            <span
+              className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STATUS_CLASS[status]}`}
+            >
+              {STATUS_LABEL[status]}
+            </span>
+          )}
           {unseen && !applied && (
             <span className="rounded-md bg-accent px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-canvas">
               ✦ unseen
@@ -72,11 +87,6 @@ export function ListingCard({
           {fresh && !unseen && (
             <span className="rounded-md bg-accent-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-accent-ink">
               new
-            </span>
-          )}
-          {applied && (
-            <span className="rounded-md bg-leaf-soft px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider text-leaf">
-              ✓ applied
             </span>
           )}
         </div>
@@ -98,7 +108,7 @@ export function ListingCard({
         </div>
       </div>
 
-      {/* Right: applied checkbox · time · apply */}
+      {/* Right: status tracker · time · apply */}
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         <div className="flex items-center gap-2">
           <time
@@ -108,19 +118,19 @@ export function ListingCard({
           >
             {relativeTime(listing.effectiveAt, now)}
           </time>
-          <button
-            type="button"
-            onClick={onToggleApplied}
-            aria-pressed={applied}
-            title={applied ? "Mark as not applied" : "Mark as applied"}
-            className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-sm font-bold leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-leaf ${
-              applied
-                ? "border-leaf bg-leaf text-canvas"
-                : "border-line bg-canvas text-transparent hover:border-leaf hover:bg-leaf-soft"
-            }`}
+          <select
+            value={status ?? ""}
+            onChange={(e) => onSetStatus?.(e.target.value as TrackStatus | "")}
+            title="Track your application status"
+            className="rounded-md border border-line bg-canvas px-1.5 py-1 font-mono text-[11px] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            ✓
-          </button>
+            <option value="">＋ track</option>
+            {TRACK_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
         </div>
         <a
           href={listing.applyUrl}

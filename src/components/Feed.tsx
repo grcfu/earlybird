@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
+import { isApplied, type TrackStatus } from "@/lib/track";
 
-// Where we remember which roles you've applied to. Anonymous feed → per-browser
-// localStorage rather than a server record.
-const APPLIED_KEY = "earlybird:applied";
+// Per-browser application tracking (anonymous feed → localStorage, not the DB).
+const STATUS_KEY = "earlybird:status"; // { [listingId]: TrackStatus }
+const APPLIED_KEY = "earlybird:applied"; // legacy Set<id>, migrated to STATUS_KEY
 // Timestamp (ms) of the previous visit, so we can flag roles first seen since.
 const LASTVISIT_KEY = "earlybird:lastVisit";
 
@@ -26,11 +27,11 @@ export function Feed({
   // Single time reference shared by all rows; refreshed each minute on the client.
   const [now, setNow] = useState(serverNow);
 
-  // Applied roles, kept in localStorage. Starts empty so server + first client
-  // render match; the real set is hydrated in the effect below.
-  const [applied, setApplied] = useState<Set<string>>(new Set());
-  // Client-side view filter over the loaded roles (applied state isn't known to
-  // the server, so this can't live in the URL like the other filters).
+  // Application status per role, kept in localStorage. Starts empty so server +
+  // first client render match; hydrated in the effect below.
+  const [statuses, setStatuses] = useState<Record<string, TrackStatus>>({});
+  // Client-side view filter over the loaded roles (status isn't known to the
+  // server, so this can't live in the URL like the other filters).
   const [appliedFilter, setAppliedFilter] = useState<
     "all" | "unapplied" | "applied"
   >("all");
@@ -41,8 +42,19 @@ export function Feed({
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(APPLIED_KEY);
-      if (raw) setApplied(new Set(JSON.parse(raw) as string[]));
+      const rawStatus = localStorage.getItem(STATUS_KEY);
+      if (rawStatus) {
+        setStatuses(JSON.parse(rawStatus) as Record<string, TrackStatus>);
+      } else {
+        // One-time migration: legacy applied Set -> {id: "applied"}.
+        const legacy = localStorage.getItem(APPLIED_KEY);
+        if (legacy) {
+          const map: Record<string, TrackStatus> = {};
+          for (const id of JSON.parse(legacy) as string[]) map[id] = "applied";
+          setStatuses(map);
+          localStorage.setItem(STATUS_KEY, JSON.stringify(map));
+        }
+      }
       const lv = localStorage.getItem(LASTVISIT_KEY);
       setLastVisit(lv ? Number(lv) : null);
       localStorage.setItem(LASTVISIT_KEY, String(Date.now()));
@@ -58,13 +70,13 @@ export function Feed({
     [lastVisit],
   );
 
-  const toggleApplied = useCallback((id: string) => {
-    setApplied((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const setStatus = useCallback((id: string, status: TrackStatus | "") => {
+    setStatuses((prev) => {
+      const next = { ...prev };
+      if (status) next[id] = status;
+      else delete next[id];
       try {
-        localStorage.setItem(APPLIED_KEY, JSON.stringify([...next]));
+        localStorage.setItem(STATUS_KEY, JSON.stringify(next));
       } catch {
         /* ignore quota/availability errors */
       }
@@ -166,7 +178,7 @@ export function Feed({
   }
 
   const appliedCount = listings.reduce(
-    (n, l) => (applied.has(l.id) ? n + 1 : n),
+    (n, l) => (isApplied(statuses[l.id]) ? n + 1 : n),
     0,
   );
   const FILTERS: { key: typeof appliedFilter; label: string; count: number }[] = [
@@ -180,8 +192,8 @@ export function Feed({
       ? listings
       : listings.filter((l) =>
           appliedFilter === "applied"
-            ? applied.has(l.id)
-            : !applied.has(l.id),
+            ? isApplied(statuses[l.id])
+            : !isApplied(statuses[l.id]),
         );
 
   const unseenCount = listings.reduce((n, l) => (isUnseen(l) ? n + 1 : n), 0);
@@ -243,7 +255,7 @@ export function Feed({
           </p>
           <p className="mt-1 font-mono text-xs text-ink-soft">
             {appliedFilter === "applied"
-              ? "Tick the ✓ on a role to track it here."
+              ? "Set a role's status to Applied to track it here."
               : "Switch to All or load more roles."}
           </p>
         </div>
@@ -255,8 +267,8 @@ export function Feed({
               listing={l}
               now={now}
               index={i}
-              applied={applied.has(l.id)}
-              onToggleApplied={() => toggleApplied(l.id)}
+              status={statuses[l.id]}
+              onSetStatus={(s) => setStatus(l.id, s)}
               unseen={isUnseen(l)}
             />
           ))}
