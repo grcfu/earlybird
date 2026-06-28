@@ -48,6 +48,37 @@ export interface ListingPage {
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 20;
 
+// US-only: a role is dropped when every one of its listed locations is
+// recognizably non-US. We match on countries / regions / unambiguous foreign
+// cities (avoiding names that collide with US places, e.g. no "Ontario" since
+// Ontario, CA exists). Roles with no location, or any US/remote/ambiguous
+// location, are kept.
+const NON_US_PATTERN = [
+  // countries & nations
+  "canada", "mexico", "united kingdom", "england", "scotland", "wales",
+  "ireland", "germany", "france", "spain", "portugal", "italy", "netherlands",
+  "belgium", "luxembourg", "switzerland", "austria", "sweden", "norway",
+  "denmark", "finland", "iceland", "poland", "czech", "slovakia", "hungary",
+  "romania", "bulgaria", "greece", "turkey", "russia", "ukraine", "serbia",
+  "croatia", "estonia", "latvia", "lithuania", "india", "china", "japan",
+  "south korea", "korea", "singapore", "hong kong", "taiwan", "thailand",
+  "vietnam", "philippines", "malaysia", "indonesia", "cambodia", "australia",
+  "new zealand", "brazil", "argentina", "chile", "colombia", "peru", "israel",
+  "united arab emirates", "saudi arabia", "qatar", "egypt", "morocco",
+  "south africa", "nigeria", "kenya", "pakistan", "bangladesh", "sri lanka",
+  // Canadian places (Canada often omitted from the string)
+  "toronto", "montreal", "ottawa", "calgary", "edmonton", "winnipeg",
+  // unambiguous foreign cities (no major US namesake)
+  "bengaluru", "bangalore", "hyderabad", "gurgaon", "gurugram", "noida",
+  "chennai", "mumbai", "new delhi", "pune", "kolkata", "beijing", "shanghai",
+  "shenzhen", "guangzhou", "hangzhou", "tokyo", "osaka", "seoul", "taipei",
+  "tel aviv", "dubai", "abu dhabi", "sao paulo", "são paulo", "warsaw",
+  "krakow", "bucharest", "lisbon", "dublin", "amsterdam", "munich", "berlin",
+  "frankfurt", "zurich", "stockholm", "copenhagen", "helsinki", "barcelona",
+  "madrid", "ho chi minh", "hanoi", "manila", "jakarta", "kuala lumpur",
+  "bangkok",
+].join("|");
+
 // Keyset cursor = effectiveAt + id, so pagination is stable under inserts.
 function encodeCursor(effectiveAt: string, id: string): string {
   return Buffer.from(`${effectiveAt}|${id}`, "utf8").toString("base64url");
@@ -146,6 +177,15 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
       `sponsorship ILIKE '%offers%' AND sponsorship NOT ILIKE '%does not%'`,
     );
   }
+
+  // US-only (always on): keep roles with no location or at least one
+  // non-foreign location; drop roles whose every location is recognizably
+  // outside the US.
+  params.push(NON_US_PATTERN);
+  conditions.push(
+    `(cardinality(locations) = 0 OR EXISTS (` +
+      `SELECT 1 FROM unnest(locations) loc WHERE loc !~* $${params.length}))`,
+  );
 
   const clause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   return { clause, params };
