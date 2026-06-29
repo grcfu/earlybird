@@ -31,6 +31,7 @@ export default async function Home({
   if (q.location) qs.set("location", q.location);
   if (q.sponsorship !== "any") qs.set("sponsorship", q.sponsorship);
   if (!q.activeOnly) qs.set("activeOnly", "false");
+  if (q.sort === "top") qs.set("sort", "top");
   const queryString = qs.toString();
 
   return (

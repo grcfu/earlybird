@@ -26,6 +26,7 @@ export function FilterBar() {
   const window = searchParams.get("window") ?? "2d";
   const sponsorship = searchParams.get("sponsorship") ?? "any";
   const activeOnly = searchParams.get("activeOnly") !== "false";
+  const sort = searchParams.get("sort") === "top" ? "top" : "recent";
   const selectedCats = new Set(
     (searchParams.get("categories") ?? "").split(",").filter(Boolean),
   );
@@ -94,6 +95,38 @@ export function FilterBar() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Sort: newest vs top companies */}
+          <div className="inline-flex rounded-lg border border-line bg-mist p-1">
+            {[
+              { key: "recent", label: "Newest" },
+              { key: "top", label: "Top cos" },
+            ].map((s) => {
+              const active = sort === s.key;
+              return (
+                <button
+                  key={s.key}
+                  onClick={() =>
+                    commit((p) =>
+                      s.key === "top" ? p.set("sort", "top") : p.delete("sort"),
+                    )
+                  }
+                  className={`rounded-md px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider transition-all ${
+                    active
+                      ? "bg-accent text-canvas shadow-pop-sm"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                  title={
+                    s.key === "top"
+                      ? "Rank bigger / more prestigious companies first"
+                      : "Newest postings first (best for being early)"
+                  }
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Location search */}
           <div className="relative">
             <input
