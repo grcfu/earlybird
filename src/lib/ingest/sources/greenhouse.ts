@@ -111,6 +111,24 @@ const BOARDS: AtsCompany[] = [
   { company: "Astranis", token: "astranis" },
   { company: "Nubank", token: "nubank" },
   { company: "Recursion", token: "recursionpharmaceuticals" },
+  // Quant / trading desks:
+  { company: "Point72", token: "point72" },
+  { company: "DRW", token: "drweng" },
+  { company: "Schonfeld", token: "schonfeld" },
+  { company: "Virtu Financial", token: "virtu" },
+  { company: "Five Rings", token: "fiveringsllc" },
+  { company: "Geneva Trading", token: "genevatrading" },
+  { company: "DV Trading", token: "dvtrading" },
+  // Fintech / SaaS / other:
+  { company: "Adyen", token: "adyen" },
+  { company: "Smartsheet", token: "smartsheet" },
+  { company: "Carta", token: "carta" },
+  { company: "Justworks", token: "justworks" },
+  { company: "Highnote", token: "highnote" },
+  { company: "Life360", token: "life360" },
+  { company: "Komodo Health", token: "komodohealth" },
+  { company: "Flatiron Health", token: "flatironhealth" },
+  { company: "Vannevar Labs", token: "vannevarlabs" },
 ];
 
 interface GhJob {

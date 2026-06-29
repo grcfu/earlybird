@@ -55,6 +55,10 @@ const BOARDS: AtsCompany[] = [
   { company: "OpenSea", token: "opensea" },
   { company: "Attio", token: "attio" },
   { company: "Standard Bots", token: "standardbots" },
+  { company: "Warp", token: "warp" },
+  { company: "Distyl", token: "distyl" },
+  { company: "Pinecone", token: "pinecone" },
+  { company: "Weaviate", token: "weaviate" },
 ];
 
 interface AshbyJob {
