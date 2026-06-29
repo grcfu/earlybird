@@ -2,7 +2,7 @@
 
 **Real-time internship tracker that surfaces new SWE / ML / data / quant / hardware roles the moment companies post them — minutes to days ahead of the popular GitHub job repos.**
 
-### ▶︎ Live: **[earlybird.vercel.app](https://earlybird.vercel.app)**
+### ▶︎ Live: **[earlybird-apps.vercel.app](https://earlybird-apps.vercel.app)**
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6) ![Prisma](https://img.shields.io/badge/Prisma-7-2d3748) ![Postgres](https://img.shields.io/badge/Postgres-Neon-336791)
 
