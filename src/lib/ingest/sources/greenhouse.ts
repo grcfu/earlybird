@@ -93,6 +93,24 @@ const BOARDS: AtsCompany[] = [
   { company: "Hume AI", token: "humeai" },
   { company: "AssemblyAI", token: "assemblyai" },
   { company: "Imbue", token: "imbue" },
+  // More verified additions:
+  { company: "xAI", token: "xai" },
+  { company: "Waymo", token: "waymo" },
+  { company: "Neuralink", token: "neuralink" },
+  { company: "CoreWeave", token: "coreweave" },
+  { company: "Ripple", token: "ripple" },
+  { company: "Riot Games", token: "riotgames" },
+  { company: "Epic Games", token: "epicgames" },
+  { company: "Box", token: "boxinc" },
+  { company: "Postman", token: "postman" },
+  { company: "Qualtrics", token: "qualtrics" },
+  { company: "Samsung Semiconductor", token: "samsungsemiconductor" },
+  { company: "SambaNova", token: "sambanovasystems" },
+  { company: "Lucid Motors", token: "lucidmotors" },
+  { company: "Wayve", token: "wayve" },
+  { company: "Astranis", token: "astranis" },
+  { company: "Nubank", token: "nubank" },
+  { company: "Recursion", token: "recursionpharmaceuticals" },
 ];
 
 interface GhJob {
