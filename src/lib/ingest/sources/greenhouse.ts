@@ -129,6 +129,12 @@ const BOARDS: AtsCompany[] = [
   { company: "Komodo Health", token: "komodohealth" },
   { company: "Flatiron Health", token: "flatironhealth" },
   { company: "Vannevar Labs", token: "vannevarlabs" },
+  { company: "Rocket Lab", token: "rocketlab" },
+  { company: "Man Group", token: "mangroup" },
+  { company: "Marshall Wace", token: "marshallwace" },
+  { company: "Vatic Labs", token: "vaticlabs" },
+  { company: "ZoomInfo", token: "zoominfo" },
+  { company: "Betterment", token: "betterment" },
 ];
 
 interface GhJob {

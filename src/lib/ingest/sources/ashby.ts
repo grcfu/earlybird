@@ -59,6 +59,9 @@ const BOARDS: AtsCompany[] = [
   { company: "Distyl", token: "distyl" },
   { company: "Pinecone", token: "pinecone" },
   { company: "Weaviate", token: "weaviate" },
+  { company: "Abridge", token: "abridge" },
+  { company: "OpenEvidence", token: "openevidence" },
+  { company: "Reka AI", token: "reka" },
 ];
 
 interface AshbyJob {

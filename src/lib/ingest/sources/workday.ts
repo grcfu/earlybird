@@ -109,6 +109,24 @@ const BOARDS: WorkdayCompany[] = [
     host: "dell.wd1.myworkdayjobs.com",
     site: "External",
   },
+  {
+    company: "CrowdStrike",
+    token: "crowdstrike",
+    host: "crowdstrike.wd5.myworkdayjobs.com",
+    site: "crowdstrikecareers",
+  },
+  {
+    company: "Micron",
+    token: "micron",
+    host: "micron.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Applied Materials",
+    token: "amat",
+    host: "amat.wd1.myworkdayjobs.com",
+    site: "External",
+  },
 ];
 
 interface WdPosting {
