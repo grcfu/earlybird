@@ -107,7 +107,7 @@ Actions schedule runs **hourly for free**. The workflow lives in
 ```yaml
 on:
   schedule:
-    - cron: "5 * * * *" # hourly at :05 past, UTC
+    - cron: "15,45 * * * *" # every 30 min (:15 and :45), UTC
 ```
 
 **Ingest runs on the runner**, not via the Vercel endpoint — fanning out across
