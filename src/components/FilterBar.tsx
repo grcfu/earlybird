@@ -11,12 +11,6 @@ const WINDOWS: { key: string; label: string }[] = [
   { key: "all", label: "All" },
 ];
 
-const SPONSORSHIP: { key: string; label: string }[] = [
-  { key: "any", label: "Any" },
-  { key: "sponsors", label: "Sponsors" },
-  { key: "no", label: "No sponsor" },
-];
-
 export function FilterBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -27,6 +21,7 @@ export function FilterBar() {
   const sponsorship = searchParams.get("sponsorship") ?? "any";
   const activeOnly = searchParams.get("activeOnly") !== "false";
   const sort = searchParams.get("sort") === "top" ? "top" : "recent";
+  // Sponsorship filter intentionally removed — not relevant (US citizen).
   const selectedCats = new Set(
     (searchParams.get("categories") ?? "").split(",").filter(Boolean),
   );
@@ -135,23 +130,6 @@ export function FilterBar() {
               placeholder="location…"
               className="w-36 rounded-lg border border-line bg-canvas px-3 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft sm:w-44"
             />
-          </div>
-
-          {/* Sponsorship */}
-          <div className="hidden rounded-lg border border-line bg-mist p-1 sm:inline-flex">
-            {SPONSORSHIP.map((s) => (
-              <button
-                key={s.key}
-                onClick={() => commit((p) => p.set("sponsorship", s.key))}
-                className={`rounded-md px-2.5 py-1 font-mono text-[11px] transition-all ${
-                  sponsorship === s.key
-                    ? "bg-accent text-canvas shadow-pop-sm"
-                    : "text-ink-faint hover:text-ink"
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
           </div>
 
           {/* Active only */}
