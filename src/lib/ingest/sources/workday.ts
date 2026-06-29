@@ -127,6 +127,48 @@ const BOARDS: WorkdayCompany[] = [
     host: "amat.wd1.myworkdayjobs.com",
     site: "External",
   },
+  {
+    company: "Analog Devices",
+    token: "analogdevices",
+    host: "analogdevices.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "KLA",
+    token: "kla",
+    host: "kla.wd1.myworkdayjobs.com",
+    site: "Search",
+  },
+  {
+    company: "GlobalFoundries",
+    token: "globalfoundries",
+    host: "globalfoundries.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Broadcom",
+    token: "broadcom",
+    host: "broadcom.wd1.myworkdayjobs.com",
+    site: "External_Career",
+  },
+  {
+    company: "Marvell",
+    token: "marvell",
+    host: "marvell.wd1.myworkdayjobs.com",
+    site: "MarvellCareers2",
+  },
+  {
+    company: "BlackRock",
+    token: "blackrock",
+    host: "blackrock.wd1.myworkdayjobs.com",
+    site: "BlackRock_Professional",
+  },
+  {
+    company: "Fidelity",
+    token: "fmr",
+    host: "wd1.myworkdaysite.com",
+    site: "FidelityCareers",
+  },
 ];
 
 interface WdPosting {
