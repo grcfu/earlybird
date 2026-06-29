@@ -7,8 +7,10 @@ import {
   type RecencyWindow,
 } from "@/lib/recency";
 import { eligibleSummerYears } from "@/lib/eligibility";
+import { TIER1_PATTERN, TIER2_PATTERN } from "@/lib/prestige";
 
 export type SponsorshipFilter = "any" | "sponsors" | "no";
+export type SortMode = "recent" | "top"; // recent = newest first; top = prestige then newest
 
 export interface ListingFilters {
   window: RecencyWindow;
@@ -21,6 +23,7 @@ export interface ListingFilters {
 export interface ListingQuery extends ListingFilters {
   cursor: string | null;
   limit: number;
+  sort: SortMode;
 }
 
 // Serializable row shape sent to the client (dates as ISO strings).
@@ -80,17 +83,15 @@ const NON_US_PATTERN = [
   "bangkok",
 ].join("|");
 
-// Keyset cursor = effectiveAt + id, so pagination is stable under inserts.
-function encodeCursor(effectiveAt: string, id: string): string {
-  return Buffer.from(`${effectiveAt}|${id}`, "utf8").toString("base64url");
+// Keyset cursor = the ordering key parts joined, so pagination is stable under
+// inserts. Recent sort uses [effectiveAt, id]; top sort uses [tier, effectiveAt, id].
+function encodeCursor(...parts: string[]): string {
+  return Buffer.from(parts.join("|"), "utf8").toString("base64url");
 }
-function decodeCursor(cursor: string): { effectiveAt: string; id: string } | null {
+function decodeCursor(cursor: string): string[] | null {
   try {
-    const [effectiveAt, id] = Buffer.from(cursor, "base64url")
-      .toString("utf8")
-      .split("|");
-    if (!effectiveAt || !id) return null;
-    return { effectiveAt, id };
+    const parts = Buffer.from(cursor, "base64url").toString("utf8").split("|");
+    return parts.length ? parts : null;
   } catch {
     return null;
   }
@@ -126,6 +127,7 @@ export function parseListingQuery(
 
   const location = (get("location") ?? "").trim() || null;
   const activeOnly = get("activeOnly") !== "false"; // default true
+  const sort: SortMode = get("sort") === "top" ? "top" : "recent";
 
   const limitRaw = Number(get("limit"));
   const limit = Number.isFinite(limitRaw)
@@ -140,6 +142,7 @@ export function parseListingQuery(
     activeOnly,
     cursor: get("cursor") ?? null,
     limit,
+    sort,
   };
 }
 
@@ -213,21 +216,55 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
   return { clause, params };
 }
 
-// Query a page of listings, newest-first by effectiveAt, with a total count.
+// Query a page of listings with a total count. Sort modes:
+//   recent → newest first (effectiveAt desc)
+//   top    → prestige tier asc, then newest first within a tier
 export async function queryListings(q: ListingQuery): Promise<ListingPage> {
   const { clause, params } = buildWhere(q);
-
-  // Page query: layer the keyset cursor on top of the shared filters.
   const pageParams = [...params];
+
+  // Prestige tier expression for "top" sort (1 = highest). Pushed here so the
+  // SELECT, ORDER BY and cursor comparison all reference the same binds.
+  let tierExpr = "";
+  if (q.sort === "top") {
+    pageParams.push(TIER1_PATTERN);
+    const t1 = pageParams.length;
+    pageParams.push(TIER2_PATTERN);
+    const t2 = pageParams.length;
+    tierExpr = `(CASE WHEN company ~* $${t1} THEN 1 WHEN company ~* $${t2} THEN 2 ELSE 3 END)`;
+  }
+
+  // Keyset cursor shaped to the active ordering.
   let cursorClause = "";
   const decoded = q.cursor ? decodeCursor(q.cursor) : null;
-  if (decoded) {
-    pageParams.push(decoded.effectiveAt, decoded.id);
-    const a = pageParams.length - 1;
+  if (q.sort === "top" && decoded && decoded.length === 3) {
+    const [tier, effectiveAt, id] = decoded;
+    pageParams.push(tier);
+    const pt = pageParams.length;
+    pageParams.push(effectiveAt);
+    const pe = pageParams.length;
+    pageParams.push(id);
+    const pi = pageParams.length;
+    cursorClause =
+      `${clause ? "AND" : "WHERE"} (${tierExpr} > $${pt}::int OR (${tierExpr} = $${pt}::int ` +
+      `AND ("effectiveAt" < $${pe}::timestamptz OR ("effectiveAt" = $${pe}::timestamptz AND id < $${pi}))))`;
+  } else if (q.sort !== "top" && decoded && decoded.length >= 2) {
+    const [effectiveAt, id] = decoded;
+    pageParams.push(effectiveAt);
+    const a = pageParams.length;
+    pageParams.push(id);
     const b = pageParams.length;
     cursorClause = `${clause ? "AND" : "WHERE"} ("effectiveAt" < $${a}::timestamptz OR ("effectiveAt" = $${a}::timestamptz AND id < $${b}))`;
   }
+
   pageParams.push(q.limit + 1); // fetch one extra to detect a next page
+  const limitIdx = pageParams.length;
+
+  const orderBy =
+    q.sort === "top"
+      ? `ORDER BY ${tierExpr} ASC, "effectiveAt" DESC, id DESC`
+      : `ORDER BY "effectiveAt" DESC, id DESC`;
+  const tierSelect = q.sort === "top" ? `, ${tierExpr} AS tier` : "";
 
   const rows = await prisma.$queryRawUnsafe<
     Array<{
@@ -244,14 +281,15 @@ export async function queryListings(q: ListingQuery): Promise<ListingPage> {
       firstSeenAt: Date;
       effectiveAt: Date;
       active: boolean;
+      tier?: number;
     }>
   >(
     `SELECT id, source, company, title, category, locations, "applyUrl", sponsorship,
-            season, "datePosted", "firstSeenAt", "effectiveAt", active
+            season, "datePosted", "firstSeenAt", "effectiveAt", active${tierSelect}
      FROM "Listing"
      ${clause} ${cursorClause}
-     ORDER BY "effectiveAt" DESC, id DESC
-     LIMIT $${pageParams.length}`,
+     ${orderBy}
+     LIMIT $${limitIdx}`,
     ...pageParams,
   );
 
@@ -275,8 +313,13 @@ export async function queryListings(q: ListingQuery): Promise<ListingPage> {
   }));
 
   const last = page[page.length - 1];
-  const nextCursor =
-    hasMore && last ? encodeCursor(last.effectiveAt.toISOString(), last.id) : null;
+  let nextCursor: string | null = null;
+  if (hasMore && last) {
+    nextCursor =
+      q.sort === "top"
+        ? encodeCursor(String(last.tier ?? 3), last.effectiveAt.toISOString(), last.id)
+        : encodeCursor(last.effectiveAt.toISOString(), last.id);
+  }
 
   // Total count for the current filters+window (drives the "X new roles" line).
   const countRows = await prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
