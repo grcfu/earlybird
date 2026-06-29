@@ -18,7 +18,6 @@ export function FilterBar() {
   const [isPending, startTransition] = useTransition();
 
   const window = searchParams.get("window") ?? "2d";
-  const sponsorship = searchParams.get("sponsorship") ?? "any";
   const activeOnly = searchParams.get("activeOnly") !== "false";
   const sort = searchParams.get("sort") === "top" ? "top" : "recent";
   // Sponsorship filter intentionally removed — not relevant (US citizen).
@@ -43,6 +42,8 @@ export function FilterBar() {
   const [loc, setLoc] = useState(searchParams.get("location") ?? "");
   const locTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    // Sync local input when the URL changes (e.g. back/forward); intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoc(searchParams.get("location") ?? "");
   }, [searchParams]);
   const onLoc = (value: string) => {
