@@ -127,11 +127,6 @@ export function ListingCard({
         {/* Meta line */}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-ink-soft">
           <span className="truncate">{locations}</span>
-          {listing.sponsorship && (
-            <span className="text-ink-faint" title="Sponsorship">
-              {listing.sponsorship}
-            </span>
-          )}
           <span className="text-ink-faint">via {listing.source}</span>
         </div>
 
