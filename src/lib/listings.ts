@@ -191,10 +191,10 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
       `SELECT 1 FROM unnest(locations) loc WHERE loc !~* $${params.length}))`,
   );
 
-  // Internships only (always on): drop new-grad / entry-level / full-time roles
-  // that slip past the per-source internship filter.
+  // Internships only (always on): drop new-grad / entry-level / MBA / full-time
+  // roles that slip past the per-source internship filter.
   conditions.push(
-    `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level'`,
+    `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level|\\mmba\\M|full[ -]?time'`,
   );
 
   // Grad-cycle eligibility (always on): keep a role if neither its title nor its
