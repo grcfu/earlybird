@@ -154,6 +154,14 @@ const BOARDS: AtsCompany[] = [
   { company: "Omada Health", token: "omadahealth" },
   { company: "Path Robotics", token: "pathrobotics" },
   { company: "Epirus", token: "epirus" },
+  { company: "Tenstorrent", token: "tenstorrent" },
+  { company: "Graphcore", token: "graphcore" },
+  { company: "Arize AI", token: "arizeai" },
+  { company: "Mozilla", token: "mozilla" },
+  { company: "Coursera", token: "coursera" },
+  { company: "Udemy", token: "udemy" },
+  { company: "Wikimedia", token: "wikimedia" },
+  { company: "StackBlitz", token: "stackblitz" },
 ];
 
 interface GhJob {

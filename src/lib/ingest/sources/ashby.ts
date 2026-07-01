@@ -68,6 +68,10 @@ const BOARDS: AtsCompany[] = [
   { company: "Statsig", token: "statsig" },
   { company: "Mintlify", token: "mintlify" },
   { company: "Resend", token: "resend" },
+  { company: "Etched", token: "etched" },
+  { company: "WorkOS", token: "workos" },
+  { company: "Stytch", token: "stytch" },
+  { company: "Knock", token: "knock" },
 ];
 
 interface AshbyJob {
