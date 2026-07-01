@@ -192,9 +192,9 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
   );
 
   // Internships only (always on): drop new-grad / entry-level / MBA / full-time
-  // roles that slip past the per-source internship filter.
+  // / PhD roles that slip past the per-source internship filter.
   conditions.push(
-    `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level|\\mmba\\M|full[ -]?time'`,
+    `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level|\\mmba\\M|full[ -]?time|\\mph\\.?d\\M'`,
   );
 
   // Grad-cycle eligibility (always on): keep a role if neither its title nor its
