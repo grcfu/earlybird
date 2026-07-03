@@ -169,6 +169,12 @@ const BOARDS: WorkdayCompany[] = [
     host: "wd1.myworkdaysite.com",
     site: "FidelityCareers",
   },
+  {
+    company: "Cadence",
+    token: "cadence",
+    host: "cadence.wd1.myworkdayjobs.com",
+    site: "External_Careers",
+  },
 ];
 
 interface WdPosting {

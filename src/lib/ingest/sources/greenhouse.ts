@@ -162,6 +162,13 @@ const BOARDS: AtsCompany[] = [
   { company: "Udemy", token: "udemy" },
   { company: "Wikimedia", token: "wikimedia" },
   { company: "StackBlitz", token: "stackblitz" },
+  { company: "Rockstar Games", token: "rockstargames" },
+  { company: "Scopely", token: "scopely" },
+  { company: "AlphaSense", token: "alphasense" },
+  { company: "New Relic", token: "newrelic" },
+  { company: "Sumo Logic", token: "sumologic" },
+  { company: "Neo4j", token: "neo4j" },
+  { company: "Databento", token: "databento" },
 ];
 
 interface GhJob {
