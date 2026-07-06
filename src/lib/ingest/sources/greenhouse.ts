@@ -169,6 +169,9 @@ const BOARDS: AtsCompany[] = [
   { company: "Sumo Logic", token: "sumologic" },
   { company: "Neo4j", token: "neo4j" },
   { company: "Databento", token: "databento" },
+  { company: "WorldQuant", token: "worldquant" },
+  { company: "Formic", token: "formic" },
+  { company: "Allen Control Systems", token: "allencontrolsystems" },
 ];
 
 interface GhJob {
