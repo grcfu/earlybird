@@ -65,7 +65,6 @@ const BOARDS: AtsCompany[] = [
   { company: "Headway", token: "headway" },
   { company: "Dust", token: "dust" },
   { company: "Hyperbolic", token: "hyperbolic" },
-  { company: "Statsig", token: "statsig" },
   { company: "Mintlify", token: "mintlify" },
   { company: "Resend", token: "resend" },
   { company: "Etched", token: "etched" },
