@@ -26,6 +26,13 @@ function isDirect(source: string): boolean {
   return DIRECT_SOURCES.some((d) => s.includes(d));
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// Format a YYYY-MM-DD applied date as "Jul 1" (no timezone parsing surprises).
+function fmtApplied(d: string): string {
+  const [, m, day] = d.split("-").map(Number);
+  return m && day ? `${MONTHS[m - 1]} ${day}` : d;
+}
+
 export function ListingCard({
   listing,
   now,
@@ -34,6 +41,7 @@ export function ListingCard({
   onSetStatus,
   note,
   onSetNote,
+  appliedAt,
   unseen = false,
 }: {
   listing: ListingRow;
@@ -43,6 +51,7 @@ export function ListingCard({
   onSetStatus?: (s: TrackStatus | "") => void;
   note?: string;
   onSetNote?: (t: string) => void;
+  appliedAt?: string; // YYYY-MM-DD, day the role was first marked applied
   unseen?: boolean;
 }) {
   const cat = categoryMeta(listing.category);
@@ -106,6 +115,11 @@ export function ListingCard({
               className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STATUS_CLASS[status]}`}
             >
               {STATUS_LABEL[status]}
+            </span>
+          )}
+          {appliedAt && isApplied(status) && (
+            <span className="font-mono text-[10px] text-ink-faint">
+              applied {fmtApplied(appliedAt)}
             </span>
           )}
           {unseen && !applied && (

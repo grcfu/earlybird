@@ -411,6 +411,7 @@ export function Feed({
               onSetStatus={(s) => setStatus(l, s)}
               note={notes[l.id]}
               onSetNote={(t) => setNote(l.id, t)}
+              appliedAt={meta[l.id]?.appliedAt}
               unseen={isUnseen(l)}
             />
           ))}
