@@ -181,6 +181,16 @@ const BOARDS: AtsCompany[] = [
   { company: "Imply", token: "imply" },
   { company: "Pendo", token: "pendo" },
   { company: "Gradle", token: "gradle" },
+  { company: "Algolia", token: "algolia" },
+  { company: "Contentful", token: "contentful" },
+  { company: "Storyblok", token: "storyblok" },
+  { company: "Descope", token: "descope" },
+  { company: "Salesloft", token: "salesloft" },
+  { company: "Culture Amp", token: "cultureamp" },
+  { company: "Remote", token: "remotecom" },
+  { company: "Wrike", token: "wrike" },
+  { company: "Dashlane", token: "dashlane" },
+  { company: "Bitwarden", token: "bitwarden" },
 ];
 
 interface GhJob {
