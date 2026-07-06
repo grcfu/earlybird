@@ -172,6 +172,15 @@ const BOARDS: AtsCompany[] = [
   { company: "WorldQuant", token: "worldquant" },
   { company: "Formic", token: "formic" },
   { company: "Allen Control Systems", token: "allencontrolsystems" },
+  { company: "Vercel", token: "vercel" },
+  { company: "Fastly", token: "fastly" },
+  { company: "JFrog", token: "jfrog" },
+  { company: "CircleCI", token: "circleci" },
+  { company: "SingleStore", token: "singlestore" },
+  { company: "YugabyteDB", token: "yugabyte" },
+  { company: "Imply", token: "imply" },
+  { company: "Pendo", token: "pendo" },
+  { company: "Gradle", token: "gradle" },
 ];
 
 interface GhJob {
