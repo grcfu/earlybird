@@ -8,7 +8,7 @@
 
 ---
 
-Most internship trackers re-publish the same community-maintained lists, so everyone sees a role at the same (delayed) time. EarlyBird instead polls **240+ companies' own applicant-tracking systems directly** every 30 minutes — so a new posting shows up here within minutes of going live, typically **days before the aggregators**. The edge is being early.
+Most internship trackers re-publish the same community-maintained lists, so everyone sees a role at the same (delayed) time. EarlyBird instead polls **300+ companies' own applicant-tracking systems directly** every 15 minutes — so a new posting shows up here within minutes of going live, typically **days before the aggregators**. The edge is being early.
 
 ## Highlights
 
@@ -17,7 +17,7 @@ Most internship trackers re-publish the same community-maintained lists, so ever
 - **Smart, always-on filtering** — US-only, internships-only, and **graduation-cycle eligibility** that auto-adjusts each year from a single grad-date constant.
 - **Two ranking modes** — *Newest* (the freshness edge) and *Top companies* (a curated prestige tier so the biggest names float up), both with keyset pagination.
 - **Built-in application tracker** — per-role status (interested → applied → interview → offer → rejected), notes, "new since last visit" highlighting, a live "↑ new roles" pill, and CSV export.
-- **Free, hands-off automation** — ingestion runs every 30 min on **GitHub Actions** (sidestepping Vercel's cron limits), with per-source failure isolation so one flaky board never breaks a run.
+- **Free, hands-off automation** — ingestion runs every 15 min on **GitHub Actions** (sidestepping Vercel's cron limits), with per-source failure isolation so one flaky board never breaks a run.
 
 ## Tech stack
 
@@ -43,6 +43,6 @@ npm run ingest                # pull a fresh batch of listings
 
 ## Architecture notes
 
-- **Why GitHub Actions for cron?** Vercel's Hobby plan caps cron at once/day; a GitHub Actions schedule runs every 30 min for free and executes `npm run ingest` directly on the runner — avoiding Vercel's 60s function limit while fanning out across 240+ boards.
+- **Why GitHub Actions for cron?** Vercel's Hobby plan caps cron at once/day; a GitHub Actions schedule runs every 15 min for free and executes `npm run ingest` directly on the runner — avoiding Vercel's 60s function limit while fanning out across 300+ boards.
 - **Adding a company** is a one-line, verified entry in `src/lib/ingest/sources/*.ts`.
 - **Endpoints** (`/api/ingest`, `/api/notify`) are guarded by a `CRON_SECRET`; full env + deploy details live in [`.env.example`](./.env.example) and [`.github/workflows/cron.yml`](./.github/workflows/cron.yml).
