@@ -199,6 +199,10 @@ const BOARDS: AtsCompany[] = [
   { company: "BitGo", token: "bitgo" },
   { company: "Consensys", token: "consensys" },
   { company: "Blockchain.com", token: "blockchain" },
+  { company: "Instabase", token: "instabase" },
+  { company: "Typeface", token: "typeface" },
+  { company: "Mesh", token: "mesh" },
+  { company: "Aptos Labs", token: "aptoslabs" },
 ];
 
 interface GhJob {
