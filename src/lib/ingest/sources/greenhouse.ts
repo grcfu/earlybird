@@ -191,6 +191,14 @@ const BOARDS: AtsCompany[] = [
   { company: "Wrike", token: "wrike" },
   { company: "Dashlane", token: "dashlane" },
   { company: "Bitwarden", token: "bitwarden" },
+  { company: "Cribl", token: "cribl" },
+  { company: "Oura", token: "oura" },
+  { company: "Agility Robotics", token: "agilityrobotics" },
+  { company: "Jamf", token: "jamf" },
+  { company: "Endor Labs", token: "endorlabs" },
+  { company: "BitGo", token: "bitgo" },
+  { company: "Consensys", token: "consensys" },
+  { company: "Blockchain.com", token: "blockchain" },
 ];
 
 interface GhJob {
