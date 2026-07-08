@@ -181,6 +181,27 @@ export function ListingCard({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() =>
+              onSetStatus?.(status === "not_interested" ? "" : "not_interested")
+            }
+            title={
+              status === "not_interested"
+                ? "Undo — restore this role"
+                : "Not interested — dismiss"
+            }
+            aria-label={
+              status === "not_interested" ? "Restore role" : "Dismiss role"
+            }
+            className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-xs leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-danger ${
+              status === "not_interested"
+                ? "border-ink-faint bg-mist text-ink-soft"
+                : "border-line bg-canvas text-ink-faint hover:border-danger hover:text-danger"
+            }`}
+          >
+            {status === "not_interested" ? "↩" : "✕"}
+          </button>
         </div>
         <a
           href={listing.applyUrl}

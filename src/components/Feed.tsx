@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
-import { isApplied, isInterested, STATUS_LABEL, type TrackStatus } from "@/lib/track";
+import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
 
 // Per-browser application tracking (anonymous feed → localStorage, not the DB).
 const STATUS_KEY = "earlybird:status"; // { [listingId]: TrackStatus }
@@ -29,7 +29,6 @@ const LASTVISIT_KEY = "earlybird:lastVisit";
 const EMPTY_COPY: Record<string, { title: string; hint: string }> = {
   all: { title: "No roles in this view.", hint: "Try widening the recency window or clearing filters." },
   unapplied: { title: "You've handled everything here!", hint: "Nothing left to apply to in this view." },
-  interested: { title: "Nothing marked interested yet.", hint: "Set a role to Interested (or Applied) to see it here." },
   applied: { title: "No applications tracked yet.", hint: "Set a role's status to Applied to track it here." },
   notinterested: { title: "Nothing dismissed.", hint: "Roles you mark Not interested show up here." },
 };
@@ -58,7 +57,7 @@ export function Feed({
   // Client-side view filter over the loaded roles (status isn't known to the
   // server, so this can't live in the URL like the other filters).
   const [appliedFilter, setAppliedFilter] = useState<
-    "all" | "unapplied" | "interested" | "applied" | "notinterested"
+    "all" | "unapplied" | "applied" | "notinterested"
   >("all");
 
   // Previous-visit timestamp: read the stored value (for "new since last visit"
@@ -275,17 +274,15 @@ export function Feed({
     );
   }
 
-  // Per-tab predicates. "Not interested" roles are hidden from Unapplied and
-  // Interested (but stay in All), and get their own tab.
+  // Per-tab predicates. "Not interested" roles are dismissed — hidden from
+  // every tab except their own.
   const notInterested = (id: string) => statuses[id] === "not_interested";
   const inTab = (l: ListingRow, tab: typeof appliedFilter): boolean => {
     switch (tab) {
       case "all":
-        return true;
+        return !notInterested(l.id);
       case "unapplied":
         return !isApplied(statuses[l.id]) && !notInterested(l.id);
-      case "interested":
-        return isInterested(statuses[l.id]) && !notInterested(l.id);
       case "applied":
         return isApplied(statuses[l.id]);
       case "notinterested":
@@ -296,9 +293,8 @@ export function Feed({
     listings.reduce((n, l) => (inTab(l, tab) ? n + 1 : n), 0);
 
   const FILTERS: { key: typeof appliedFilter; label: string; count: number }[] = [
-    { key: "all", label: "All", count: listings.length },
+    { key: "all", label: "All", count: countIn("all") },
     { key: "unapplied", label: "Unapplied", count: countIn("unapplied") },
-    { key: "interested", label: "Interested", count: countIn("interested") },
     { key: "applied", label: "Applied", count: countIn("applied") },
     { key: "notinterested", label: "Not interested", count: countIn("notinterested") },
   ];
