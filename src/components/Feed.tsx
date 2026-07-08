@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
-import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
+import { isApplied, isInterested, STATUS_LABEL, type TrackStatus } from "@/lib/track";
 
 // Per-browser application tracking (anonymous feed → localStorage, not the DB).
 const STATUS_KEY = "earlybird:status"; // { [listingId]: TrackStatus }
@@ -24,6 +24,15 @@ interface TrackedMeta {
 }
 // Timestamp (ms) of the previous visit, so we can flag roles first seen since.
 const LASTVISIT_KEY = "earlybird:lastVisit";
+
+// Empty-state copy per filter tab.
+const EMPTY_COPY: Record<string, { title: string; hint: string }> = {
+  all: { title: "No roles in this view.", hint: "Try widening the recency window or clearing filters." },
+  unapplied: { title: "You've handled everything here!", hint: "Nothing left to apply to in this view." },
+  interested: { title: "Nothing marked interested yet.", hint: "Set a role to Interested (or Applied) to see it here." },
+  applied: { title: "No applications tracked yet.", hint: "Set a role's status to Applied to track it here." },
+  notinterested: { title: "Nothing dismissed.", hint: "Roles you mark Not interested show up here." },
+};
 
 export function Feed({
   initial,
@@ -49,7 +58,7 @@ export function Feed({
   // Client-side view filter over the loaded roles (status isn't known to the
   // server, so this can't live in the URL like the other filters).
   const [appliedFilter, setAppliedFilter] = useState<
-    "all" | "unapplied" | "applied"
+    "all" | "unapplied" | "interested" | "applied" | "notinterested"
   >("all");
 
   // Previous-visit timestamp: read the stored value (for "new since last visit"
@@ -266,29 +275,43 @@ export function Feed({
     );
   }
 
-  const appliedCount = listings.reduce(
-    (n, l) => (isApplied(statuses[l.id]) ? n + 1 : n),
-    0,
-  );
+  // Per-tab predicates. "Not interested" roles are hidden from Unapplied and
+  // Interested (but stay in All), and get their own tab.
+  const notInterested = (id: string) => statuses[id] === "not_interested";
+  const inTab = (l: ListingRow, tab: typeof appliedFilter): boolean => {
+    switch (tab) {
+      case "all":
+        return true;
+      case "unapplied":
+        return !isApplied(statuses[l.id]) && !notInterested(l.id);
+      case "interested":
+        return isInterested(statuses[l.id]) && !notInterested(l.id);
+      case "applied":
+        return isApplied(statuses[l.id]);
+      case "notinterested":
+        return notInterested(l.id);
+    }
+  };
+  const countIn = (tab: typeof appliedFilter) =>
+    listings.reduce((n, l) => (inTab(l, tab) ? n + 1 : n), 0);
+
   const FILTERS: { key: typeof appliedFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: listings.length },
-    { key: "unapplied", label: "Unapplied", count: listings.length - appliedCount },
-    { key: "applied", label: "Applied", count: appliedCount },
+    { key: "unapplied", label: "Unapplied", count: countIn("unapplied") },
+    { key: "interested", label: "Interested", count: countIn("interested") },
+    { key: "applied", label: "Applied", count: countIn("applied") },
+    { key: "notinterested", label: "Not interested", count: countIn("notinterested") },
   ];
 
-  const visible =
-    appliedFilter === "all"
-      ? listings
-      : listings.filter((l) =>
-          appliedFilter === "applied"
-            ? isApplied(statuses[l.id])
-            : !isApplied(statuses[l.id]),
-        );
+  const visible = listings.filter((l) => inTab(l, appliedFilter));
 
   const unseenCount = listings.reduce((n, l) => (isUnseen(l) ? n + 1 : n), 0);
 
-  // Every role you've ever tracked (from the snapshot store), not just loaded ones.
-  const trackedIds = Object.keys(statuses);
+  // Every role you've tracked (from the snapshot store), not just loaded ones.
+  // Excludes "not interested" — that's a dismissal, not an application.
+  const trackedIds = Object.keys(statuses).filter(
+    (id) => statuses[id] !== "not_interested",
+  );
   const exportCsv = () => {
     const header = [
       "company",
@@ -354,7 +377,7 @@ export function Feed({
 
       {/* Applied view filter + CSV export */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg border border-line bg-mist p-1">
+        <div className="flex flex-wrap gap-1 rounded-lg border border-line bg-mist p-1">
         {FILTERS.map((f) => {
           const active = appliedFilter === f.key;
           return (
@@ -389,14 +412,10 @@ export function Feed({
       {visible.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
           <p className="font-display text-xl font-bold text-ink">
-            {appliedFilter === "applied"
-              ? "Nothing checked off yet."
-              : "You've applied to everything here!"}
+            {EMPTY_COPY[appliedFilter].title}
           </p>
           <p className="mt-1 font-mono text-xs text-ink-soft">
-            {appliedFilter === "applied"
-              ? "Set a role's status to Applied to track it here."
-              : "Switch to All or load more roles."}
+            {EMPTY_COPY[appliedFilter].hint}
           </p>
         </div>
       ) : (

@@ -67,7 +67,9 @@ export function ListingCard({
     <article
       data-status={status ?? "none"}
       className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
-        status === "rejected" ? "opacity-50 saturate-[0.4]" : ""
+        status === "rejected" || status === "not_interested"
+          ? "opacity-50 saturate-[0.4]"
+          : ""
       } ${unseen && !applied ? "ring-1 ring-accent/50" : ""}`}
       style={{
         borderLeftColor: fresh ? "var(--color-accent-bright)" : cat.color,
