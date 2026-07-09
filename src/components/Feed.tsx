@@ -197,26 +197,39 @@ export function Feed({
     ]);
   }, [listings, incoming]);
 
-  // Fetch the latest first page for the current query and buffer any roles we
-  // don't already have. Returns how many new ones were found. Shared by the
-  // 60s auto-poll and the manual Refresh button.
-  const checkForNew = useCallback(async (): Promise<number> => {
+  // Fetch the latest first page for the current query and return roles we don't
+  // already have. Shared by the 60s auto-poll (buffers into the pill) and the
+  // manual Refresh button (inserts immediately).
+  const checkForNew = useCallback(async (): Promise<ListingRow[]> => {
     try {
       const res = await fetch(`/api/listings?${query}`);
-      if (!res.ok) return 0;
+      if (!res.ok) return [];
       const page: ListingPage = await res.json();
-      const fresh = page.listings.filter((l) => !idsRef.current.has(l.id));
-      if (fresh.length) setIncoming((prev) => [...fresh, ...prev]);
-      return fresh.length;
+      return page.listings.filter((l) => !idsRef.current.has(l.id));
     } catch {
-      return 0; // transient network error — try again next tick
+      return []; // transient network error — try again next tick
     }
   }, [query]);
 
+  // Auto-poll every 60s → buffer new roles into the "show new" pill.
   useEffect(() => {
-    const t = setInterval(checkForNew, 60_000);
+    const poll = async () => {
+      const fresh = await checkForNew();
+      if (fresh.length) setIncoming((prev) => [...fresh, ...prev]);
+    };
+    const t = setInterval(poll, 60_000);
     return () => clearInterval(t);
   }, [checkForNew]);
+
+  // Manual refresh → check now and insert new roles (plus any buffered) at top.
+  const handleRefresh = useCallback(async () => {
+    const fresh = await checkForNew();
+    if (fresh.length || incoming.length) {
+      setListings((prev) => [...fresh, ...incoming, ...prev]);
+      setIncoming([]);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [checkForNew, incoming]);
 
   // Reflect the pending count in the tab title so it's visible from another tab.
   useEffect(() => {
@@ -400,14 +413,22 @@ export function Feed({
           );
         })}
         </div>
-        {trackedIds.length > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={exportCsv}
+            onClick={handleRefresh}
             className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
           >
-            ⬇ Export {trackedIds.length} tracked
+            ⟳ Refresh
           </button>
-        )}
+          {trackedIds.length > 0 && (
+            <button
+              onClick={exportCsv}
+              className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+            >
+              ⬇ Export {trackedIds.length} tracked
+            </button>
+          )}
+        </div>
       </div>
 
       {visible.length === 0 ? (
