@@ -222,12 +222,20 @@ export function Feed({
   }, [checkForNew]);
 
   // Manual refresh → check now and insert new roles (plus any buffered) at top.
+  const [refreshState, setRefreshState] = useState<"idle" | "checking" | "uptodate">(
+    "idle",
+  );
   const handleRefresh = useCallback(async () => {
+    setRefreshState("checking");
     const fresh = await checkForNew();
     if (fresh.length || incoming.length) {
       setListings((prev) => [...fresh, ...incoming, ...prev]);
       setIncoming([]);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      setRefreshState("idle");
+    } else {
+      setRefreshState("uptodate");
+      setTimeout(() => setRefreshState("idle"), 2000);
     }
   }, [checkForNew, incoming]);
 
@@ -416,9 +424,14 @@ export function Feed({
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
-            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+            disabled={refreshState === "checking"}
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink disabled:opacity-60"
           >
-            ⟳ Refresh
+            {refreshState === "checking"
+              ? "⟳ Checking…"
+              : refreshState === "uptodate"
+                ? "✓ Up to date"
+                : "⟳ Refresh"}
           </button>
           {trackedIds.length > 0 && (
             <button
