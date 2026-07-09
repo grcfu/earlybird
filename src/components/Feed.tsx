@@ -454,7 +454,7 @@ export function Feed({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {visible.map((l, i) => (
             <ListingCard
               key={l.id}

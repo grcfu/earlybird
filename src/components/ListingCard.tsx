@@ -66,7 +66,7 @@ export function ListingCard({
   return (
     <article
       data-status={status ?? "none"}
-      className={`group animate-rise pop relative flex items-stretch gap-4 overflow-hidden rounded-xl border border-line border-l-4 bg-surface py-4 pl-4 pr-4 shadow-pop transition-all sm:gap-5 ${
+      className={`group animate-rise pop relative flex items-center gap-3 overflow-hidden rounded-xl border border-line border-l-4 bg-surface px-3.5 py-2.5 shadow-pop transition-all ${
         status === "rejected" || status === "not_interested"
           ? "opacity-50 saturate-[0.4]"
           : ""
@@ -76,9 +76,9 @@ export function ListingCard({
         animationDelay: `${Math.min(index, 12) * 35}ms`,
       }}
     >
-      <div className="min-w-0 flex-1 py-0.5">
+      <div className="min-w-0 flex-1">
         {/* Top line: company · badges */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="truncate text-[15px] font-bold text-ink">
             {listing.company}
           </span>
@@ -137,12 +137,12 @@ export function ListingCard({
         </div>
 
         {/* Title */}
-        <h3 className="mt-1.5 truncate font-display text-lg font-bold leading-snug text-ink">
+        <h3 className="mt-1 truncate font-display text-base font-bold leading-snug text-ink">
           {listing.title}
         </h3>
 
         {/* Meta line */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-ink-soft">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-ink-soft">
           <span className="truncate">{locations}</span>
           <span className="text-ink-faint">via {listing.source}</span>
         </div>
@@ -158,56 +158,54 @@ export function ListingCard({
         )}
       </div>
 
-      {/* Right: status tracker · time · apply */}
-      <div className="flex shrink-0 flex-col items-end justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <time
-            className="font-mono text-[11px] tabular-nums text-ink-soft"
-            dateTime={listing.effectiveAt}
-            title={new Date(listing.effectiveAt).toLocaleString()}
-          >
-            {relativeTime(listing.effectiveAt, now)}
-          </time>
-          <select
-            value={status ?? ""}
-            onChange={(e) => onSetStatus?.(e.target.value as TrackStatus | "")}
-            title="Track your application status"
-            className="rounded-md border border-line bg-canvas px-1.5 py-1 font-mono text-[11px] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            <option value="">＋ track</option>
-            {TRACK_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() =>
-              onSetStatus?.(status === "not_interested" ? "" : "not_interested")
-            }
-            title={
-              status === "not_interested"
-                ? "Undo — restore this role"
-                : "Not interested — dismiss"
-            }
-            aria-label={
-              status === "not_interested" ? "Restore role" : "Dismiss role"
-            }
-            className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-xs leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-danger ${
-              status === "not_interested"
-                ? "border-ink-faint bg-mist text-ink-soft"
-                : "border-line bg-canvas text-ink-faint hover:border-danger hover:text-danger"
-            }`}
-          >
-            {status === "not_interested" ? "↩" : "✕"}
-          </button>
-        </div>
+      {/* Right: time · tracker · dismiss · apply — single compact row */}
+      <div className="flex shrink-0 items-center gap-2">
+        <time
+          className="hidden font-mono text-[11px] tabular-nums text-ink-soft sm:inline"
+          dateTime={listing.effectiveAt}
+          title={new Date(listing.effectiveAt).toLocaleString()}
+        >
+          {relativeTime(listing.effectiveAt, now)}
+        </time>
+        <select
+          value={status ?? ""}
+          onChange={(e) => onSetStatus?.(e.target.value as TrackStatus | "")}
+          title="Track your application status"
+          className="rounded-md border border-line bg-canvas px-1.5 py-1 font-mono text-[11px] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <option value="">＋ track</option>
+          {TRACK_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() =>
+            onSetStatus?.(status === "not_interested" ? "" : "not_interested")
+          }
+          title={
+            status === "not_interested"
+              ? "Undo — restore this role"
+              : "Not interested — dismiss"
+          }
+          aria-label={
+            status === "not_interested" ? "Restore role" : "Dismiss role"
+          }
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border text-xs leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-danger ${
+            status === "not_interested"
+              ? "border-ink-faint bg-mist text-ink-soft"
+              : "border-line bg-canvas text-ink-faint hover:border-danger hover:text-danger"
+          }`}
+        >
+          {status === "not_interested" ? "↩" : "✕"}
+        </button>
         <a
           href={listing.applyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="pop rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="pop rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           Apply ↗
         </a>
