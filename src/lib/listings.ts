@@ -57,7 +57,7 @@ const DEFAULT_LIMIT = 20;
 // cities (avoiding names that collide with US places, e.g. no "Ontario" since
 // Ontario, CA exists). Roles with no location, or any US/remote/ambiguous
 // location, are kept.
-const NON_US_PATTERN = [
+const NON_US_NAMES = [
   // countries & nations
   "canada", "mexico", "united kingdom", "england", "scotland", "wales",
   "ireland", "germany", "france", "spain", "portugal", "italy", "netherlands",
@@ -80,8 +80,25 @@ const NON_US_PATTERN = [
   "krakow", "bucharest", "lisbon", "dublin", "amsterdam", "munich", "berlin",
   "frankfurt", "zurich", "stockholm", "copenhagen", "helsinki", "barcelona",
   "madrid", "ho chi minh", "hanoi", "manila", "jakarta", "kuala lumpur",
-  "bangkok",
-].join("|");
+  "bangkok", "auckland", "wellington", "christchurch", "edinburgh", "glasgow",
+  "cork", "galway", "gothenburg", "rotterdam", "hamburg", "cologne", "prague",
+  "budapest", "oslo", "brisbane", "adelaide",
+];
+
+// Country/region codes with NO US state-or-DC collision, matched as whole words
+// (so "Auckland, NZ" or "Sydney, AUS" is caught, but "Austin, TX" isn't).
+// Deliberately excludes ambiguous 2-letter codes like CA/DE/IN/IL/OR/PA/LA/GA…
+const NON_US_CODES = [
+  "nz", "uk", "au", "aus", "ie", "jp", "jpn", "sg", "sgp", "hk", "hkg",
+  "kr", "kor", "cn", "chn", "br", "bra", "mx", "mex", "es", "esp", "it",
+  "ita", "nl", "nld", "se", "swe", "ch", "che", "pl", "be", "at", "dk",
+  "fi", "pt", "gr", "cz", "ro", "ua", "tr", "eg", "ng", "ke", "pk", "bd",
+  "lk", "my", "th", "sa", "ae", "uae", "ph", "phl", "vn", "vnm", "tw",
+  "twn", "za", "zaf", "gbr", "deu", "fra",
+];
+
+const NON_US_PATTERN =
+  NON_US_NAMES.join("|") + "|\\m(" + NON_US_CODES.join("|") + ")\\M";
 
 // Keyset cursor = the ordering key parts joined, so pagination is stable under
 // inserts. Recent sort uses [effectiveAt, id]; top sort uses [tier, effectiveAt, id].
