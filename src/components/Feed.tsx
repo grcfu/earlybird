@@ -197,21 +197,26 @@ export function Feed({
     ]);
   }, [listings, incoming]);
 
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/listings?${query}`);
-        if (!res.ok) return;
-        const page: ListingPage = await res.json();
-        const fresh = page.listings.filter((l) => !idsRef.current.has(l.id));
-        if (fresh.length) setIncoming((prev) => [...fresh, ...prev]);
-      } catch {
-        /* transient network error — try again next tick */
-      }
-    };
-    const t = setInterval(poll, 60_000);
-    return () => clearInterval(t);
+  // Fetch the latest first page for the current query and buffer any roles we
+  // don't already have. Returns how many new ones were found. Shared by the
+  // 60s auto-poll and the manual Refresh button.
+  const checkForNew = useCallback(async (): Promise<number> => {
+    try {
+      const res = await fetch(`/api/listings?${query}`);
+      if (!res.ok) return 0;
+      const page: ListingPage = await res.json();
+      const fresh = page.listings.filter((l) => !idsRef.current.has(l.id));
+      if (fresh.length) setIncoming((prev) => [...fresh, ...prev]);
+      return fresh.length;
+    } catch {
+      return 0; // transient network error — try again next tick
+    }
   }, [query]);
+
+  useEffect(() => {
+    const t = setInterval(checkForNew, 60_000);
+    return () => clearInterval(t);
+  }, [checkForNew]);
 
   // Reflect the pending count in the tab title so it's visible from another tab.
   useEffect(() => {
