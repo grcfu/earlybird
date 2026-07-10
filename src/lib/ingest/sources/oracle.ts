@@ -2,13 +2,30 @@ import { fetchJson } from "@/lib/ingest/http";
 import { loadAts, type AtsCompany, type AtsJob } from "@/lib/ingest/sources/ats";
 import type { Source } from "@/lib/ingest/types";
 
-const SOURCE_NAME = "jpmorgan";
+const SOURCE_NAME = "oracle";
 
-// JPMorgan runs Oracle Recruiting Cloud, which exposes a public JSON API. Its
-// keyword search is fuzzy, so we page newest-first and let the internship title
-// filter (incl. "summer analyst") do the selecting.
-const HOST = "jpmc.fa.oraclecloud.com";
-const SITE = "CX_1";
+// Companies on Oracle Recruiting Cloud. Its public JSON API is the same shape
+// per company — only the host + site number differ. Keyword search is fuzzy, so
+// we page newest-first and let the internship title filter do the selecting.
+interface OracleCompany extends AtsCompany {
+  host: string;
+  site: string;
+}
+
+const BOARDS: OracleCompany[] = [
+  {
+    company: "JPMorgan Chase",
+    token: "jpmc",
+    host: "jpmc.fa.oraclecloud.com",
+    site: "CX_1",
+  },
+  {
+    company: "American Express",
+    token: "amex",
+    host: "egug.fa.us2.oraclecloud.com",
+    site: "CX_1",
+  },
+];
 
 interface OrcReq {
   Id?: unknown;
@@ -20,13 +37,14 @@ interface OrcReq {
 const PAGE = 50;
 const MAX_PAGES = 6; // newest ~300 reqs; intern postings are recent in-season
 
-async function fetchCompany(_c: AtsCompany): Promise<AtsJob[]> {
+async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
+  const oc = c as OracleCompany;
   const out: AtsJob[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
     const url =
-      `https://${HOST}/hcmRestApi/resources/latest/recruitingCEJobRequisitions` +
+      `https://${oc.host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions` +
       `?onlyData=true&expand=requisitionList` +
-      `&finder=findReqs;siteNumber=${SITE},limit=${PAGE},offset=${page * PAGE},sortBy=POSTING_DATES_DESC`;
+      `&finder=findReqs;siteNumber=${oc.site},limit=${PAGE},offset=${page * PAGE},sortBy=POSTING_DATES_DESC`;
     const raw = (await fetchJson(url)) as {
       items?: Array<{ requisitionList?: OrcReq[] }>;
     };
@@ -38,7 +56,7 @@ async function fetchCompany(_c: AtsCompany): Promise<AtsJob[]> {
         locations:
           typeof r.PrimaryLocation === "string" ? [r.PrimaryLocation.trim()] : [],
         url: id
-          ? `https://${HOST}/hcmUI/CandidateExperience/en/sites/${SITE}/job/${id}`
+          ? `https://${oc.host}/hcmUI/CandidateExperience/en/sites/${oc.site}/job/${id}`
           : "",
         datePosted:
           typeof r.PostedDate === "string" && !Number.isNaN(Date.parse(r.PostedDate))
@@ -51,13 +69,8 @@ async function fetchCompany(_c: AtsCompany): Promise<AtsJob[]> {
   return out;
 }
 
-export const jpmorganSource: Source = {
+export const oracleSource: Source = {
   name: SOURCE_NAME,
   load: () =>
-    loadAts({
-      sourceName: SOURCE_NAME,
-      companies: [{ company: "JPMorgan Chase", token: "jpmorgan" }],
-      fetchCompany,
-      concurrency: 1,
-    }),
+    loadAts({ sourceName: SOURCE_NAME, companies: BOARDS, fetchCompany, concurrency: 2 }),
 };

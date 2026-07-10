@@ -20,7 +20,7 @@ const DIRECT_SOURCES = [
   "smartrecruiters",
   "amazon",
   "uber",
-  "jpmorgan",
+  "oracle",
 ];
 function isDirect(source: string): boolean {
   const s = source.toLowerCase();
