@@ -2,9 +2,10 @@
 // role, so each provider source filters to internships with this.
 //
 // Word-boundaried so it won't match "internal" / "international". Covers
-// intern, interns, internship(s), co-op/coop, apprentice(ship).
+// intern, interns, internship(s), co-op/coop, apprentice(ship), plus "summer
+// analyst" — how banks/quant firms brand their undergrad internships.
 const INTERN_RE =
-  /\b(interns?|internships?|co-?ops?|apprentices?(hips?)?)\b/i;
+  /\b(interns?|internships?|co-?ops?|apprentices?(hips?)?|summer analyst)\b/i;
 
 // A few titles slip through ("Internal Tools Engineer" is already excluded by
 // the boundary, but recruiter/coordinator intern-adjacent noise isn't a job we
