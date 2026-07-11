@@ -37,10 +37,12 @@ export function Feed({
   initial,
   query,
   serverNow,
+  search,
 }: {
   initial: ListingPage;
   query: string;
   serverNow: number;
+  search?: string | null;
 }) {
   const [listings, setListings] = useState<ListingRow[]>(initial.listings);
   const [cursor, setCursor] = useState<string | null>(initial.nextCursor);
@@ -449,10 +451,14 @@ export function Feed({
       {visible.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
           <p className="font-display text-xl font-bold text-ink">
-            {EMPTY_COPY[appliedFilter].title}
+            {search && (appliedFilter === "all" || appliedFilter === "unapplied")
+              ? `No roles match “${search}”.`
+              : EMPTY_COPY[appliedFilter].title}
           </p>
           <p className="mt-1 font-mono text-xs text-ink-soft">
-            {EMPTY_COPY[appliedFilter].hint}
+            {search && (appliedFilter === "all" || appliedFilter === "unapplied")
+              ? "Try a different spelling, or clear the search."
+              : EMPTY_COPY[appliedFilter].hint}
           </p>
         </div>
       ) : (

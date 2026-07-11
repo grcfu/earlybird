@@ -63,6 +63,7 @@ export default async function Home({
           initial={page}
           query={queryString}
           serverNow={serverNow}
+          search={q.search}
         />
       </main>
 

@@ -57,6 +57,20 @@ export function FilterBar() {
   // Debounced company/title search (local state -> ?q= after a pause).
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  // Press "/" anywhere (outside a field) to jump to search.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    // NOTE: a local `window` var (the recency filter) shadows the global here.
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
+  }, []);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearch(searchParams.get("q") ?? "");
@@ -90,9 +104,10 @@ export function FilterBar() {
           🔍
         </span>
         <input
+          ref={searchRef}
           value={search}
           onChange={(e) => onSearch(e.target.value)}
-          placeholder="Search company or role…"
+          placeholder="Search company or role…    ( / )"
           aria-label="Search company or role"
           className="w-full rounded-lg border border-line bg-canvas py-2 pl-9 pr-9 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
         />
