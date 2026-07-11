@@ -211,6 +211,12 @@ const BOARDS: WorkdayCompany[] = [
     host: "leidos.wd5.myworkdayjobs.com",
     site: "External",
   },
+  {
+    company: "MITRE",
+    token: "mitre",
+    host: "mitre.wd5.myworkdayjobs.com",
+    site: "MITRE",
+  },
 ];
 
 interface WdPosting {

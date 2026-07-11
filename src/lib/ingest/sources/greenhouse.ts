@@ -203,6 +203,12 @@ const BOARDS: AtsCompany[] = [
   { company: "Typeface", token: "typeface" },
   { company: "Mesh", token: "mesh" },
   { company: "Aptos Labs", token: "aptoslabs" },
+  // Biotech / genomics:
+  { company: "Natera", token: "natera" },
+  { company: "10x Genomics", token: "10xgenomics" },
+  { company: "Ginkgo Bioworks", token: "ginkgobioworks" },
+  { company: "Arc Institute", token: "arcinstitute" },
+  { company: "Generate Biomedicines", token: "generatebiomedicines" },
 ];
 
 interface GhJob {
