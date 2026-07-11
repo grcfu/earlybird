@@ -28,6 +28,7 @@ export default async function Home({
   // Canonical query string for the Feed's "load more" calls + remount key.
   const qs = new URLSearchParams();
   qs.set("window", q.window);
+  if (q.search) qs.set("q", q.search);
   if (q.categories.length) qs.set("categories", q.categories.join(","));
   if (q.location) qs.set("location", q.location);
   if (q.sponsorship !== "any") qs.set("sponsorship", q.sponsorship);
