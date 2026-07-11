@@ -54,6 +54,21 @@ export function FilterBar() {
     }, 350);
   };
 
+  // Debounced company/title search (local state -> ?q= after a pause).
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSearch(searchParams.get("q") ?? "");
+  }, [searchParams]);
+  const onSearch = (value: string) => {
+    setSearch(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      commit((p) => (value.trim() ? p.set("q", value.trim()) : p.delete("q")));
+    }, 300);
+  };
+
   const toggleCat = (key: string) => {
     const next = new Set(selectedCats);
     if (next.has(key)) next.delete(key);
@@ -69,6 +84,20 @@ export function FilterBar() {
         isPending ? "opacity-70" : "opacity-100"
       }`}
     >
+      {/* Company / title search */}
+      <div className="relative mb-3">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint">
+          🔍
+        </span>
+        <input
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Search company or role…"
+          aria-label="Search company or role"
+          className="w-full rounded-lg border border-line bg-canvas py-2 pl-9 pr-3 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+        />
+      </div>
+
       {/* Recency toggle — the headline control */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-line bg-mist p-1">
