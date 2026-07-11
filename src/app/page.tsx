@@ -23,6 +23,10 @@ export default async function Home({
   const params = await searchParams;
   const q = parseListingQuery(params);
   const page = await queryListings(q);
+  // Server Component: renders once per request, so a request-time clock is
+  // correct here (not a re-rendering client hook). Seeds the feed's relative
+  // timestamps so server + first client render agree.
+  // eslint-disable-next-line react-hooks/purity
   const serverNow = Date.now();
 
   // Canonical query string for the Feed's "load more" calls + remount key.
