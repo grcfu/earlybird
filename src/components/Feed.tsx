@@ -163,6 +163,8 @@ export function Feed({
         }
         return next;
       });
+      // Notify the streak badge (same tab) once localStorage is written.
+      setTimeout(() => window.dispatchEvent(new Event("earlybird:tracked")), 0);
     },
     [],
   );
