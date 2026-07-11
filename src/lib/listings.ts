@@ -15,6 +15,7 @@ export type SortMode = "recent" | "top"; // recent = newest first; top = prestig
 export interface ListingFilters {
   window: RecencyWindow;
   categories: Category[]; // empty = all categories
+  search: string | null; // substring match across company + title
   location: string | null; // substring match across locations[]
   sponsorship: SponsorshipFilter;
   activeOnly: boolean;
@@ -142,6 +143,7 @@ export function parseListingQuery(
       ? sponsorshipRaw
       : "any";
 
+  const search = (get("q") ?? "").trim() || null;
   const location = (get("location") ?? "").trim() || null;
   const activeOnly = get("activeOnly") !== "false"; // default true
   const sort: SortMode = get("sort") === "top" ? "top" : "recent";
@@ -154,6 +156,7 @@ export function parseListingQuery(
   return {
     window,
     categories,
+    search,
     location,
     sponsorship,
     activeOnly,
@@ -181,6 +184,12 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
 
   if (q.activeOnly) {
     conditions.push(`active = true`);
+  }
+
+  if (q.search) {
+    params.push(`%${q.search}%`);
+    // Substring match against company OR title.
+    conditions.push(`(company ILIKE $${params.length} OR title ILIKE $${params.length})`);
   }
 
   if (q.location) {
