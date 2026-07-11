@@ -119,10 +119,43 @@ body {
   animation: livepulse 2s ease-in-out infinite;
 }
 
+/* Streak bird — a gentle hop while you still owe today's application… */
+@keyframes bird-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+.animate-bird-hop {
+  animation: bird-hop 2.2s ease-in-out infinite;
+}
+
+/* …and a happy wiggle once today's streak is secured. */
+@keyframes bird-celebrate {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(-9deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(9deg);
+  }
+}
+.animate-bird-celebrate {
+  animation: bird-celebrate 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
   .animate-livepulse,
-  .animate-bob {
+  .animate-bob,
+  .animate-bird-hop,
+  .animate-bird-celebrate {
     animation: none;
   }
 }

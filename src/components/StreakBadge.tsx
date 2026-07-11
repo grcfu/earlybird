@@ -29,6 +29,7 @@ export function StreakBadge() {
   const refresh = useCallback(() => setStreak(readStreak()), []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read localStorage post-mount (SSR-safe)
     refresh();
     window.addEventListener("earlybird:tracked", refresh);
     window.addEventListener("storage", refresh);
@@ -49,7 +50,13 @@ export function StreakBadge() {
 
   return (
     <div
-      className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm"
+      className={`flex items-center gap-1.5 rounded-lg border bg-surface px-2.5 py-1.5 font-mono text-[11px] shadow-pop-sm ${
+        appliedToday
+          ? "border-leaf/40 text-leaf"
+          : count > 0
+            ? "border-accent/40 text-accent-ink"
+            : "border-line text-ink-soft"
+      }`}
       title={
         count === 0
           ? "Apply to one role today to start a streak 🐦"
@@ -58,12 +65,13 @@ export function StreakBadge() {
             : `Apply to one role today to keep your ${count}-day streak alive`
       }
     >
-      <span aria-hidden>🐦</span>
-      {count > 0 && (
-        <span className={appliedToday ? "text-leaf" : "text-accent-ink"}>
-          🔥 {count}
-        </span>
-      )}
+      <span
+        aria-hidden
+        className={`inline-block ${appliedToday ? "animate-bird-celebrate" : "animate-bird-hop"}`}
+      >
+        🐦
+      </span>
+      {count > 0 && <span className="font-bold">🔥 {count}</span>}
       <span>{label}</span>
     </div>
   );
