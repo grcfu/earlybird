@@ -187,6 +187,30 @@ const BOARDS: WorkdayCompany[] = [
     host: "ghr.wd1.myworkdayjobs.com",
     site: "lateral-us",
   },
+  {
+    company: "Amgen",
+    token: "amgen",
+    host: "amgen.wd1.myworkdayjobs.com",
+    site: "Careers",
+  },
+  {
+    company: "Booz Allen",
+    token: "bah",
+    host: "bah.wd1.myworkdayjobs.com",
+    site: "BAH_Jobs",
+  },
+  {
+    company: "Gilead",
+    token: "gilead",
+    host: "gilead.wd1.myworkdayjobs.com",
+    site: "gileadcareers",
+  },
+  {
+    company: "Leidos",
+    token: "leidos",
+    host: "leidos.wd5.myworkdayjobs.com",
+    site: "External",
+  },
 ];
 
 interface WdPosting {

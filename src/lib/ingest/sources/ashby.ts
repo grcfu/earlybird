@@ -73,6 +73,7 @@ const BOARDS: AtsCompany[] = [
   { company: "Knock", token: "knock" },
   { company: "Cerebras", token: "cerebras" },
   { company: "Saronic", token: "saronic" },
+  { company: "Vitalize", token: "vitalize" },
   { company: "Commure", token: "commure" },
   { company: "Nabla", token: "nabla" },
   { company: "LangChain", token: "langchain" },
