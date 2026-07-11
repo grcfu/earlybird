@@ -94,8 +94,19 @@ export function FilterBar() {
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search company or role…"
           aria-label="Search company or role"
-          className="w-full rounded-lg border border-line bg-canvas py-2 pl-9 pr-3 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+          className="w-full rounded-lg border border-line bg-canvas py-2 pl-9 pr-9 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
         />
+        {search && (
+          <button
+            type="button"
+            onClick={() => onSearch("")}
+            aria-label="Clear search"
+            title="Clear search"
+            className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-ink-faint hover:bg-mist hover:text-ink"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Recency toggle — the headline control */}
