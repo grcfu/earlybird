@@ -3,6 +3,7 @@ import { parseListingQuery, queryListings } from "@/lib/listings";
 import { Header } from "@/components/Header";
 import { FilterBar } from "@/components/FilterBar";
 import { Feed } from "@/components/Feed";
+import { StreakBadge } from "@/components/StreakBadge";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +37,8 @@ export default async function Home({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
-      <div className="relative z-10 mb-6 flex justify-end">
+      <div className="relative z-10 mb-6 flex items-center justify-end gap-2">
+        <StreakBadge />
         <Link
           href="/settings"
           className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
