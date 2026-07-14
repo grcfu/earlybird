@@ -223,6 +223,28 @@ const BOARDS: AtsCompany[] = [
   { company: "Clerkie", token: "clerkie" },
   { company: "Stoke Space", token: "stokespacetechnologies" },
   { company: "ASM", token: "asm" },
+  // Probed live 2026-07-11 (candidate sweep, board name confirmed):
+  { company: "AQR", token: "aqr" },
+  { company: "Astera Labs", token: "asteralabs" },
+  { company: "Hex", token: "hextechnologies" },
+  { company: "Lightmatter", token: "lightmatter" },
+  { company: "PsiQuantum", token: "psiquantum" },
+  { company: "Roku", token: "roku" },
+  { company: "Vast", token: "vast" },
+  { company: "Wiz", token: "wizinc" },
+  { company: "Zscaler", token: "zscaler" },
+  { company: "Cohere Health", token: "coherehealth" },
+  { company: "Da Vinci", token: "davinciderivatives" },
+  { company: "Eikon Therapeutics", token: "eikontherapeutics" },
+  { company: "Glean", token: "gleanwork" },
+  { company: "Isomorphic Labs", token: "isomorphiclabs" },
+  { company: "Maven Clinic", token: "mavenclinic" },
+  { company: "Muon Space", token: "muonspace" },
+  { company: "Qube Research & Technologies", token: "quberesearchandtechnologies" },
+  { company: "Suki", token: "suki" },
+  { company: "Together AI", token: "togetherai" },
+  { company: "Ursa Major", token: "ursamajor" },
+  { company: "Xaira Therapeutics", token: "xairatherapeutics" },
 ];
 
 interface GhJob {

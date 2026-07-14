@@ -20,6 +20,14 @@ const BOARDS: AtsCompany[] = [
   { company: "Rainmaker", token: "make-rain" },
   { company: "SoloPulse", token: "solopulseco" },
   { company: "Traackr", token: "traackr" },
+  // Probed live 2026-07-11 (candidate sweep):
+  { company: "Atom Computing", token: "atomcomputing" },
+  { company: "Shield AI", token: "shieldai" },
+  { company: "Waabi", token: "waabi" },
+  { company: "Zoox", token: "zoox" },
+  { company: "Belvedere Trading", token: "belvederetrading" },
+  { company: "Dexterity", token: "dexterity" },
+  { company: "Included Health", token: "includedhealth" },
 ];
 
 interface LeverJob {
