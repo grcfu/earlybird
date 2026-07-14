@@ -217,6 +217,115 @@ const BOARDS: WorkdayCompany[] = [
     host: "mitre.wd5.myworkdayjobs.com",
     site: "MITRE",
   },
+  // From speedyapply/2027-SWE-College-Jobs (CXS probed live 2026-07-11):
+  {
+    company: "AeroVironment",
+    token: "avav",
+    host: "avav.wd1.myworkdayjobs.com",
+    site: "avav",
+  },
+  {
+    company: "Altasciences",
+    token: "altasciences",
+    host: "altasciences.wd1.myworkdayjobs.com",
+    site: "careers",
+  },
+  {
+    company: "Blue Origin",
+    token: "blueorigin",
+    host: "blueorigin.wd5.myworkdayjobs.com",
+    site: "blueorigin",
+  },
+  {
+    company: "BorgWarner",
+    token: "borgwarner",
+    host: "borgwarner.wd5.myworkdayjobs.com",
+    site: "borgwarner_careers",
+  },
+  {
+    company: "Brunswick",
+    token: "brunswick",
+    host: "brunswick.wd1.myworkdayjobs.com",
+    site: "search",
+  },
+  {
+    company: "Copart",
+    token: "copart",
+    host: "copart.wd12.myworkdayjobs.com",
+    site: "copart",
+  },
+  {
+    company: "DMA",
+    token: "dmainc",
+    host: "dmainc.wd5.myworkdayjobs.com",
+    site: "dma",
+  },
+  {
+    company: "GE Vernova",
+    token: "gevernova",
+    host: "gevernova.wd5.myworkdayjobs.com",
+    site: "only_confidential_executive_recruiting",
+  },
+  {
+    company: "Generac",
+    token: "generac",
+    host: "generac.wd5.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Insuresoft",
+    token: "brilliancanada",
+    host: "brilliancanada.wd3.myworkdayjobs.com",
+    site: "insuresoft",
+  },
+  {
+    company: "Motorola Solutions",
+    token: "motorolasolutions",
+    host: "motorolasolutions.wd5.myworkdayjobs.com",
+    site: "careers",
+  },
+  {
+    company: "Nidec",
+    token: "nidec",
+    host: "nidec.wd1.myworkdayjobs.com",
+    site: "nidec",
+  },
+  {
+    company: "Nightwing",
+    token: "nwis",
+    host: "nwis.wd12.myworkdayjobs.com",
+    site: "nw",
+  },
+  {
+    company: "SEL",
+    token: "selinc",
+    host: "selinc.wd1.myworkdayjobs.com",
+    site: "sel",
+  },
+  {
+    company: "Sony",
+    token: "sonyglobal",
+    host: "sonyglobal.wd1.myworkdayjobs.com",
+    site: "sonyglobalcareers",
+  },
+  {
+    company: "Synchrony Bank",
+    token: "synchronyfinancial",
+    host: "synchronyfinancial.wd5.myworkdayjobs.com",
+    site: "university",
+  },
+  {
+    company: "Tencent",
+    token: "tencent",
+    host: "tencent.wd1.myworkdayjobs.com",
+    site: "tencent_careers",
+  },
+  {
+    company: "Washington University in St. Louis",
+    token: "wustl",
+    host: "wustl.wd1.myworkdayjobs.com",
+    site: "external",
+  },
 ];
 
 interface WdPosting {

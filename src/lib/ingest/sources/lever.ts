@@ -12,6 +12,14 @@ const BOARDS: AtsCompany[] = [
   { company: "GoPuff", token: "gopuff" },
   { company: "Spotify", token: "spotify" },
   { company: "Mistral AI", token: "mistral" },
+  // From speedyapply/2027-SWE-College-Jobs (probed live 2026-07-11):
+  { company: "Fluxergy", token: "fluxergy-2" },
+  { company: "GenBio AI", token: "genbio" },
+  { company: "Hermeus", token: "hermeus" },
+  { company: "Plus", token: "plus-2" },
+  { company: "Rainmaker", token: "make-rain" },
+  { company: "SoloPulse", token: "solopulseco" },
+  { company: "Traackr", token: "traackr" },
 ];
 
 interface LeverJob {

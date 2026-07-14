@@ -97,6 +97,25 @@ const BOARDS: AtsCompany[] = [
   { company: "Superpower", token: "superpower" },
   { company: "Alchemy", token: "alchemy" },
   { company: "Helius", token: "helius" },
+  // From speedyapply/2027-SWE-College-Jobs (probed live 2026-07-11):
+  { company: "Atomic Semi", token: "atomicsemi" },
+  { company: "Auctor", token: "auctor" },
+  { company: "Base Power", token: "base-power" },
+  { company: "Beacon Software", token: "beaconsoftware" },
+  { company: "Binance.US", token: "binance.us" },
+  { company: "Blackstar Computers", token: "blackstar" },
+  { company: "CTGT", token: "ctgt" },
+  { company: "Centerfield", token: "centerfield" },
+  { company: "Circleback", token: "circleback" },
+  { company: "Ellipsis Labs", token: "ellipsislabs" },
+  { company: "Heron Power", token: "heron-power" },
+  { company: "MyJunior AI", token: "junior" },
+  { company: "Phia", token: "phia" },
+  { company: "Pylon", token: "pylon-labs" },
+  { company: "Rivian", token: "rivianvw.tech" },
+  { company: "Skydio", token: "skydio" },
+  { company: "Tessera Labs", token: "tessera-labs" },
+  { company: "kos.ai", token: "kos.ai" },
 ];
 
 interface AshbyJob {

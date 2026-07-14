@@ -209,6 +209,20 @@ const BOARDS: AtsCompany[] = [
   { company: "Ginkgo Bioworks", token: "ginkgobioworks" },
   { company: "Arc Institute", token: "arcinstitute" },
   { company: "Generate Biomedicines", token: "generatebiomedicines" },
+  // From speedyapply/2027-SWE-College-Jobs (probed live 2026-07-11):
+  { company: "Apptronik", token: "apptronik" },
+  { company: "Aquatic Capital Management", token: "aquaticcapitalmanagement" },
+  { company: "BillionToOne", token: "billiontoone" },
+  { company: "Lila Sciences", token: "lilasciences" },
+  { company: "Podium", token: "podium81" },
+  { company: "SpaceX", token: "spacex" },
+  { company: "Varda", token: "vardaspace" },
+  { company: "We. Communications", token: "wecommunications" },
+  { company: "iHerb", token: "iherb" },
+  { company: "Formlabs", token: "formlabs" },
+  { company: "Clerkie", token: "clerkie" },
+  { company: "Stoke Space", token: "stokespacetechnologies" },
+  { company: "ASM", token: "asm" },
 ];
 
 interface GhJob {
