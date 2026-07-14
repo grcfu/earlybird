@@ -28,6 +28,10 @@ const BOARDS: AtsCompany[] = [
   { company: "Belvedere Trading", token: "belvederetrading" },
   { company: "Dexterity", token: "dexterity" },
   { company: "Included Health", token: "includedhealth" },
+  // Probed live 2026-07-14 (candidate sweep):
+  { company: "Anchorage Digital", token: "anchorage" },
+  { company: "Loadsmart", token: "loadsmart" },
+  { company: "Merlin Labs", token: "merlinlabs" },
 ];
 
 interface LeverJob {

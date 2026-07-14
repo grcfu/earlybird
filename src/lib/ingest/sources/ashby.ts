@@ -139,6 +139,18 @@ const BOARDS: AtsCompany[] = [
   { company: "Prefect", token: "prefect" },
   { company: "Sentry", token: "sentry" },
   { company: "Substack", token: "substack" },
+  // Probed live 2026-07-14 (candidate sweep):
+  { company: "Airwallex", token: "airwallex" },
+  { company: "Anyscale", token: "anyscale" },
+  { company: "ClickUp", token: "clickup" },
+  { company: "Extropic", token: "extropic" },
+  { company: "Form Energy", token: "formenergy" },
+  { company: "Helion Energy", token: "helion" },
+  { company: "Normal Computing", token: "normalcomputing" },
+  { company: "Span", token: "span" },
+  { company: "Twelve", token: "twelve" },
+  { company: "Uniswap Labs", token: "uniswap" },
+  { company: "Zapier", token: "zapier" },
 ];
 
 interface AshbyJob {

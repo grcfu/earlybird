@@ -245,6 +245,24 @@ const BOARDS: AtsCompany[] = [
   { company: "Together AI", token: "togetherai" },
   { company: "Ursa Major", token: "ursamajor" },
   { company: "Xaira Therapeutics", token: "xairatherapeutics" },
+  // Probed live 2026-07-14 (candidate sweep, board name confirmed):
+  { company: "Chaos Industries", token: "chaosindustries" },
+  { company: "Cresta", token: "cresta" },
+  { company: "FourKites", token: "fourkites" },
+  { company: "Honeycomb", token: "honeycomb" },
+  { company: "Kairos Power", token: "kairospower" },
+  { company: "MatX", token: "matx" },
+  { company: "Melio", token: "melio" },
+  { company: "Mill", token: "mill" },
+  { company: "Motive", token: "motive" },
+  { company: "Navan", token: "tripactions" },
+  { company: "Observe.AI", token: "observeai" },
+  { company: "Oklo", token: "oklo" },
+  { company: "Ondo Finance", token: "ondofinance" },
+  { company: "Redwood Materials", token: "redwoodmaterials" },
+  { company: "Regent", token: "regent" },
+  { company: "Sila", token: "silananotechnologies" },
+  { company: "project44", token: "project44" },
 ];
 
 interface GhJob {
