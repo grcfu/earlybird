@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestAll } from "@/lib/ingest";
+import { ingestHackathons } from "@/lib/ingest/hackathons";
 import { isCronAuthorized } from "@/lib/cron-auth";
 
 // The pg driver adapter needs the Node.js runtime (not Edge).
@@ -16,7 +17,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   const summary = await ingestAll();
-  return NextResponse.json({ ok: true, summary });
+  const hackathons = await ingestHackathons();
+  return NextResponse.json({ ok: true, summary, hackathons });
 }
 
 // Vercel Cron sends GET; also convenient for manual triggering in the browser.
