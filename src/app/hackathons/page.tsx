@@ -2,6 +2,7 @@ import Link from "next/link";
 import { parseHackathonQuery, queryHackathons } from "@/lib/hackathons";
 import { HackathonHeader } from "@/components/HackathonHeader";
 import { HackathonCard } from "@/components/HackathonCard";
+import { HackathonFilterBar } from "@/components/HackathonFilterBar";
 import { TabNav } from "@/components/TabNav";
 
 export const runtime = "nodejs";
@@ -40,7 +41,11 @@ export default async function HackathonsPage({
 
       <HackathonHeader count={page.count} whenLabel={WHEN_LABEL[q.when]} />
 
-      <main className="mt-8 flex flex-col gap-2">
+      <div className="sticky top-3 z-20 mt-8">
+        <HackathonFilterBar />
+      </div>
+
+      <main className="mt-5 flex flex-col gap-2">
         {page.hackathons.map((h, i) => (
           <HackathonCard key={h.id} hackathon={h} now={serverNow} index={i} />
         ))}
