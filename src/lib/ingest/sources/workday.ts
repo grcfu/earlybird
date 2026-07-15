@@ -430,6 +430,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "elevancehealth.wd1.myworkdayjobs.com",
     site: "ANT",
   },
+  {
+    company: "US Bank",
+    token: "usbank",
+    host: "usbank.wd1.myworkdayjobs.com",
+    site: "US_Bank_Careers",
+  },
+  {
+    company: "KeyBank",
+    token: "keybank",
+    host: "keybank.wd5.myworkdayjobs.com",
+    site: "External_Career_Site",
+  },
 ];
 
 interface WdPosting {
