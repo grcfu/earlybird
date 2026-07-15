@@ -454,6 +454,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "ntrs.wd1.myworkdayjobs.com",
     site: "northerntrust",
   },
+  {
+    company: "Northrop Grumman",
+    token: "ngc",
+    host: "ngc.wd1.myworkdayjobs.com",
+    site: "Northrop_Grumman_External_Site",
+  },
+  {
+    company: "Johnson Controls",
+    token: "jci",
+    host: "jci.wd5.myworkdayjobs.com",
+    site: "JCI",
+  },
 ];
 
 interface WdPosting {
