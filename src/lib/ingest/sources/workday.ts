@@ -381,6 +381,19 @@ const BOARDS: WorkdayCompany[] = [
     host: "pfizer.wd1.myworkdayjobs.com",
     site: "PfizerCareers",
   },
+  // More big-name boards: tenant grepped from careers HTML + CXS-confirmed 2026-07-14.
+  {
+    company: "Eli Lilly",
+    token: "lilly",
+    host: "lilly.wd115.myworkdayjobs.com",
+    site: "LLY",
+  },
+  {
+    company: "Abbott",
+    token: "abbott",
+    host: "abbott.wd5.myworkdayjobs.com",
+    site: "abbottcareers",
+  },
 ];
 
 interface WdPosting {
