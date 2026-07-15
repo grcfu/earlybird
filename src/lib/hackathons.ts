@@ -126,10 +126,16 @@ function buildWhere(q: HackathonFilters): { clause: string; params: unknown[] } 
 
   if (q.activeOnly) conditions.push(`active = true`);
 
-  // Upcoming/ongoing only (always on): hide events that have already ended.
-  // Events with an unknown end date are kept.
+  // Not-yet-started only (always on): you're here to apply, so hide events
+  // that are already underway (or over). Keep events whose start is in the
+  // future; for events with an unknown start date, keep them only while they
+  // haven't already ended. now is bound once and reused by both checks.
   params.push(now);
-  conditions.push(`("endsAt" IS NULL OR "endsAt" >= $${params.length})`);
+  const nowIdx = params.length;
+  conditions.push(
+    `(("startsAt" IS NULL OR "startsAt" >= $${nowIdx}) ` +
+      `AND ("endsAt" IS NULL OR "endsAt" >= $${nowIdx}))`,
+  );
 
   // Format bucket. Hybrids satisfy both online and in-person.
   if (q.format === "online") {
