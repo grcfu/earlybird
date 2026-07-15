@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { FilterBar } from "@/components/FilterBar";
 import { Feed } from "@/components/Feed";
 import { StreakBadge } from "@/components/StreakBadge";
+import { TabNav } from "@/components/TabNav";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +43,9 @@ export default async function Home({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
-      <div className="relative z-10 mb-6 flex items-center justify-end gap-2">
+      <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
+        <TabNav />
+        <div className="flex items-center gap-2">
         <StreakBadge />
         <Link
           href="/settings"
@@ -50,6 +53,7 @@ export default async function Home({
         >
           ⚙ manage alerts
         </Link>
+        </div>
       </div>
       <Header
         count={page.count}
