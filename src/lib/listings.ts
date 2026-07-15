@@ -98,7 +98,9 @@ const NON_US_CODES = [
   "twn", "za", "zaf", "gbr", "deu", "fra",
 ];
 
-const NON_US_PATTERN =
+// Exported so the hackathons query can apply the identical US-only rule to
+// in-person event locations (single source of truth for "looks non-US").
+export const NON_US_PATTERN =
   NON_US_NAMES.join("|") + "|\\m(" + NON_US_CODES.join("|") + ")\\M";
 
 // Keyset cursor = the ordering key parts joined, so pagination is stable under
