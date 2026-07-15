@@ -490,6 +490,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "tapestry.wd108.myworkdayjobs.com",
     site: "Tapestry_Careers",
   },
+  {
+    company: "Nordstrom",
+    token: "nordstrom",
+    host: "nordstrom.wd501.myworkdayjobs.com",
+    site: "nordstrom_careers",
+  },
+  {
+    company: "Worldpay",
+    token: "worldpay",
+    host: "worldpay.wd5.myworkdayjobs.com",
+    site: "Worldpay_External_Careers_Site",
+  },
 ];
 
 interface WdPosting {
