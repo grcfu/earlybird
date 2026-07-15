@@ -73,6 +73,50 @@ model Listing {
   @@index([category])
 }
 
+// How a hackathon runs — online, physically, or both.
+enum HackathonFormat {
+  ONLINE
+  IN_PERSON
+  HYBRID
+}
+
+// A single hackathon, normalized across sources (MLH, Devpost).
+model Hackathon {
+  // Stable hash of name + url host/path (see lib/ingest/hackathons/hash.ts).
+  id     String @id
+  source String // "mlh" | "devpost" (may be merged, e.g. "mlh+devpost")
+  name   String
+  url    String // the event's own registration/site link
+
+  format        HackathonFormat @default(IN_PERSON)
+  locationLabel String          @default("") // "Online" or "New York, NY"
+  country       String? // ISO-ish country of an in-person venue; null when online/unknown
+
+  startsAt  DateTime? // event start (nullable when a source omits it)
+  endsAt    DateTime?
+  dateLabel String? // human range straight from the source ("May 19 - Aug 17, 2026")
+
+  prize        String? // prize-pool text (Devpost), free-form
+  themes       String[] // themes / tags
+  participants Int? // registrations count when the source exposes it
+  imageUrl     String?
+
+  // firstSeenAt: when OUR system first ingested this event. Set once.
+  firstSeenAt DateTime @default(now())
+  // lastSeenAt: refreshed every ingest run the event still appears in.
+  lastSeenAt  DateTime @default(now())
+  active      Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Hot paths: soonest-first ordering, recency of discovery, and format filter.
+  @@index([startsAt])
+  @@index([firstSeenAt])
+  @@index([active])
+  @@index([format])
+}
+
 // Minimal user for v1 — just an email identity.
 model User {
   id        String   @id @default(cuid())
