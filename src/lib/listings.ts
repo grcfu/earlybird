@@ -225,6 +225,12 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
     `title !~* 'new\\s*grad|new graduate|university graduate|entry[ -]level|\\mmba\\M|full[ -]?time|\\mph\\.?d\\M'`,
   );
 
+  // Focused role families (always on): the feed is SWE / ML-AI / Data / PM
+  // only, so quant, hardware, and uncategorized (OTHER) roles are dropped.
+  conditions.push(
+    `category <> ALL(ARRAY['QUANT','HARDWARE','OTHER']::"Category"[])`,
+  );
+
   // Grad-cycle eligibility (always on): keep a role if neither its title nor its
   // season names a year (cycle unknown → keep), OR the named year is one of the
   // summers you're eligible for. Drops only roles positively tagged a wrong

@@ -25,8 +25,7 @@ export function Header({
             </h1>
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
-            Fresh SWE · ML · data · quant · hardware internships, surfaced at
-            first light.
+            Fresh SWE · ML · data · PM internships, surfaced at first light.
           </p>
         </div>
 

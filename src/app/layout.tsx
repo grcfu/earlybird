@@ -25,7 +25,7 @@ const mono = DM_Mono({
 export const metadata: Metadata = {
   title: "EarlyBird — fresh internships, first light",
   description:
-    "The newest SWE / ML / data / quant / hardware internship postings, surfaced within hours of going live.",
+    "The newest SWE / ML / data / PM internship postings, surfaced within hours of going live.",
 };
 
 export default function RootLayout({
