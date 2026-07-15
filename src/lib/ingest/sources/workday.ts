@@ -466,6 +466,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "jci.wd5.myworkdayjobs.com",
     site: "JCI",
   },
+  {
+    company: "ConocoPhillips",
+    token: "conocophillips",
+    host: "conocophillips.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Duke Energy",
+    token: "dukeenergy",
+    host: "dukeenergy.wd1.myworkdayjobs.com",
+    site: "search",
+  },
 ];
 
 interface WdPosting {
