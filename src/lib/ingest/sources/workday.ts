@@ -394,6 +394,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "abbott.wd5.myworkdayjobs.com",
     site: "abbottcareers",
   },
+  {
+    company: "Stryker",
+    token: "stryker",
+    host: "stryker.wd1.myworkdayjobs.com",
+    site: "StrykerCareers",
+  },
+  {
+    company: "Becton Dickinson",
+    token: "bdx",
+    host: "bdx.wd1.myworkdayjobs.com",
+    site: "EXTERNAL_CAREER_SITE_USA",
+  },
 ];
 
 interface WdPosting {
