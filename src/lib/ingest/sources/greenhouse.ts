@@ -263,6 +263,10 @@ const BOARDS: AtsCompany[] = [
   { company: "Regent", token: "regent" },
   { company: "Sila", token: "silananotechnologies" },
   { company: "project44", token: "project44" },
+  // Probed live 2026-07-14 (candidate sweep, batch 2):
+  { company: "Diligent Robotics", token: "diligentrobotics" },
+  { company: "Nimble Robotics", token: "nimblerobotics" },
+  { company: "World Labs", token: "worldlabs" },
 ];
 
 interface GhJob {

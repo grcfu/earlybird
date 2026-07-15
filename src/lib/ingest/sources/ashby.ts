@@ -151,6 +151,20 @@ const BOARDS: AtsCompany[] = [
   { company: "Twelve", token: "twelve" },
   { company: "Uniswap Labs", token: "uniswap" },
   { company: "Zapier", token: "zapier" },
+  // Probed live 2026-07-14 (candidate sweep, batch 2):
+  { company: "Artisan", token: "artisan" },
+  { company: "Bland", token: "bland" },
+  { company: "Footprint", token: "footprint" },
+  { company: "Lorikeet", token: "lorikeet" },
+  { company: "Material Security", token: "materialsecurity" },
+  { company: "Omni", token: "omni" },
+  { company: "Parafin", token: "parafin" },
+  { company: "Semgrep", token: "semgrep" },
+  { company: "Serve Robotics", token: "serverobotics" },
+  { company: "Svix", token: "svix" },
+  { company: "Tavus", token: "tavus" },
+  { company: "Trigger.dev", token: "triggerdev" },
+  { company: "Unify", token: "unify" },
 ];
 
 interface AshbyJob {

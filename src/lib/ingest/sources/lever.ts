@@ -32,6 +32,10 @@ const BOARDS: AtsCompany[] = [
   { company: "Anchorage Digital", token: "anchorage" },
   { company: "Loadsmart", token: "loadsmart" },
   { company: "Merlin Labs", token: "merlinlabs" },
+  // Probed live 2026-07-14 (candidate sweep, batch 2):
+  { company: "Metabase", token: "metabase" },
+  { company: "Pickle Robot", token: "picklerobot" },
+  { company: "Sysdig", token: "sysdig" },
 ];
 
 interface LeverJob {

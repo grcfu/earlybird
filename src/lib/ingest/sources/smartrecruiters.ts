@@ -13,6 +13,8 @@ const BOARDS: AtsCompany[] = [
   { company: "Experian", token: "Experian" },
   { company: "Public Storage", token: "PublicStorage" },
   { company: "CACI", token: "CACI" },
+  // Probed live 2026-07-14:
+  { company: "NielsenIQ", token: "NielsenIQ" },
 ];
 
 interface SrPosting {
