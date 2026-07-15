@@ -326,6 +326,61 @@ const BOARDS: WorkdayCompany[] = [
     host: "wustl.wd1.myworkdayjobs.com",
     site: "external",
   },
+  // Big-name boards: tenant grepped from careers HTML + CXS-confirmed 2026-07-14.
+  {
+    company: "Johnson & Johnson",
+    token: "jj",
+    host: "jj.wd5.myworkdayjobs.com",
+    site: "JJ",
+  },
+  {
+    company: "T-Mobile",
+    token: "tmobile",
+    host: "tmobile.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "CVS Health",
+    token: "cvshealth",
+    host: "cvshealth.wd1.myworkdayjobs.com",
+    site: "CVS_Health_Careers",
+  },
+  {
+    company: "3M",
+    token: "3m",
+    host: "3m.wd1.myworkdayjobs.com",
+    site: "Search",
+  },
+  {
+    company: "Nike",
+    token: "nike",
+    host: "nike.wd1.myworkdayjobs.com",
+    site: "nke",
+  },
+  {
+    company: "Merck",
+    token: "msd",
+    host: "msd.wd5.myworkdayjobs.com",
+    site: "SearchJobs",
+  },
+  {
+    company: "Boeing",
+    token: "boeing",
+    host: "boeing.wd1.myworkdayjobs.com",
+    site: "EXTERNAL_CAREERS",
+  },
+  {
+    company: "Chevron",
+    token: "chevron",
+    host: "chevron.wd5.myworkdayjobs.com",
+    site: "jobs",
+  },
+  {
+    company: "Pfizer",
+    token: "pfizer",
+    host: "pfizer.wd1.myworkdayjobs.com",
+    site: "PfizerCareers",
+  },
 ];
 
 interface WdPosting {
