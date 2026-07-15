@@ -418,6 +418,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "danaher.wd1.myworkdayjobs.com",
     site: "DanaherJobs",
   },
+  {
+    company: "Cigna",
+    token: "cigna",
+    host: "cigna.wd5.myworkdayjobs.com",
+    site: "cignacareers",
+  },
+  {
+    company: "Elevance Health",
+    token: "elevancehealth",
+    host: "elevancehealth.wd1.myworkdayjobs.com",
+    site: "ANT",
+  },
 ];
 
 interface WdPosting {
