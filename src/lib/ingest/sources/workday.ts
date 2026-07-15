@@ -478,6 +478,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "dukeenergy.wd1.myworkdayjobs.com",
     site: "search",
   },
+  {
+    company: "Otis",
+    token: "otis",
+    host: "otis.wd5.myworkdayjobs.com",
+    site: "REC_Ext_Gateway",
+  },
+  {
+    company: "Tapestry",
+    token: "tapestry",
+    host: "tapestry.wd108.myworkdayjobs.com",
+    site: "Tapestry_Careers",
+  },
 ];
 
 interface WdPosting {
