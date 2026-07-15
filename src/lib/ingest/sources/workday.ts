@@ -442,6 +442,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "keybank.wd5.myworkdayjobs.com",
     site: "External_Career_Site",
   },
+  {
+    company: "State Street",
+    token: "statestreet",
+    host: "statestreet.wd1.myworkdayjobs.com",
+    site: "Global",
+  },
+  {
+    company: "Northern Trust",
+    token: "ntrs",
+    host: "ntrs.wd1.myworkdayjobs.com",
+    site: "northerntrust",
+  },
 ];
 
 interface WdPosting {
