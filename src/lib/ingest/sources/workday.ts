@@ -406,6 +406,18 @@ const BOARDS: WorkdayCompany[] = [
     host: "bdx.wd1.myworkdayjobs.com",
     site: "EXTERNAL_CAREER_SITE_USA",
   },
+  {
+    company: "Thermo Fisher Scientific",
+    token: "thermofisher",
+    host: "thermofisher.wd5.myworkdayjobs.com",
+    site: "ThermoFisherCareers",
+  },
+  {
+    company: "Danaher",
+    token: "danaher",
+    host: "danaher.wd1.myworkdayjobs.com",
+    site: "DanaherJobs",
+  },
 ];
 
 interface WdPosting {
