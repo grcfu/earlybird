@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { parseHackathonQuery, queryHackathons } from "@/lib/hackathons";
 import { HackathonHeader } from "@/components/HackathonHeader";
-import { HackathonCard } from "@/components/HackathonCard";
+import { HackathonFeed } from "@/components/HackathonFeed";
 import { HackathonFilterBar } from "@/components/HackathonFilterBar";
 import { TabNav } from "@/components/TabNav";
 
@@ -27,6 +27,16 @@ export default async function HackathonsPage({
   // eslint-disable-next-line react-hooks/purity
   const serverNow = Date.now();
 
+  // Canonical query string for the feed's "load more" + live-poll calls.
+  const qs = new URLSearchParams();
+  if (q.format !== "all") qs.set("format", q.format);
+  if (q.when !== "all") qs.set("when", q.when);
+  if (q.sort !== "soon") qs.set("sort", q.sort);
+  if (q.search) qs.set("q", q.search);
+  if (q.location) qs.set("location", q.location);
+  if (!q.activeOnly) qs.set("activeOnly", "false");
+  const queryString = qs.toString();
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
       <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
@@ -45,10 +55,14 @@ export default async function HackathonsPage({
         <HackathonFilterBar />
       </div>
 
-      <main className="mt-5 flex flex-col gap-2">
-        {page.hackathons.map((h, i) => (
-          <HackathonCard key={h.id} hackathon={h} now={serverNow} index={i} />
-        ))}
+      <main className="mt-5">
+        <HackathonFeed
+          key={queryString}
+          initial={page}
+          query={queryString}
+          serverNow={serverNow}
+          search={q.search}
+        />
       </main>
     </div>
   );
