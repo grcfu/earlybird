@@ -44,25 +44,65 @@ const RULES: Array<{ category: Category; patterns: RegExp[] }> = [
       /silicon/i,
     ],
   },
-  {
-    category: Category.PM,
-    patterns: [/product manager/i, /product management/i, /\bapm\b/i, /\bpm\b/i],
-  },
+  // Explicit software signals — matched BEFORE the non-software-engineering rule
+  // below, so a genuine software role at a manufacturing/hardware org (e.g.
+  // "Manufacturing Test Software Intern") stays SWE instead of being excluded.
   {
     category: Category.SWE,
     patterns: [
       /software/i,
       /\bswe\b/i,
+      /\bsde\b/i,
       /developer/i,
-      /\bengineer/i,
+      /programming/i,
+      /full[\s-]?stack/i,
       /front[\s-]?end/i,
       /back[\s-]?end/i,
-      /full[\s-]?stack/i,
       /\bweb\b/i,
       /\bios\b/i,
       /android/i,
-      /\bsde\b/i,
     ],
+  },
+  // Non-software engineering disciplines. These carry "Engineer(ing)" but are NOT
+  // software, so they must resolve here (→ OTHER, which the feed excludes) rather
+  // than fall through to the broad SWE catch-all and pollute the SWE filter.
+  {
+    category: Category.OTHER,
+    patterns: [
+      /mechanical/i,
+      /\bcivil\b/i,
+      /chemical/i,
+      /industrial engineer/i,
+      /manufactur/i,
+      /aerospace/i,
+      /aeronautic/i,
+      /astronautic/i,
+      /biomedical/i,
+      /environmental/i,
+      /structural/i,
+      /process engineer/i,
+      /\bthermal\b/i,
+      /packaging/i,
+      /petroleum/i,
+      /geotechn/i,
+      /metallurg/i,
+      /mechatronic/i,
+      /materials (engineer|scien)/i,
+      /field service/i,
+      /sales engineer/i,
+      /\bhvac\b/i,
+      /combustion/i,
+    ],
+  },
+  {
+    category: Category.PM,
+    patterns: [/product manager/i, /product management/i, /\bapm\b/i, /\bpm\b/i],
+  },
+  // Broad SWE catch-all: generic "Engineer" / systems / platform roles that
+  // aren't a named non-software discipline land here.
+  {
+    category: Category.SWE,
+    patterns: [/\bengineer/i, /developer/i, /\bsde\b/i],
   },
 ];
 

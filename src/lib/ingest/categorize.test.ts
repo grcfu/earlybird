@@ -19,6 +19,25 @@ test("categorize: more specific families beat the SWE catch-all", () => {
   assert.equal(categorize("Quant Research Engineer"), Category.QUANT);
 });
 
+test("categorize: non-software engineering disciplines are NOT SWE", () => {
+  // These carry "Engineer(ing)" but must not pollute the SWE filter — they
+  // resolve to OTHER (which the feed excludes).
+  assert.equal(categorize("Mechanical Engineering Intern"), Category.OTHER);
+  assert.equal(categorize("Manufacturing Engineering Intern"), Category.OTHER);
+  assert.equal(categorize("Process Engineering Intern"), Category.OTHER);
+  assert.equal(categorize("Thermal Engineering Intern"), Category.OTHER);
+  assert.equal(categorize("Civil Engineer Intern"), Category.OTHER);
+  assert.equal(categorize("Chemical Engineering Intern"), Category.OTHER);
+});
+
+test("categorize: explicit software wins even at a manufacturing org", () => {
+  // "software" is matched before the non-software-engineering rule.
+  assert.equal(categorize("Manufacturing Test Software Intern"), Category.SWE);
+  assert.equal(categorize("Backend Developer Intern"), Category.SWE);
+  // Generic engineering roles still land in SWE via the broad catch-all.
+  assert.equal(categorize("Systems Engineer Intern"), Category.SWE);
+});
+
 test("normalizeCategory: trusts a usable source label", () => {
   assert.equal(normalizeCategory("AI/ML/Data", "Some Intern"), Category.ML_AI);
   assert.equal(normalizeCategory("Software", "Some Intern"), Category.SWE);
