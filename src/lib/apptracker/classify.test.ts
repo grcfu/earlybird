@@ -89,6 +89,16 @@ test("synthetic: an OA invite is detected", () => {
   assert.equal(c.stage, "assessment");
 });
 
+test("company extraction handles 'applying to <Company>' phrasing", () => {
+  const c = classifyEmail({
+    subject: "",
+    body: "Thank you for applying to Akuna Capital for the Software Engineer Intern role.",
+    receivedAt: "2026-07-10",
+  });
+  assert.equal(c.company, "Akuna Capital");
+  assert.equal(c.stage, "applied");
+});
+
 test("non-application email → no stage", () => {
   const c = classifyEmail({
     subject: "Your Amazon order shipped",

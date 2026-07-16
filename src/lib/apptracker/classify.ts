@@ -97,6 +97,8 @@ function extractCompany(subject: string, body: string): string | null {
   const patterns: RegExp[] = [
     // "Your Application with/to/at Akuna Capital"
     /application (?:with|to|at|for)\s+([A-Z][A-Za-z0-9.&'\- ]{1,40})/,
+    // "Thank you for applying to Akuna Capital [for ...]"
+    /appl(?:y|ied|ying)\s+(?:to|with)\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:\s+for\b|'s|[.!,]|\s*$)/,
     // "...interest in Hudson River Trading's 2027..."
     /interest in\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:'s|\s+\d{4}|[.!,])/,
     // "...considering Akuna Capital as an employer"
