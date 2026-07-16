@@ -1,0 +1,273 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { ApplicationRow } from "@/lib/apptracker/store";
+import {
+  STAGE_ORDER,
+  STAGE_LABEL,
+  STAGE_CLASS,
+  type AppStageKey,
+} from "@/lib/apptracker/stages";
+import {
+  getTrackerKey,
+  setTrackerKey,
+  generateTrackerKey,
+} from "@/lib/apptracker/key";
+import { buildAppsScript } from "@/lib/apptracker/appsScript";
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
+type Filter = AppStageKey | "all";
+
+export function ApplicationsView() {
+  const [key, setKey] = useState<string | null>(null);
+  const [apps, setApps] = useState<ApplicationRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [copied, setCopied] = useState<"" | "key" | "script">("");
+  const [endpoint, setEndpoint] = useState("");
+
+  const fetchApps = useCallback(async (k: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/applications?key=${encodeURIComponent(k)}`);
+      const data = await res.json();
+      if (data.ok) setApps(data.applications as ApplicationRow[]);
+    } catch {
+      /* transient */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Hydrate from the browser once after mount (localStorage + origin are
+    // client-only), so server and first client render match. Intentional.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setEndpoint(`${window.location.origin}/api/applications/ingest`);
+    const k = getTrackerKey();
+    setKey(k);
+    if (!k) setSetupOpen(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    if (k) fetchApps(k);
+  }, [fetchApps]);
+
+  const handleGenerate = () => {
+    const k = generateTrackerKey();
+    setTrackerKey(k);
+    setKey(k);
+    setSetupOpen(true);
+  };
+
+  const copy = (text: string, which: "key" | "script") => {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(which);
+      setTimeout(() => setCopied(""), 1500);
+    });
+  };
+
+  const remove = async (id: string) => {
+    if (!key) return;
+    setApps((prev) => prev.filter((a) => a.id !== id));
+    await fetch(
+      `/api/applications?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+  };
+
+  const countIn = (f: Filter) =>
+    f === "all" ? apps.length : apps.filter((a) => a.stage === f).length;
+  const visible = filter === "all" ? apps : apps.filter((a) => a.stage === filter);
+
+  const script = key ? buildAppsScript(key, endpoint) : "";
+
+  const FILTERS: { key: Filter; label: string }[] = [
+    { key: "all", label: "All" },
+    ...STAGE_ORDER.map((s) => ({ key: s as Filter, label: STAGE_LABEL[s] })),
+  ];
+
+  return (
+    <div>
+      {/* Count header */}
+      <div className="mb-6 flex items-baseline gap-3">
+        <span className="font-display text-6xl font-extrabold tabular-nums text-accent sm:text-7xl">
+          {apps.length.toLocaleString()}
+        </span>
+        <span className="text-2xl font-semibold text-ink sm:text-3xl">
+          {apps.length === 1 ? "application" : "applications"} tracked
+        </span>
+      </div>
+
+      {/* Setup toggle */}
+      <div className="mb-4 flex items-center gap-2">
+        <button
+          onClick={() => setSetupOpen((o) => !o)}
+          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+        >
+          {setupOpen ? "▾ hide setup" : "⚙ email auto-tracking setup"}
+        </button>
+        {key && (
+          <button
+            onClick={() => fetchApps(key)}
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+          >
+            {loading ? "⟳ …" : "⟳ Refresh"}
+          </button>
+        )}
+      </div>
+
+      {/* Setup panel */}
+      {setupOpen && (
+        <div className="mb-6 rounded-xl border border-line bg-surface p-4 shadow-pop">
+          <p className="font-display text-lg font-bold text-ink">
+            Auto-track applications from Gmail
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+            A tiny Google Apps Script reads job emails you label{" "}
+            <span className="font-mono text-accent-ink">EarlyBird</span> and logs
+            each application here — applied, assessment, interview, offer, or
+            rejected — with the date. Forward your WUSTL mail into Gmail and it&apos;s
+            covered too. Run it in each Gmail account.
+          </p>
+
+          {!key ? (
+            <button
+              onClick={handleGenerate}
+              className="pop mt-3 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
+            >
+              Generate my tracker key
+            </button>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <div>
+                <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+                  1 · Your key (kept in this browser)
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="min-w-0 flex-1 truncate rounded-md border border-line bg-canvas px-2 py-1.5 font-mono text-xs text-ink-soft">
+                    {key}
+                  </code>
+                  <button
+                    onClick={() => copy(key, "key")}
+                    className="pop shrink-0 rounded-md border border-line bg-mist px-2.5 py-1.5 font-mono text-[11px] text-ink-soft hover:text-ink"
+                  >
+                    {copied === "key" ? "✓" : "copy"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+                    2 · Paste into script.google.com → Save → run once → add a
+                    15-min trigger
+                  </div>
+                  <button
+                    onClick={() => copy(script, "script")}
+                    className="pop shrink-0 rounded-md border border-line bg-mist px-2.5 py-1.5 font-mono text-[11px] text-ink-soft hover:text-ink"
+                  >
+                    {copied === "script" ? "✓ copied" : "copy script"}
+                  </button>
+                </div>
+                <pre className="mt-1 max-h-48 overflow-auto rounded-md border border-line bg-canvas p-3 font-mono text-[10px] leading-relaxed text-ink-soft">
+                  {script}
+                </pre>
+              </div>
+
+              <div className="font-mono text-[11px] text-ink-faint">
+                3 · In Gmail, make a label{" "}
+                <span className="text-accent-ink">EarlyBird</span> and a filter
+                that applies it to job emails (and to your forwarded WUSTL mail).
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty / list */}
+      {apps.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
+          <p className="font-display text-xl font-bold text-ink">
+            No applications tracked yet.
+          </p>
+          <p className="mt-1 font-mono text-xs text-ink-soft">
+            {key
+              ? "Once your Gmail script runs, applications appear here automatically."
+              : "Generate a key above to set up email auto-tracking."}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap gap-1 rounded-lg border border-line bg-mist p-1">
+            {FILTERS.map((f) => {
+              const active = filter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={`rounded-md px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-all ${
+                    active
+                      ? "bg-accent text-canvas shadow-pop-sm"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {f.label}
+                  <span className={active ? "text-canvas/75" : "text-ink-faint"}>
+                    {" "}
+                    {countIn(f.key)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {visible.map((a) => (
+              <article
+                key={a.id}
+                className="pop flex items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-pop"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <span className="truncate text-[15px] font-bold text-ink">
+                      {a.company}
+                    </span>
+                    <span
+                      className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STAGE_CLASS[a.stage]}`}
+                    >
+                      {STAGE_LABEL[a.stage]}
+                    </span>
+                  </div>
+                  {a.role && (
+                    <div className="mt-0.5 truncate font-mono text-[12px] text-ink-soft">
+                      {a.role}
+                    </div>
+                  )}
+                  <div className="mt-1 font-mono text-[11px] text-ink-faint">
+                    {a.appliedAt ? `applied ${fmtDate(a.appliedAt)}` : ""}
+                    {a.stage === "REJECTED" || a.stage === "OFFER"
+                      ? ` · ${STAGE_LABEL[a.stage].toLowerCase()} ${fmtDate(a.eventDate)}`
+                      : ""}
+                  </div>
+                </div>
+                <button
+                  onClick={() => remove(a.id)}
+                  title="Remove"
+                  aria-label="Remove application"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line bg-canvas text-xs text-ink-faint hover:border-danger hover:text-danger"
+                >
+                  ✕
+                </button>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

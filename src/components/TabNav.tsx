@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/", label: "Internships", icon: "🎯" },
   { href: "/hackathons", label: "Hackathons", icon: "⚡" },
+  { href: "/applications", label: "Applications", icon: "📮" },
 ];
 
 export function TabNav() {
