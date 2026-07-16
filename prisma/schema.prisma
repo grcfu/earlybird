@@ -117,6 +117,42 @@ model Hackathon {
   @@index([format])
 }
 
+// Application lifecycle stage, detected from email (see lib/apptracker).
+enum AppStage {
+  APPLIED
+  ASSESSMENT
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+// A single job application the user is tracking, populated automatically from
+// their forwarded/labeled email (or added manually). Anonymous + per-user via a
+// secret ownerKey (no accounts) — same private-by-key model as the feed's
+// localStorage tracking, but server-side so an email job can write to it.
+model TrackedApplication {
+  id       String   @id @default(cuid())
+  ownerKey String // the user's secret tracker key
+  company  String
+  role     String   @default("") // "" when the email didn't name a role
+  stage    AppStage @default(APPLIED)
+
+  // eventDate: date of the current stage's email (the "applied on / rejected on"
+  // date). appliedAt: earliest date we ever saw this application.
+  eventDate DateTime
+  appliedAt DateTime?
+
+  source      String  @default("email") // "email" | "manual"
+  lastSubject String? // subject of the most recent email, for context
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One row per (owner, company, role); repeat emails update it in place.
+  @@unique([ownerKey, company, role])
+  @@index([ownerKey])
+}
+
 // Minimal user for v1 — just an email identity.
 model User {
   id        String   @id @default(cuid())
