@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
+import { groupListings } from "@/lib/listing-group";
 import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
 
 // Per-browser application tracking (anonymous feed → localStorage, not the DB).
@@ -319,8 +320,12 @@ export function Feed({
         return notInterested(l.id);
     }
   };
+  // Collapse look-alike postings (same company + role across many locations, or
+  // near-identical reruns) into one card. Tab filters + counts operate on the
+  // groups' representative row so the numbers match what's shown.
+  const groups = groupListings(listings);
   const countIn = (tab: typeof appliedFilter) =>
-    listings.reduce((n, l) => (inTab(l, tab) ? n + 1 : n), 0);
+    groups.reduce((n, g) => (inTab(g.primary, tab) ? n + 1 : n), 0);
 
   const FILTERS: { key: typeof appliedFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: countIn("all") },
@@ -329,9 +334,9 @@ export function Feed({
     { key: "notinterested", label: "Not interested", count: countIn("notinterested") },
   ];
 
-  const visible = listings.filter((l) => inTab(l, appliedFilter));
+  const visibleGroups = groups.filter((g) => inTab(g.primary, appliedFilter));
 
-  const unseenCount = listings.reduce((n, l) => (isUnseen(l) ? n + 1 : n), 0);
+  const unseenCount = groups.reduce((n, g) => (isUnseen(g.primary) ? n + 1 : n), 0);
 
   // Every role you've tracked (from the snapshot store), not just loaded ones.
   // Excludes "not interested" — that's a dismissal, not an application.
@@ -448,7 +453,7 @@ export function Feed({
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {visibleGroups.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
           <p className="font-display text-xl font-bold text-ink">
             {search && (appliedFilter === "all" || appliedFilter === "unapplied")
@@ -463,18 +468,19 @@ export function Feed({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {visible.map((l, i) => (
+          {visibleGroups.map((g, i) => (
             <ListingCard
-              key={l.id}
-              listing={l}
+              key={g.primary.id}
+              listing={g.primary}
               now={now}
               index={i}
-              status={statuses[l.id]}
-              onSetStatus={(s) => setStatus(l, s)}
-              note={notes[l.id]}
-              onSetNote={(t) => setNote(l.id, t)}
-              appliedAt={meta[l.id]?.appliedAt}
-              unseen={isUnseen(l)}
+              status={statuses[g.primary.id]}
+              onSetStatus={(s) => setStatus(g.primary, s)}
+              note={notes[g.primary.id]}
+              onSetNote={(t) => setNote(g.primary.id, t)}
+              appliedAt={meta[g.primary.id]?.appliedAt}
+              unseen={isUnseen(g.primary)}
+              alsoLocations={g.locations.length > 1 ? g.locations : undefined}
             />
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ListingRow } from "@/lib/listings";
 import { categoryMeta } from "@/lib/categories";
 import { relativeTime, isFresh24h } from "@/lib/time";
@@ -44,6 +45,7 @@ export function ListingCard({
   onSetNote,
   appliedAt,
   unseen = false,
+  alsoLocations,
 }: {
   listing: ListingRow;
   now: number;
@@ -54,7 +56,12 @@ export function ListingCard({
   onSetNote?: (t: string) => void;
   appliedAt?: string; // YYYY-MM-DD, day the role was first marked applied
   unseen?: boolean;
+  // When this card stands in for several look-alike postings (same role, many
+  // locations), the full (location, apply-URL) list — shown in an expander.
+  alsoLocations?: { location: string; url: string }[];
 }) {
+  const [showLocs, setShowLocs] = useState(false);
+  const grouped = !!alsoLocations && alsoLocations.length > 1;
   const cat = categoryMeta(listing.category);
   const fresh = isFresh24h(listing.effectiveAt, now);
   const applied = isApplied(status);
@@ -144,9 +151,38 @@ export function ListingCard({
 
         {/* Meta line */}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-ink-soft">
-          <span className="truncate">{locations}</span>
+          {grouped ? (
+            <button
+              type="button"
+              onClick={() => setShowLocs((v) => !v)}
+              className="inline-flex items-center gap-1 text-accent-ink hover:text-accent"
+              title="This role is posted in several locations"
+            >
+              📍 {alsoLocations!.length} locations {showLocs ? "▴" : "▾"}
+            </button>
+          ) : (
+            <span className="truncate">{locations}</span>
+          )}
           <span className="text-ink-faint">via {listing.source}</span>
         </div>
+
+        {/* Expanded per-location apply links (grouped cards only) */}
+        {grouped && showLocs && (
+          <div className="mt-1.5 flex flex-col gap-1 rounded-md border border-line bg-canvas p-2">
+            {alsoLocations!.map((x, i) => (
+              <a
+                key={`${x.url}-${i}`}
+                href={x.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-2 font-mono text-[11px] text-ink-soft hover:text-accent-ink"
+              >
+                <span className="truncate">{x.location}</span>
+                <span className="shrink-0">apply ↗</span>
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* Notes — shown once you're tracking the role */}
         {status && (
