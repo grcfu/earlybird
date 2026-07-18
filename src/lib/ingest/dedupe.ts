@@ -1,5 +1,31 @@
 import type { NormalizedListing } from "@/lib/ingest/types";
 import { Category } from "@/generated/prisma/client";
+import { urlHostPath } from "@/lib/ingest/hash";
+import { normalizeCompany } from "@/lib/apptracker/normalize";
+
+// A per-posting deep link contains an id token (long number / uuid / id-ish
+// slug). Generic careers pages ("zipline.com/open-roles", greenhouse embed URLs
+// whose job id lives in the query we drop) do NOT — and many different jobs
+// share those, so we must never merge on them.
+function hasIdToken(hostPath: string): boolean {
+  return (
+    /\d{4,}/.test(hostPath) ||
+    /[0-9a-f]{8}-[0-9a-f]{4}/.test(hostPath) ||
+    /\/[a-z0-9]*\d[a-z0-9]{5,}/i.test(hostPath)
+  );
+}
+
+// Cross-source merge key: same company + same per-job deep link = same posting,
+// even if two sources word the title differently. Returns null when the URL
+// isn't a safe per-job link (then we fall back to the exact-id grouping, which
+// keeps distinct titles separate).
+function crossKey(company: string, url: string): string | null {
+  const hp = urlHostPath(url);
+  const slash = hp.indexOf("/");
+  if (slash < 0 || hp.length - slash < 6) return null; // no real path
+  if (!hasIdToken(hp)) return null;
+  return `${normalizeCompany(company)}@@${hp}`;
+}
 
 // Merge a group of listings that share the same id (same logical role found in
 // multiple sources, or the same source listing it twice) into one row.
@@ -55,22 +81,25 @@ function mergeGroup(
   };
 }
 
-// Collapse listings across sources by id. Returns the merged set plus how many
-// rows were absorbed (collapsed) by dedup, for logging.
+// Collapse listings across sources. Two rows merge when they share the exact id
+// (same company+title+url) OR the same guarded cross-source key (same company +
+// per-job deep link, so an aggregator copy with a reworded title folds into the
+// direct posting). Returns the merged set plus how many rows were absorbed.
 export function mergeListings(
   listings: NormalizedListing[],
   priority: string[],
 ): { merged: NormalizedListing[]; collapsed: number } {
-  const byId = new Map<string, NormalizedListing[]>();
+  const groups = new Map<string, NormalizedListing[]>();
   for (const l of listings) {
-    const group = byId.get(l.id);
+    const key = crossKey(l.company, l.applyUrl) ?? `id:${l.id}`;
+    const group = groups.get(key);
     if (group) group.push(l);
-    else byId.set(l.id, [l]);
+    else groups.set(key, [l]);
   }
 
   const merged: NormalizedListing[] = [];
   let collapsed = 0;
-  for (const group of byId.values()) {
+  for (const group of groups.values()) {
     if (group.length === 1) {
       merged.push(group[0]);
     } else {

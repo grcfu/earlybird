@@ -73,3 +73,42 @@ test("mergeListings: higher-priority source wins company/title casing", () => {
   const { merged } = mergeListings([b, a], PRIORITY); // order shouldn't matter
   assert.equal(merged[0].company, "Acme Inc");
 });
+
+test("mergeListings: cross-source — same deep link, reworded title, merges", () => {
+  // Same job on a per-job deep link (uuid), two sources word the title
+  // differently → one row, survivor's (higher-priority) title kept.
+  const direct = listing({
+    id: "d1",
+    source: "vanshb03",
+    title: "Software Engineer, Internship",
+    applyUrl: "https://jobs.lever.co/palantir/8bcf4f33-0a79-4248",
+  });
+  const agg = listing({
+    id: "d2",
+    source: "Simplify",
+    title: "Software Engineer Intern",
+    applyUrl: "https://jobs.lever.co/palantir/8bcf4f33-0a79-4248?utm=x",
+  });
+  const { merged, collapsed } = mergeListings([direct, agg], PRIORITY);
+  assert.equal(merged.length, 1);
+  assert.equal(collapsed, 1);
+  assert.equal(merged[0].title, "Software Engineer, Internship");
+});
+
+test("mergeListings: generic careers URL never cross-merges distinct jobs", () => {
+  // Same company + same generic URL (no id token), different jobs → NOT merged.
+  const a = listing({
+    id: "z1",
+    company: "Zipline",
+    title: "Flight Test Engineer Intern",
+    applyUrl: "https://zipline.com/open-roles",
+  });
+  const b = listing({
+    id: "z2",
+    company: "Zipline",
+    title: "Maps Intern",
+    applyUrl: "https://zipline.com/open-roles",
+  });
+  const { merged } = mergeListings([a, b], PRIORITY);
+  assert.equal(merged.length, 2);
+});
