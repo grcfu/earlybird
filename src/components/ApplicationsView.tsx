@@ -29,7 +29,7 @@ export function ApplicationsView() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [setupOpen, setSetupOpen] = useState(false);
-  const [copied, setCopied] = useState<"" | "key" | "script">("");
+  const [copied, setCopied] = useState<"" | "key" | "script" | "sheets">("");
   const [endpoint, setEndpoint] = useState("");
 
   const fetchApps = useCallback(async (k: string) => {
@@ -80,6 +80,45 @@ export function ApplicationsView() {
     );
   };
 
+  // Export helpers — one CSV file, or tab-separated text you can paste straight
+  // into a Google Sheet (row per application).
+  const EXPORT_HEADER = ["Company", "Role", "Stage", "Applied", "Last update", "Source"];
+  const exportRows = () =>
+    apps.map((a) => [
+      a.company,
+      a.role,
+      STAGE_LABEL[a.stage],
+      a.appliedAt ? a.appliedAt.slice(0, 10) : "",
+      a.eventDate.slice(0, 10),
+      a.source,
+    ]);
+
+  const exportCsv = () => {
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = [
+      EXPORT_HEADER.map(esc).join(","),
+      ...exportRows().map((r) => r.map((v) => esc(String(v))).join(",")),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement("a");
+    el.href = url;
+    el.download = "earlybird-applications.csv";
+    el.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyForSheets = () => {
+    const tsv = [
+      EXPORT_HEADER.join("\t"),
+      ...exportRows().map((r) => r.join("\t")),
+    ].join("\n");
+    navigator.clipboard?.writeText(tsv).then(() => {
+      setCopied("sheets");
+      setTimeout(() => setCopied(""), 1500);
+    });
+  };
+
   const countIn = (f: Filter) =>
     f === "all" ? apps.length : apps.filter((a) => a.stage === f).length;
   const visible = filter === "all" ? apps : apps.filter((a) => a.stage === filter);
@@ -118,6 +157,24 @@ export function ApplicationsView() {
           >
             {loading ? "⟳ …" : "⟳ Refresh"}
           </button>
+        )}
+        {apps.length > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={copyForSheets}
+              title="Copy as tab-separated text — paste straight into a Google Sheet"
+              className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+            >
+              {copied === "sheets" ? "✓ copied" : "⧉ Copy for Sheets"}
+            </button>
+            <button
+              onClick={exportCsv}
+              title="Download all tracked applications as a CSV file"
+              className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+            >
+              ⬇ Export CSV
+            </button>
+          </div>
         )}
       </div>
 
