@@ -153,6 +153,21 @@ model TrackedApplication {
   @@index([ownerKey])
 }
 
+// One row per page view, for the private /stats page. Privacy-first: we store
+// NO IP or user-agent — only `visitorDay`, a salted daily hash of them, so we
+// can count same-day unique visitors without being able to identify or track
+// anyone across days.
+model PageView {
+  id         String   @id @default(cuid())
+  path       String
+  day        String // "YYYY-MM-DD" (UTC), for cheap daily grouping
+  visitorDay String // sha256(salt | ip | ua | day) — daily-unique, not personal
+  createdAt  DateTime @default(now())
+
+  @@index([day])
+  @@index([createdAt])
+}
+
 // Minimal user for v1 — just an email identity.
 model User {
   id        String   @id @default(cuid())

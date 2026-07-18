@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { Beacon } from "@/components/Beacon";
 import "./globals.css";
 
 // Friendly, geometric, highly readable sans — professional with a touch of
@@ -44,6 +45,8 @@ export default function RootLayout({
         {children}
         {/* Cookieless, privacy-friendly traffic analytics (Vercel dashboard). */}
         <Analytics />
+        {/* Self-hosted page-view logger for the private /stats page. */}
+        <Beacon />
       </body>
     </html>
   );
