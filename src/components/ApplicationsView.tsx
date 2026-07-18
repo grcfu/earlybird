@@ -15,6 +15,9 @@ import {
 } from "@/lib/apptracker/key";
 import { buildAppsScript } from "@/lib/apptracker/appsScript";
 
+// When you last exported, so we can nudge only when there's something new.
+const EXPORT_KEY = "earlybird:apps:lastExport";
+
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(iso: string): string {
   const d = new Date(iso);
@@ -31,6 +34,7 @@ export function ApplicationsView() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [copied, setCopied] = useState<"" | "key" | "script" | "sheets">("");
   const [endpoint, setEndpoint] = useState("");
+  const [lastExport, setLastExport] = useState<string | null>(null);
 
   const fetchApps = useCallback(async (k: string) => {
     setLoading(true);
@@ -53,9 +57,24 @@ export function ApplicationsView() {
     const k = getTrackerKey();
     setKey(k);
     if (!k) setSetupOpen(true);
+    try {
+      setLastExport(localStorage.getItem(EXPORT_KEY));
+    } catch {
+      /* ignore */
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
     if (k) fetchApps(k);
   }, [fetchApps]);
+
+  const markExported = () => {
+    const now = new Date().toISOString();
+    try {
+      localStorage.setItem(EXPORT_KEY, now);
+    } catch {
+      /* ignore */
+    }
+    setLastExport(now);
+  };
 
   const handleGenerate = () => {
     const k = generateTrackerKey();
@@ -106,6 +125,7 @@ export function ApplicationsView() {
     el.download = "earlybird-applications.csv";
     el.click();
     URL.revokeObjectURL(url);
+    markExported();
   };
 
   const copyForSheets = () => {
@@ -116,8 +136,15 @@ export function ApplicationsView() {
     navigator.clipboard?.writeText(tsv).then(() => {
       setCopied("sheets");
       setTimeout(() => setCopied(""), 1500);
+      markExported();
     });
   };
+
+  // Applications added or updated since the last export — the only time it's
+  // actually worth exporting again, so that's the only time we nudge.
+  const unexported = lastExport
+    ? apps.filter((a) => new Date(a.updatedAt).getTime() > new Date(lastExport).getTime())
+    : apps;
 
   const countIn = (f: Filter) =>
     f === "all" ? apps.length : apps.filter((a) => a.stage === f).length;
@@ -160,6 +187,11 @@ export function ApplicationsView() {
         )}
         {apps.length > 0 && (
           <div className="ml-auto flex items-center gap-2">
+            {lastExport && (
+              <span className="font-mono text-[10px] text-ink-faint">
+                exported {fmtDate(lastExport)}
+              </span>
+            )}
             <button
               onClick={copyForSheets}
               title="Copy as tab-separated text — paste straight into a Google Sheet"
@@ -243,6 +275,26 @@ export function ApplicationsView() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Export nudge — only when there's new/updated stuff since last export */}
+      {apps.length > 0 && unexported.length > 0 && (
+        <div className="pop mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent-soft px-4 py-2.5">
+          <span className="text-sm font-semibold text-accent-ink">
+            🔔 {unexported.length}{" "}
+            {unexported.length === 1 ? "application" : "applications"}{" "}
+            {lastExport
+              ? `added or updated since your last export (${fmtDate(lastExport)})`
+              : "ready to export"}{" "}
+            — keep your sheet in sync.
+          </span>
+          <button
+            onClick={copyForSheets}
+            className="pop shrink-0 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
+          >
+            {copied === "sheets" ? "✓ copied" : "Copy for Sheets"}
+          </button>
         </div>
       )}
 
