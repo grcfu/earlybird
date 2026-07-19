@@ -10,6 +10,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [Google],
   session: { strategy: "database" },
+  // Trust the deployment host (Vercel) so the OAuth callback URL resolves.
+  trustHost: true,
   callbacks: {
     session({ session, user }) {
       session.user.id = user.id;
