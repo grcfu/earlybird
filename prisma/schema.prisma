@@ -168,14 +168,65 @@ model PageView {
   @@index([createdAt])
 }
 
-// Minimal user for v1 — just an email identity.
+// A user account. Populated by Google sign-in (Auth.js). trackerKey ties the
+// email application-tracker (and the Gmail Apps Script's posts) to the account,
+// so signing in on any browser reloads the user's data — no key to lose.
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  trackerKey    String?   @unique // application-tracker key; also used by the Gmail script
+  createdAt     DateTime  @default(now())
 
+  accounts          Account[]
+  sessions          Session[]
   preferences       NotificationPreference[]
   sentNotifications SentNotification[]
+}
+
+// Auth.js: a linked OAuth account (Google) for a User.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Auth.js: a login session (database strategy).
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Auth.js: email verification tokens (unused with Google-only, but the adapter
+// expects the model to exist).
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 // A user's alert rule. A user may have several (e.g. instant email + daily Discord digest).

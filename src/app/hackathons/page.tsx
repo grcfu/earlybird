@@ -4,6 +4,7 @@ import { HackathonHeader } from "@/components/HackathonHeader";
 import { HackathonFeed } from "@/components/HackathonFeed";
 import { HackathonFilterBar } from "@/components/HackathonFilterBar";
 import { TabNav } from "@/components/TabNav";
+import { AuthButton } from "@/components/AuthButton";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,12 +42,15 @@ export default async function HackathonsPage({
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
       <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
         <TabNav />
-        <Link
-          href="/settings"
-          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
-        >
-          ⚙ manage alerts
-        </Link>
+        <div className="flex items-center gap-2">
+          <AuthButton />
+          <Link
+            href="/settings"
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
+          >
+            ⚙ manage alerts
+          </Link>
+        </div>
       </div>
 
       <HackathonHeader count={page.count} whenLabel={WHEN_LABEL[q.when]} />

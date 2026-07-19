@@ -5,6 +5,7 @@ import { FilterBar } from "@/components/FilterBar";
 import { Feed } from "@/components/Feed";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TabNav } from "@/components/TabNav";
+import { AuthButton } from "@/components/AuthButton";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,6 +47,7 @@ export default async function Home({
       <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
         <TabNav />
         <div className="flex items-center gap-2">
+        <AuthButton />
         <StreakBadge />
         <Link
           href="/settings"
