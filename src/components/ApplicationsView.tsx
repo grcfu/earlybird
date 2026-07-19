@@ -35,6 +35,7 @@ export function ApplicationsView() {
   const [copied, setCopied] = useState<"" | "key" | "script" | "sheets">("");
   const [endpoint, setEndpoint] = useState("");
   const [lastExport, setLastExport] = useState<string | null>(null);
+  const [restoreInput, setRestoreInput] = useState("");
 
   const fetchApps = useCallback(async (k: string) => {
     setLoading(true);
@@ -81,6 +82,17 @@ export function ApplicationsView() {
     setTrackerKey(k);
     setKey(k);
     setSetupOpen(true);
+  };
+
+  // Restore an existing key (e.g. after a browser wipe) — your applications live
+  // server-side under the key, so pasting it back reloads everything.
+  const handleRestore = () => {
+    const k = restoreInput.trim();
+    if (k.length < 16) return;
+    setTrackerKey(k);
+    setKey(k);
+    setRestoreInput("");
+    fetchApps(k);
   };
 
   const copy = (text: string, which: "key" | "script") => {
@@ -225,12 +237,42 @@ export function ApplicationsView() {
           </p>
 
           {!key ? (
-            <button
-              onClick={handleGenerate}
-              className="pop mt-3 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
-            >
-              Generate my tracker key
-            </button>
+            <div className="mt-3 space-y-3">
+              <button
+                onClick={handleGenerate}
+                className="pop rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
+              >
+                Generate my tracker key
+              </button>
+
+              {/* Restore path — for a new/wiped browser. Your data lives on the
+                  server under the key, so pasting it back reloads everything. */}
+              <div className="border-t border-line pt-3">
+                <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+                  Already have a key? Paste it to restore
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    value={restoreInput}
+                    onChange={(e) => setRestoreInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleRestore()}
+                    placeholder="eb_…"
+                    aria-label="Paste your existing tracker key"
+                    className="min-w-0 flex-1 rounded-md border border-line bg-canvas px-2 py-1.5 font-mono text-xs text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+                  />
+                  <button
+                    onClick={handleRestore}
+                    disabled={restoreInput.trim().length < 16}
+                    className="pop shrink-0 rounded-md border border-line bg-mist px-3 py-1.5 font-mono text-[11px] text-ink-soft hover:text-ink disabled:opacity-50"
+                  >
+                    Restore
+                  </button>
+                </div>
+                <p className="mt-1 font-mono text-[10px] text-ink-faint">
+                  It&apos;s also saved in your Gmail Apps Script (the KEY line).
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="mt-4 space-y-4">
               <div>
