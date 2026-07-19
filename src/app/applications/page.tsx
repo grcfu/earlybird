@@ -2,11 +2,13 @@ import Link from "next/link";
 import { TabNav } from "@/components/TabNav";
 import { ApplicationsView } from "@/components/ApplicationsView";
 import { AuthButton } from "@/components/AuthButton";
+import { safeAuth } from "@/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function ApplicationsPage() {
+export default async function ApplicationsPage() {
+  const session = await safeAuth();
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
       <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
@@ -44,7 +46,10 @@ export default function ApplicationsPage() {
       </header>
 
       <main>
-        <ApplicationsView />
+        <ApplicationsView
+          signedIn={!!session?.user}
+          accountKey={session?.user.trackerKey ?? null}
+        />
       </main>
     </div>
   );

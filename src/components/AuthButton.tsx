@@ -1,9 +1,9 @@
-import { auth, signIn, signOut } from "@/auth";
+import { safeAuth, signIn, signOut } from "@/auth";
 
 // Google sign-in / sign-out control. Server component: reads the session and
 // uses Auth.js server actions for the OAuth redirect + logout.
 export async function AuthButton() {
-  const session = await auth();
+  const session = await safeAuth();
 
   if (session?.user) {
     const label = session.user.name ?? session.user.email ?? "Account";

@@ -20,3 +20,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+// Read the session without ever throwing. Auth.js requires AUTH_SECRET (and the
+// Google credentials) in production; until those env vars are set, treat it as
+// "signed out" so pages still render instead of 500-ing.
+export async function safeAuth() {
+  try {
+    return await auth();
+  } catch {
+    return null;
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ApplicationRow } from "@/lib/apptracker/store";
 import {
   STAGE_ORDER,
@@ -26,7 +27,14 @@ function fmtDate(iso: string): string {
 
 type Filter = AppStageKey | "all";
 
-export function ApplicationsView() {
+export function ApplicationsView({
+  signedIn,
+  accountKey,
+}: {
+  signedIn: boolean;
+  accountKey: string | null;
+}) {
+  const router = useRouter();
   const [key, setKey] = useState<string | null>(null);
   const [apps, setApps] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +44,7 @@ export function ApplicationsView() {
   const [endpoint, setEndpoint] = useState("");
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [restoreInput, setRestoreInput] = useState("");
+  const [keyError, setKeyError] = useState("");
 
   const fetchApps = useCallback(async (k: string) => {
     setLoading(true);
@@ -51,21 +60,30 @@ export function ApplicationsView() {
   }, []);
 
   useEffect(() => {
-    // Hydrate from the browser once after mount (localStorage + origin are
-    // client-only), so server and first client render match. Intentional.
+    // Hydrate once after mount. When signed in, the key comes from the account
+    // (server prop); when signed out, from this browser's localStorage.
     /* eslint-disable react-hooks/set-state-in-effect */
     setEndpoint(`${window.location.origin}/api/applications/ingest`);
-    const k = getTrackerKey();
-    setKey(k);
-    if (!k) setSetupOpen(true);
     try {
       setLastExport(localStorage.getItem(EXPORT_KEY));
     } catch {
       /* ignore */
     }
+    if (signedIn) {
+      if (accountKey) {
+        setKey(accountKey);
+        fetchApps(accountKey);
+      } else {
+        setSetupOpen(true);
+      }
+    } else {
+      const k = getTrackerKey();
+      setKey(k);
+      if (!k) setSetupOpen(true);
+      if (k) fetchApps(k);
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
-    if (k) fetchApps(k);
-  }, [fetchApps]);
+  }, [fetchApps, signedIn, accountKey]);
 
   const markExported = () => {
     const now = new Date().toISOString();
@@ -77,22 +95,51 @@ export function ApplicationsView() {
     setLastExport(now);
   };
 
+  // Attach a key to the signed-in account (new or an existing one being claimed).
+  const claimKey = useCallback(
+    async (k: string) => {
+      setKeyError("");
+      const res = await fetch("/api/tracker-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: k }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setKey(k);
+        fetchApps(k);
+        router.refresh(); // sync the server-side accountKey prop
+      } else {
+        setKeyError(data.error ?? "Couldn't set that key.");
+      }
+    },
+    [fetchApps, router],
+  );
+
   const handleGenerate = () => {
     const k = generateTrackerKey();
-    setTrackerKey(k);
-    setKey(k);
     setSetupOpen(true);
+    if (signedIn) {
+      claimKey(k);
+    } else {
+      setTrackerKey(k);
+      setKey(k);
+    }
   };
 
-  // Restore an existing key (e.g. after a browser wipe) — your applications live
-  // server-side under the key, so pasting it back reloads everything.
+  // Paste an existing key: signed in → link it to your account (migrates data
+  // tracked before sign-in); signed out → restore into this browser.
   const handleRestore = () => {
     const k = restoreInput.trim();
     if (k.length < 16) return;
-    setTrackerKey(k);
-    setKey(k);
     setRestoreInput("");
-    fetchApps(k);
+    if (signedIn) {
+      claimKey(k);
+    } else {
+      setTrackerKey(k);
+      setKey(k);
+      fetchApps(k);
+    }
   };
 
   const copy = (text: string, which: "key" | "script") => {
@@ -236,6 +283,20 @@ export function ApplicationsView() {
             covered too. Run it in each Gmail account.
           </p>
 
+          {/* Account status: signed in = safe across browsers; signed out =
+              tied to this browser only. */}
+          {signedIn ? (
+            <p className="mt-2 rounded-md border border-leaf/30 bg-leaf-soft px-3 py-1.5 font-mono text-[11px] text-leaf">
+              ✓ Signed in — your tracker is tied to your Google account. Sign in
+              on any browser and it&apos;s all here.
+            </p>
+          ) : (
+            <p className="mt-2 rounded-md border border-accent/30 bg-accent-soft px-3 py-1.5 font-mono text-[11px] text-accent-ink">
+              Tip: Sign in with Google (top-right) to tie this to your account —
+              then you never need the key again, on any browser.
+            </p>
+          )}
+
           {!key ? (
             <div className="mt-3 space-y-3">
               <button
@@ -245,11 +306,14 @@ export function ApplicationsView() {
                 Generate my tracker key
               </button>
 
-              {/* Restore path — for a new/wiped browser. Your data lives on the
-                  server under the key, so pasting it back reloads everything. */}
+              {/* Restore/claim path — signed in: link an existing key (migrates
+                  data tracked before sign-in); signed out: restore into this
+                  browser after a wipe. */}
               <div className="border-t border-line pt-3">
                 <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
-                  Already have a key? Paste it to restore
+                  {signedIn
+                    ? "Have a key from before? Paste it to link your data"
+                    : "Already have a key? Paste it to restore"}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <input
@@ -265,9 +329,12 @@ export function ApplicationsView() {
                     disabled={restoreInput.trim().length < 16}
                     className="pop shrink-0 rounded-md border border-line bg-mist px-3 py-1.5 font-mono text-[11px] text-ink-soft hover:text-ink disabled:opacity-50"
                   >
-                    Restore
+                    {signedIn ? "Link" : "Restore"}
                   </button>
                 </div>
+                {keyError && (
+                  <p className="mt-1 font-mono text-[10px] text-danger">{keyError}</p>
+                )}
                 <p className="mt-1 font-mono text-[10px] text-ink-faint">
                   It&apos;s also saved in your Gmail Apps Script (the KEY line).
                 </p>
@@ -277,7 +344,7 @@ export function ApplicationsView() {
             <div className="mt-4 space-y-4">
               <div>
                 <div className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
-                  1 · Your key (kept in this browser)
+                  1 · Your key{signedIn ? " (tied to your account)" : " (kept in this browser)"}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <code className="min-w-0 flex-1 truncate rounded-md border border-line bg-canvas px-2 py-1.5 font-mono text-xs text-ink-soft">
