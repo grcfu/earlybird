@@ -174,6 +174,8 @@ const BOARDS: AtsCompany[] = [
   { company: "1Password", token: "1password" },
   // Security (probed 2026-07-21):
   { company: "Cyberhaven", token: "cyberhaven" },
+  // Consumer (probed 2026-07-21):
+  { company: "Strava", token: "strava" },
 ];
 
 interface AshbyJob {
