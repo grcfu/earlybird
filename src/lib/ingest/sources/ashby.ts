@@ -172,6 +172,8 @@ const BOARDS: AtsCompany[] = [
   // Dev tools (probed 2026-07-21):
   { company: "Docker", token: "docker" },
   { company: "1Password", token: "1password" },
+  // Security (probed 2026-07-21):
+  { company: "Cyberhaven", token: "cyberhaven" },
 ];
 
 interface AshbyJob {
