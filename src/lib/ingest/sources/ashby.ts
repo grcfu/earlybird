@@ -176,6 +176,8 @@ const BOARDS: AtsCompany[] = [
   { company: "Cyberhaven", token: "cyberhaven" },
   // Consumer (probed 2026-07-21):
   { company: "Strava", token: "strava" },
+  // Bio / health (probed 2026-07-21):
+  { company: "Insitro", token: "insitro" },
 ];
 
 interface AshbyJob {
