@@ -267,6 +267,12 @@ const BOARDS: AtsCompany[] = [
   { company: "Diligent Robotics", token: "diligentrobotics" },
   { company: "Nimble Robotics", token: "nimblerobotics" },
   { company: "World Labs", token: "worldlabs" },
+  // Quant / trading — correct tokens (earlier sweep mis-guessed these), 2026-07-21:
+  { company: "Chicago Trading Company", token: "chicagotrading" },
+  { company: "ExodusPoint", token: "exoduspoint" },
+  { company: "Jump Crypto", token: "jumpcrypto" },
+  { company: "Quadrature", token: "quadraturecapital" },
+  { company: "TransMarket Group", token: "transmarketgroup" },
 ];
 
 interface GhJob {
