@@ -273,6 +273,8 @@ const BOARDS: AtsCompany[] = [
   { company: "Jump Crypto", token: "jumpcrypto" },
   { company: "Quadrature", token: "quadraturecapital" },
   { company: "TransMarket Group", token: "transmarketgroup" },
+  // AI lab (probed 2026-07-21):
+  { company: "Thinking Machines", token: "thinkingmachines" },
 ];
 
 interface GhJob {

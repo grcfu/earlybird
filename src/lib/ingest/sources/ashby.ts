@@ -165,6 +165,10 @@ const BOARDS: AtsCompany[] = [
   { company: "Tavus", token: "tavus" },
   { company: "Trigger.dev", token: "triggerdev" },
   { company: "Unify", token: "unify" },
+  // AI labs (probed 2026-07-21):
+  { company: "Hedra", token: "hedra" },
+  { company: "Krea", token: "krea" },
+  { company: "Reflection AI", token: "reflectionai" },
 ];
 
 interface AshbyJob {
