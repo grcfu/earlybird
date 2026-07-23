@@ -6,6 +6,7 @@ import { Feed } from "@/components/Feed";
 import { StreakBadge } from "@/components/StreakBadge";
 import { TabNav } from "@/components/TabNav";
 import { AuthButton } from "@/components/AuthButton";
+import { safeAuth } from "@/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function Home({
   const params = await searchParams;
   const q = parseListingQuery(params);
   const page = await queryListings(q);
+  const session = await safeAuth();
   // Server Component: renders once per request, so a request-time clock is
   // correct here (not a re-rendering client hook). Seeds the feed's relative
   // timestamps so server + first client render agree.
@@ -74,6 +76,7 @@ export default async function Home({
           query={queryString}
           serverNow={serverNow}
           search={q.search}
+          accountKey={session?.user.trackerKey ?? null}
         />
       </main>
 

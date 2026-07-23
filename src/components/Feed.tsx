@@ -5,6 +5,33 @@ import type { ListingPage, ListingRow } from "@/lib/listings";
 import { ListingCard } from "@/components/ListingCard";
 import { groupListings } from "@/lib/listing-group";
 import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
+import { getTrackerKey } from "@/lib/apptracker/key";
+import { normalizeCompany } from "@/lib/apptracker/normalize";
+import type { AppStageKey } from "@/lib/apptracker/stages";
+
+// Bridges the feed's TrackStatus and the server tracker's AppStage.
+const FEED_TO_STAGE: Partial<Record<TrackStatus, AppStageKey>> = {
+  applied: "APPLIED",
+  interview: "INTERVIEW",
+  offer: "OFFER",
+  rejected: "REJECTED",
+};
+const STAGE_TO_FEED: Record<AppStageKey, TrackStatus> = {
+  APPLIED: "applied",
+  ASSESSMENT: "applied", // feed has no "assessment" — treat as applied
+  INTERVIEW: "interview",
+  OFFER: "offer",
+  REJECTED: "rejected",
+};
+// Rank to reconcile local vs. server when both know a company (higher wins).
+const STATUS_RANK: Record<TrackStatus, number> = {
+  not_interested: 0,
+  interested: 1,
+  applied: 2,
+  interview: 3,
+  offer: 4,
+  rejected: 4,
+};
 
 // Per-browser application tracking (anonymous feed → localStorage, not the DB).
 const STATUS_KEY = "earlybird:status"; // { [listingId]: TrackStatus }
@@ -39,11 +66,13 @@ export function Feed({
   query,
   serverNow,
   search,
+  accountKey,
 }: {
   initial: ListingPage;
   query: string;
   serverNow: number;
   search?: string | null;
+  accountKey?: string | null;
 }) {
   const [listings, setListings] = useState<ListingRow[]>(initial.listings);
   const [cursor, setCursor] = useState<string | null>(initial.nextCursor);
@@ -66,6 +95,12 @@ export function Feed({
   // Previous-visit timestamp: read the stored value (for "new since last visit"
   // highlighting), then stamp now() so the next visit compares against this one.
   const [lastVisit, setLastVisit] = useState<number | null>(null);
+
+  // Two-way sync with the Applications tab. trackerKey (account or localStorage)
+  // identifies the server tracker; serverStages maps normalizedCompany → stage
+  // so email-tracked companies show their stage on matching feed listings.
+  const [trackerKey, setTrackerKeyState] = useState<string | null>(null);
+  const [serverStages, setServerStages] = useState<Record<string, AppStageKey>>({});
 
   useEffect(() => {
     // Hydrate tracking state from localStorage once, after mount. This must be
@@ -118,6 +153,49 @@ export function Feed({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [initial.listings]);
 
+  // Resolve the tracker key (account first, else this browser's) and pull the
+  // user's server applications so email-tracked companies reflect into the feed.
+  useEffect(() => {
+    const key = accountKey ?? getTrackerKey();
+    if (!key) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTrackerKeyState(key);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/applications?key=${encodeURIComponent(key)}`);
+        const data = await res.json();
+        if (cancelled || !data.ok) return;
+        const map: Record<string, AppStageKey> = {};
+        for (const a of data.applications as { company: string; stage: AppStageKey; deletedAt: string | null }[]) {
+          if (a.deletedAt) continue;
+          map[normalizeCompany(a.company)] = a.stage;
+        }
+        setServerStages(map);
+      } catch {
+        /* tracker sync is best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountKey]);
+
+  // Effective status for a listing = the more-advanced of the local mark and any
+  // server application for the same company. A local "not interested" (an
+  // explicit dismissal) always wins.
+  const effStatus = useCallback(
+    (l: ListingRow): TrackStatus | undefined => {
+      const local = statuses[l.id];
+      if (local === "not_interested") return "not_interested";
+      const srvStage = serverStages[normalizeCompany(l.company)];
+      const srv = srvStage ? STAGE_TO_FEED[srvStage] : undefined;
+      if (local && srv) return STATUS_RANK[srv] > STATUS_RANK[local] ? srv : local;
+      return local ?? srv;
+    },
+    [statuses, serverStages],
+  );
+
   // A role is "unseen" if it was first seen after your previous visit.
   const isUnseen = useCallback(
     (l: ListingRow) =>
@@ -168,8 +246,35 @@ export function Feed({
       });
       // Notify the streak badge (same tab) once localStorage is written.
       setTimeout(() => window.dispatchEvent(new Event("earlybird:tracked")), 0);
+
+      // Sync to the Applications tab: an application-stage mark also upserts a
+      // server application (deduped by company). Interested / not-interested /
+      // cleared aren't application stages, so they don't sync.
+      const stage = status ? FEED_TO_STAGE[status] : undefined;
+      if (trackerKey && stage) {
+        const norm = normalizeCompany(listing.company);
+        setServerStages((prev) => {
+          const cur = prev[norm];
+          if (cur && STATUS_RANK[STAGE_TO_FEED[cur]] >= STATUS_RANK[status as TrackStatus]) {
+            return prev; // don't downgrade an already-more-advanced server stage
+          }
+          return { ...prev, [norm]: stage };
+        });
+        fetch("/api/applications/feed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            key: trackerKey,
+            company: listing.company,
+            role: listing.title,
+            stage,
+          }),
+        }).catch(() => {
+          /* best-effort; localStorage already holds the mark */
+        });
+      }
     },
-    [],
+    [trackerKey],
   );
 
   const setNote = useCallback((id: string, text: string) => {
@@ -313,9 +418,9 @@ export function Feed({
       case "all":
         return !notInterested(l.id);
       case "unapplied":
-        return !isApplied(statuses[l.id]) && !notInterested(l.id);
+        return !isApplied(effStatus(l)) && !notInterested(l.id);
       case "applied":
-        return isApplied(statuses[l.id]);
+        return isApplied(effStatus(l));
       case "notinterested":
         return notInterested(l.id);
     }
@@ -474,7 +579,7 @@ export function Feed({
               listing={g.primary}
               now={now}
               index={i}
-              status={statuses[g.primary.id]}
+              status={effStatus(g.primary)}
               onSetStatus={(s) => setStatus(g.primary, s)}
               note={notes[g.primary.id]}
               onSetNote={(t) => setNote(g.primary.id, t)}
