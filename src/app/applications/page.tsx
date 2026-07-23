@@ -11,9 +11,9 @@ export default async function ApplicationsPage() {
   const session = await safeAuth();
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
-      <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
+      <div className="relative z-10 mb-6 flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
         <TabNav />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <AuthButton />
           <Link
             href="/settings"

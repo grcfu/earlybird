@@ -44,17 +44,17 @@ export default async function Home({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-10 sm:pt-16">
-      <div className="relative z-10 mb-6 flex items-center justify-between gap-2">
+      <div className="relative z-10 mb-6 flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
         <TabNav />
-        <div className="flex items-center gap-2">
-        <AuthButton />
-        <StreakBadge />
-        <Link
-          href="/settings"
-          className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
-        >
-          ⚙ manage alerts
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <AuthButton />
+          <StreakBadge />
+          <Link
+            href="/settings"
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-accent-deep shadow-pop-sm hover:border-accent-bright"
+          >
+            ⚙ manage alerts
+          </Link>
         </div>
       </div>
       <Header
