@@ -40,11 +40,12 @@ export async function POST(req: NextRequest) {
     receivedAt: payload.receivedAt,
   });
 
-  const result = await recordApplication(
-    key,
-    classification,
-    payload.subject ?? "",
-  );
+  const result = await recordApplication(key, classification, {
+    subject: payload.subject ?? "",
+    body: payload.body ?? "",
+    from: payload.from,
+    receivedAt: payload.receivedAt,
+  });
 
   return NextResponse.json({ ok: true, classification, result });
 }

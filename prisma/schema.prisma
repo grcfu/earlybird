@@ -145,12 +145,38 @@ model TrackedApplication {
   source      String  @default("email") // "email" | "manual"
   lastSubject String? // subject of the most recent email, for context
 
+  // Soft delete: set when the user removes it, so it can be restored from Trash.
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  emails ApplicationEmail[]
 
   // One row per (owner, company, role); repeat emails update it in place.
   @@unique([ownerKey, company, role])
   @@index([ownerKey])
+}
+
+// The full text of every email that fed a tracked application, so the UI can
+// show the complete message history for each one. Populated at ingest time
+// (older applications predate this and won't have stored bodies).
+model ApplicationEmail {
+  id            String   @id @default(cuid())
+  applicationId String
+  ownerKey      String
+  subject       String
+  body          String // full plain-text body
+  fromAddr      String?
+  stage         AppStage // stage this email was classified as
+  eventDate     DateTime // the email's event date (parsed/forwarded)
+  msgHash       String // sha256(subject|body|eventDate) — dedupes re-ingests
+  createdAt     DateTime @default(now())
+
+  application TrackedApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([ownerKey, msgHash])
 }
 
 // One row per page view, for the private /stats page. Privacy-first: we store
