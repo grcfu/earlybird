@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ApplicationRow } from "@/lib/apptracker/store";
+import type { ApplicationRow, ApplicationEmailRow } from "@/lib/apptracker/store";
 import {
   STAGE_ORDER,
   STAGE_LABEL,
@@ -45,6 +45,12 @@ export function ApplicationsView({
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [restoreInput, setRestoreInput] = useState("");
   const [keyError, setKeyError] = useState("");
+  // Expand-to-see-emails, per-app email cache, undo banner, trash toggle.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [emailsById, setEmailsById] = useState<Record<string, ApplicationEmailRow[]>>({});
+  const [loadingEmails, setLoadingEmails] = useState<string | null>(null);
+  const [justDeleted, setJustDeleted] = useState<{ id: string; company: string } | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   const fetchApps = useCallback(async (k: string) => {
     setLoading(true);
@@ -149,20 +155,67 @@ export function ApplicationsView({
     });
   };
 
+  // Soft delete → moves to Trash; offers Undo. Optimistically flips deletedAt.
   const remove = async (id: string) => {
     if (!key) return;
-    setApps((prev) => prev.filter((a) => a.id !== id));
+    const app = apps.find((a) => a.id === id);
+    setApps((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, deletedAt: new Date().toISOString() } : a)),
+    );
+    if (expandedId === id) setExpandedId(null);
+    if (app) setJustDeleted({ id, company: app.company });
     await fetch(
       `/api/applications?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}`,
       { method: "DELETE" },
     );
   };
 
+  // Restore from Trash → back to All.
+  const restore = async (id: string) => {
+    if (!key) return;
+    setApps((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, deletedAt: null } : a)),
+    );
+    if (justDeleted?.id === id) setJustDeleted(null);
+    await fetch("/api/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, id, action: "restore" }),
+    });
+  };
+
+  // Expand a row → lazy-load its full email history (cached after first fetch).
+  const toggleExpand = async (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    if (!emailsById[id] && key) {
+      setLoadingEmails(id);
+      try {
+        const res = await fetch(
+          `/api/applications/emails?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}`,
+        );
+        const data = await res.json();
+        if (data.ok) setEmailsById((prev) => ({ ...prev, [id]: data.emails }));
+      } catch {
+        /* transient */
+      } finally {
+        setLoadingEmails(null);
+      }
+    }
+  };
+
+  // Split live applications from Trash (soft-deleted).
+  const activeApps = apps.filter((a) => !a.deletedAt);
+  const trashApps = apps.filter((a) => a.deletedAt);
+
   // Export helpers — one CSV file, or tab-separated text you can paste straight
-  // into a Google Sheet (row per application).
+  // into a Google Sheet (row per application). Trash is excluded.
   const EXPORT_HEADER = ["Company", "Role", "Stage", "Applied", "Last update", "Source"];
   const exportRows = () =>
-    apps.map((a) => [
+    activeApps.map((a) => [
       a.company,
       a.role,
       STAGE_LABEL[a.stage],
@@ -202,12 +255,12 @@ export function ApplicationsView({
   // Applications added or updated since the last export — the only time it's
   // actually worth exporting again, so that's the only time we nudge.
   const unexported = lastExport
-    ? apps.filter((a) => new Date(a.updatedAt).getTime() > new Date(lastExport).getTime())
-    : apps;
+    ? activeApps.filter((a) => new Date(a.updatedAt).getTime() > new Date(lastExport).getTime())
+    : activeApps;
 
   const countIn = (f: Filter) =>
-    f === "all" ? apps.length : apps.filter((a) => a.stage === f).length;
-  const visible = filter === "all" ? apps : apps.filter((a) => a.stage === filter);
+    f === "all" ? activeApps.length : activeApps.filter((a) => a.stage === f).length;
+  const visible = filter === "all" ? activeApps : activeApps.filter((a) => a.stage === filter);
 
   const script = key ? buildAppsScript(key, endpoint) : "";
 
@@ -221,10 +274,10 @@ export function ApplicationsView({
       {/* Count header */}
       <div className="mb-6 flex items-baseline gap-3">
         <span className="font-display text-6xl font-extrabold tabular-nums text-accent sm:text-7xl">
-          {apps.length.toLocaleString()}
+          {activeApps.length.toLocaleString()}
         </span>
         <span className="text-2xl font-semibold text-ink sm:text-3xl">
-          {apps.length === 1 ? "application" : "applications"} tracked
+          {activeApps.length === 1 ? "application" : "applications"} tracked
         </span>
       </div>
 
@@ -244,7 +297,7 @@ export function ApplicationsView({
             {loading ? "⟳ …" : "⟳ Refresh"}
           </button>
         )}
-        {apps.length > 0 && (
+        {activeApps.length > 0 && (
           <div className="ml-auto flex items-center gap-2">
             {lastExport && (
               <span className="font-mono text-[10px] text-ink-faint">
@@ -388,7 +441,7 @@ export function ApplicationsView({
       )}
 
       {/* Export nudge — only when there's new/updated stuff since last export */}
-      {apps.length > 0 && unexported.length > 0 && (
+      {activeApps.length > 0 && unexported.length > 0 && (
         <div className="pop mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent-soft px-4 py-2.5">
           <span className="text-sm font-semibold text-accent-ink">
             🔔 {unexported.length}{" "}
@@ -407,8 +460,32 @@ export function ApplicationsView({
         </div>
       )}
 
+      {/* Undo banner — after a delete, until dismissed or another action */}
+      {justDeleted && (
+        <div className="pop mb-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-mist px-4 py-2">
+          <span className="font-mono text-[12px] text-ink-soft">
+            🗑 Moved <span className="text-ink">{justDeleted.company}</span> to Trash.
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => restore(justDeleted.id)}
+              className="pop rounded-md bg-accent px-3 py-1 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
+            >
+              Undo
+            </button>
+            <button
+              onClick={() => setJustDeleted(null)}
+              aria-label="Dismiss"
+              className="grid h-6 w-6 place-items-center rounded-md text-ink-faint hover:text-ink"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Empty / list */}
-      {apps.length === 0 ? (
+      {activeApps.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
           <p className="font-display text-xl font-bold text-ink">
             No applications tracked yet.
@@ -445,46 +522,149 @@ export function ApplicationsView({
           </div>
 
           <div className="flex flex-col gap-2">
-            {visible.map((a) => (
-              <article
-                key={a.id}
-                className="pop flex items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-pop"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                    <span className="truncate text-[15px] font-bold text-ink">
-                      {a.company}
-                    </span>
-                    <span
-                      className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STAGE_CLASS[a.stage]}`}
+            {visible.map((a) => {
+              const open = expandedId === a.id;
+              const emails = emailsById[a.id];
+              return (
+                <article
+                  key={a.id}
+                  className="pop overflow-hidden rounded-xl border border-line bg-surface shadow-pop"
+                >
+                  <div className="flex items-center gap-3 px-3.5 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(a.id)}
+                      aria-expanded={open}
+                      className="min-w-0 flex-1 text-left"
+                      title="Show the emails behind this application"
                     >
-                      {STAGE_LABEL[a.stage]}
-                    </span>
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span className="text-ink-faint">{open ? "▾" : "▸"}</span>
+                        <span className="truncate text-[15px] font-bold text-ink">
+                          {a.company}
+                        </span>
+                        <span
+                          className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STAGE_CLASS[a.stage]}`}
+                        >
+                          {STAGE_LABEL[a.stage]}
+                        </span>
+                      </div>
+                      {a.role && (
+                        <div className="mt-0.5 truncate pl-5 font-mono text-[12px] text-ink-soft">
+                          {a.role}
+                        </div>
+                      )}
+                      <div className="mt-1 pl-5 font-mono text-[11px] text-ink-faint">
+                        {a.appliedAt ? `applied ${fmtDate(a.appliedAt)}` : ""}
+                        {a.stage === "REJECTED" || a.stage === "OFFER"
+                          ? ` · ${STAGE_LABEL[a.stage].toLowerCase()} ${fmtDate(a.eventDate)}`
+                          : ""}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => remove(a.id)}
+                      title="Move to Trash"
+                      aria-label="Move application to Trash"
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line bg-canvas text-xs text-ink-faint hover:border-danger hover:text-danger"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  {a.role && (
-                    <div className="mt-0.5 truncate font-mono text-[12px] text-ink-soft">
-                      {a.role}
+
+                  {/* Expanded: the full email history for this application */}
+                  {open && (
+                    <div className="border-t border-line bg-canvas px-3.5 py-3">
+                      {loadingEmails === a.id ? (
+                        <p className="font-mono text-[11px] text-ink-faint">loading emails…</p>
+                      ) : emails && emails.length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                          {emails.map((em) => (
+                            <div key={em.id}>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span
+                                  className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STAGE_CLASS[em.stage]}`}
+                                >
+                                  {STAGE_LABEL[em.stage]}
+                                </span>
+                                <span className="font-mono text-[11px] text-ink-soft">
+                                  {fmtDate(em.eventDate)}
+                                </span>
+                                {em.fromAddr && (
+                                  <span className="truncate font-mono text-[10px] text-ink-faint">
+                                    {em.fromAddr}
+                                  </span>
+                                )}
+                              </div>
+                              {em.subject && (
+                                <div className="mt-1 font-mono text-[12px] font-semibold text-ink">
+                                  {em.subject}
+                                </div>
+                              )}
+                              <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-surface p-2 font-mono text-[11px] leading-relaxed text-ink-soft">
+                                {em.body || "(no body stored)"}
+                              </pre>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="font-mono text-[11px] text-ink-faint">
+                          No emails stored for this one yet. Full messages are saved
+                          from now on — applications tracked earlier won&apos;t have them.
+                        </p>
+                      )}
                     </div>
                   )}
-                  <div className="mt-1 font-mono text-[11px] text-ink-faint">
-                    {a.appliedAt ? `applied ${fmtDate(a.appliedAt)}` : ""}
-                    {a.stage === "REJECTED" || a.stage === "OFFER"
-                      ? ` · ${STAGE_LABEL[a.stage].toLowerCase()} ${fmtDate(a.eventDate)}`
-                      : ""}
-                  </div>
-                </div>
-                <button
-                  onClick={() => remove(a.id)}
-                  title="Remove"
-                  aria-label="Remove application"
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line bg-canvas text-xs text-ink-faint hover:border-danger hover:text-danger"
-                >
-                  ✕
-                </button>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </>
+      )}
+
+      {/* Trash — soft-deleted applications, restorable back to All */}
+      {trashApps.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setTrashOpen((o) => !o)}
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+          >
+            {trashOpen ? "▾" : "▸"} 🗑 Trash ({trashApps.length})
+          </button>
+          {trashOpen && (
+            <div className="mt-2 flex flex-col gap-2">
+              {trashApps.map((a) => (
+                <article
+                  key={a.id}
+                  className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 opacity-70"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                      <span className="truncate text-[15px] font-bold text-ink">
+                        {a.company}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STAGE_CLASS[a.stage]}`}
+                      >
+                        {STAGE_LABEL[a.stage]}
+                      </span>
+                    </div>
+                    {a.role && (
+                      <div className="mt-0.5 truncate font-mono text-[12px] text-ink-soft">
+                        {a.role}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => restore(a.id)}
+                    className="pop shrink-0 rounded-md border border-line bg-mist px-3 py-1.5 font-mono text-[11px] text-ink-soft hover:text-ink"
+                  >
+                    ↩ Restore
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
