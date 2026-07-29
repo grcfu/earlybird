@@ -435,6 +435,19 @@ export function ApplicationsView({
                 <span className="text-accent-ink">EarlyBird</span> and a filter
                 that applies it to job emails (and to your forwarded WUSTL mail).
               </div>
+
+              <div className="font-mono text-[11px] leading-relaxed text-ink-faint">
+                4 · Already have mail in{" "}
+                <span className="text-accent-ink">EarlyBird-Done</span> from an
+                earlier run? In the editor, pick{" "}
+                <span className="text-accent-ink">backfillApplications</span>{" "}
+                from the function dropdown and Run it to replay those emails
+                through the current classifier — repeat until the log says it
+                finished. It never duplicates an application or moves a stage
+                backwards. Anything still unreadable gets labeled{" "}
+                <span className="text-accent-ink">EarlyBird-Unmatched</span> in
+                Gmail.
+              </div>
             </div>
           )}
         </div>
