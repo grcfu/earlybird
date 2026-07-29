@@ -437,16 +437,17 @@ export function ApplicationsView({
               </div>
 
               <div className="font-mono text-[11px] leading-relaxed text-ink-faint">
-                4 · Already have mail in{" "}
-                <span className="text-accent-ink">EarlyBird-Done</span> from an
-                earlier run? In the editor, pick{" "}
+                4 · To re-read mail that was already processed, pick a function
+                from the editor&apos;s dropdown and Run it — repeatedly, until
+                the log says it finished.{" "}
                 <span className="text-accent-ink">backfillApplications</span>{" "}
-                from the function dropdown and Run it to replay those emails
-                through the current classifier — repeat until the log says it
-                finished. It never duplicates an application or moves a stage
-                backwards. Anything still unreadable gets labeled{" "}
-                <span className="text-accent-ink">EarlyBird-Unmatched</span> in
-                Gmail.
+                sweeps all of <span className="text-accent-ink">EarlyBird-Done</span>;{" "}
+                <span className="text-accent-ink">retryUnmatched</span> re-reads
+                only what didn&apos;t classify last time, which is the quick one
+                to run after a fix. Neither ever duplicates an application or
+                moves a stage backwards. Whatever still can&apos;t be read keeps
+                the <span className="text-accent-ink">EarlyBird-Unmatched</span>{" "}
+                label in Gmail.
               </div>
             </div>
           )}
