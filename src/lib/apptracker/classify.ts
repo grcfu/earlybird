@@ -45,7 +45,7 @@ const INTERVIEW_INVITE =
 // Actual OA/assessment invitations (imperative or "you've been invited"), not
 // "if you advance you'll receive an assessment".
 const OA_INVITE =
-  /(?:invited|invite you) to (?:complete|take)|please complete (?:the|your) (?:online )?(?:assessment|codesignal|hackerrank|coding challenge)|complete your (?:online )?assessment|(?:your )?(?:assessment|codesignal|hackerrank) (?:link|invitation|is ready)|here is your (?:assessment|coding)/i;
+  /(?:invited|invite you) to (?:complete|take)|invit(?:es|ed|e) you to (?:a |an |the )?(?:test|assessment|coding challenge|technical challenge)|please complete (?:the|your) (?:online )?(?:assessment|codesignal|hackerrank|coding challenge)|complete your (?:online )?assessment|(?:your )?(?:assessment|codesignal|hackerrank) (?:link|invitation|is ready)|here is your (?:assessment|coding)/i;
 
 // Plain acknowledgment that an application was received.
 const ACK =
@@ -93,6 +93,41 @@ function clean(name: string): string {
     .trim();
 }
 
+// Assessment platforms, ATSes and job boards that mail on an employer's behalf.
+// Their name sits exactly where a company name would ("...invites you to a test
+// at Codility"), so a naive match tracks the vendor instead of the employer. We
+// don't drop these outright — a vendor candidate is only ever a last resort, so
+// nothing is lost if the vendor name really is all the email gives us.
+const VENDORS = new Set([
+  "codility", "hackerrank", "codesignal", "karat", "hirevue", "coderpad",
+  "woven", "byteboard", "shl", "pymetrics", "criteria", "imocha", "testgorilla",
+  "greenhouse", "lever", "ashby", "workday", "smartrecruiters", "workable",
+  "icims", "taleo", "jobvite", "bamboohr", "successfactors", "brassring",
+  "indeed", "linkedin", "handshake", "wellfound", "simplify", "glassdoor",
+  "ziprecruiter", "myworkday",
+]);
+
+// Sentence-opening words that sit in the same grammatical slot as a company
+// name ("We would like to invite you...") but are never one.
+const STOPWORDS = new Set([
+  "we", "i", "you", "your", "our", "us", "they", "it", "this", "that", "these",
+  "hi", "hello", "dear", "thank", "thanks", "please", "congratulations",
+  "unfortunately", "however", "additionally", "team", "the team", "a", "an",
+  "as", "if", "and", "but", "so", "there", "here", "who", "what", "he", "she",
+]);
+
+function isStopword(name: string): boolean {
+  return STOPWORDS.has(name.toLowerCase().trim());
+}
+
+function isVendor(name: string): boolean {
+  const words = name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  if (words.length === 0) return false;
+  // Match the whole squashed name ("code signal") or its first word
+  // ("Codility Ltd"), so vendor spellings don't slip past on a suffix.
+  return VENDORS.has(words.join("")) || VENDORS.has(words[0]);
+}
+
 function extractCompany(subject: string, body: string): string | null {
   const patterns: RegExp[] = [
     // "Your Application with/to/at Akuna Capital"
@@ -103,21 +138,31 @@ function extractCompany(subject: string, body: string): string | null {
     /interest in\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:'s|\s+\d{4}|[.!,])/,
     // "...considering Akuna Capital as an employer"
     /considering\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)\s+as (?:an? )?(?:employer|company)/,
-    // "...position at The Trade Desk!"
-    /\b(?:position|role|internship|opportunity|opening)\b[^.\n]{0,20}?\bat\s+([A-Z][A-Za-z0-9.&'\- ]{1,40})/,
+    // "Chicago Trading Company (CTC) invites you to a test at Codility" — the
+    // employer leads, the assessment vendor trails. The optional parenthetical
+    // absorbs a trailing acronym so it doesn't break the match.
+    /^\s*([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:\s*\([^)]{1,20}\))?\s+(?:invites?|has invited|would like)\b/m,
+    // "...position at The Trade Desk!" — lazy + anchored on a terminator, or it
+    // runs past the company and swallows the rest of the sentence.
+    /\b(?:position|role|internship|opportunity|opening)\b[^.\n]{0,20}?\bat\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:[.!,]|\s+(?:in|for|office|located)|\s*$)/m,
     // generic "at <Company>" fallback
     /\bat\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:[.!,]|\s+(?:in|for|office|located)|\s*$)/m,
   ];
+  // Collect every candidate in priority order, then prefer the first that isn't
+  // a hiring vendor — otherwise "a test at Codility" beats the real employer.
+  const candidates: string[] = [];
   for (const src of [subject, body]) {
     for (const p of patterns) {
       const m = src.match(p);
       if (m?.[1]) {
         const c = clean(m[1]);
-        if (c.length >= 2 && !/^your\b/i.test(c)) return c;
+        if (c.length >= 2 && !/^your\b/i.test(c) && !isStopword(c)) {
+          candidates.push(c);
+        }
       }
     }
   }
-  return null;
+  return candidates.find((c) => !isVendor(c)) ?? candidates[0] ?? null;
 }
 
 function extractRole(body: string): string | null {

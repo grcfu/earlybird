@@ -99,6 +99,39 @@ test("company extraction handles 'applying to <Company>' phrasing", () => {
   assert.equal(c.stage, "applied");
 });
 
+test("company capture stops at the sentence end, not 40 chars later", () => {
+  const c = classifyEmail({
+    subject: "Interview invitation - Bank of America Global Technology",
+    body: "We would like to invite you to an interview for the Summer Analyst position at Bank of America. Please use the link below to schedule a time.",
+    receivedAt: "2026-07-25",
+  });
+  assert.equal(c.stage, "interview");
+  // Regression: the greedy "position at <Company>" pattern used to run past the
+  // period and capture "Bank of America. Please use the link belo", which then
+  // normalized to a different key and forked a second application row.
+  assert.equal(c.company, "Bank of America");
+});
+
+test("assessment vendor never beats the real employer", () => {
+  const c = classifyEmail({
+    subject: "Chicago Trading Company (CTC) invites you to a test at Codility",
+    body: "Chicago Trading Company (CTC) invites you to a test at Codility.\n\nGood luck!",
+    receivedAt: "2026-07-27",
+  });
+  assert.equal(c.stage, "assessment");
+  // Regression: this tracked "Codility" as the company.
+  assert.equal(c.company, "Chicago Trading Company");
+});
+
+test("a vendor name is still used when it's the only candidate", () => {
+  const c = classifyEmail({
+    subject: "Your Application with Codility",
+    body: "Thank you for applying to Codility for the Software Engineer Intern role.",
+    receivedAt: "2026-07-10",
+  });
+  assert.equal(c.company, "Codility");
+});
+
 test("non-application email → no stage", () => {
   const c = classifyEmail({
     subject: "Your Amazon order shipped",
