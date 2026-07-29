@@ -132,6 +132,60 @@ test("a vendor name is still used when it's the only candidate", () => {
   assert.equal(c.company, "Codility");
 });
 
+// Real subjects from Grace's Gmail backfill log. The BofA pair is the ATS
+// "<Company>: <event>" subject form, which no prose pattern matched — every one
+// of these was silently skipped as "no company detected".
+
+test("ATS subject-prefix form names the company", () => {
+  const c = classifyEmail({
+    subject: "Bank of America: Video Interview Invitation",
+    body: "Bank of America: Video Interview Invitation",
+    receivedAt: "2026-07-28",
+  });
+  assert.equal(c.company, "Bank of America");
+  assert.equal(c.stage, "interview");
+});
+
+test("a completed interview still counts as the interview stage", () => {
+  const c = classifyEmail({
+    subject: "Bank of America: Video Interview Complete",
+    body: "Bank of America: Video Interview Complete",
+    receivedAt: "2026-07-28",
+  });
+  assert.equal(c.company, "Bank of America");
+  assert.equal(c.stage, "interview");
+});
+
+test("Re:/[tag] noise is peeled off before the subject prefix is read", () => {
+  const c = classifyEmail({
+    subject: "Re: [External] Bank of America: Video Interview Invitation",
+    body: "",
+    receivedAt: "2026-07-28",
+  });
+  assert.equal(c.company, "Bank of America");
+});
+
+test("a subject prefix that isn't a company is not treated as one", () => {
+  for (const subject of [
+    "Reminder: GDG on Campus - Transition Interviews (Grace Fu) @ Tue Jul 21",
+    "Action Required: Confirm Your Congressional Award Gold Medal Delivery",
+  ]) {
+    const c = classifyEmail({ subject, body: subject, receivedAt: "2026-07-28" });
+    assert.equal(c.stage, null, `${subject} should not be an application event`);
+  }
+});
+
+test("referral invites and OTP mail are not application events", () => {
+  // Both name a real company, so only the missing stage keeps them out.
+  for (const subject of [
+    "Invitation from Lyn Han to apply to Google",
+    "Security code for your application to Old Mission",
+  ]) {
+    const c = classifyEmail({ subject, body: subject, receivedAt: "2026-07-28" });
+    assert.equal(c.stage, null, `${subject} should not be an application event`);
+  }
+});
+
 test("non-application email → no stage", () => {
   const c = classifyEmail({
     subject: "Your Amazon order shipped",
