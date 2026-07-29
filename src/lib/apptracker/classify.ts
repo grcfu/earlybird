@@ -9,6 +9,10 @@ export interface RawEmail {
   body: string; // plain-text body
   from?: string; // envelope From (may be a forwarder, e.g. your own address)
   receivedAt?: string | Date; // when Gmail received it (fallback date)
+  // The calendar day the message arrived, as YYYY-MM-DD in the *reader's* own
+  // timezone. The Apps Script computes it, because `receivedAt` is a UTC instant
+  // and deriving a day from it lands an evening email on tomorrow's date.
+  localDate?: string;
 }
 
 // The lifecycle stages we detect. Ordered loosely earliest → latest.
@@ -35,8 +39,17 @@ export interface Classification {
 const OFFER =
   /pleased to offer|excited to offer|happy to offer|delighted to offer|offer of (employment|internship)|extend(?:ing)? (?:you )?an offer|your offer letter|formal offer/i;
 
+// An explicit negative decision. These say the outcome outright.
 const REJECT =
-  /\bunfortunately\b|we regret|regret to inform|(will )?not (?:be )?(?:moving|proceeding) forward|not moving forward|decided (?:not to|to not) (?:move|proceed|advance)|not (?:be )?(?:a|the) (?:best |strong )?(?:fit|match)|move forward with other (?:candidates|applicants)|pursue other candidates|(?:have|has) (?:not )?(?:been )?(?:not )?selected other|were not selected|no longer under consideration|position (?:has been|is now|was) filled|won'?t be (?:moving|advancing)|not to move forward with your/i;
+  /we regret|regret to inform|(will )?not (?:be )?(?:moving|proceeding) forward|not moving forward|decided (?:not to|to not) (?:move|proceed|advance)|not (?:be )?(?:a|the) (?:best |strong )?(?:fit|match)|move forward with other (?:candidates|applicants)|pursue other candidates|(?:have|has) (?:not )?(?:been )?(?:not )?selected other|were not selected|no longer under consideration|(?:position|role|requisition) (?:has been|is now|was) filled|won'?t be (?:moving|advancing)|not to move forward with your|(?:will |we )?not be (?:advancing|progressing|continuing)|unable to (?:move|proceed|progress) (?:you |your )?forward/i;
+
+// "Unfortunately" on its own is not a rejection — acknowledgments routinely say
+// "unfortunately we can't reply to every applicant", and couriers say it about
+// parcels. It only counts when the same sentence is actually about your
+// candidacy, so these two have to co-occur within one sentence.
+const SOFT_REJECT_CUE = /\bunfortunately\b|we regret/i;
+const SOFT_REJECT_TOPIC =
+  /\byour (?:application|candidacy|background|profile|resume|submission)\b|\bthis (?:position|role|time|opportunity)\b|\bmove forward\b|\bother (?:candidates|applicants)\b|\bnot (?:been )?selected\b|\bno longer\b|\bdecided\b/i;
 
 // Actual invitations to interview (not descriptions of an interview step).
 // The trailing alternatives are the noun-phrase forms ATSes put in subject lines
@@ -80,12 +93,52 @@ function isJobRelated(text: string): boolean {
   return JOB_CONTEXT.test(text) || mentionsVendor(text);
 }
 
+// Clauses describing what *might* happen, or what happens later in the process,
+// rather than what is happening now. Acknowledgment emails are full of these:
+// "we will reach out to schedule an interview if your experience looks like a
+// good fit" is an application receipt, not an interview invitation.
+const HYPOTHETICAL =
+  /\bif\b|\bshould (?:you|your|we|it)\b|\bonce (?:we|you|your|the)\b|\bin the event\b|\bmay be (?:invited|asked|contacted|required)\b|\bprocess (?:includes|consists|involves|is as follows|looks like)\b|\b(?:typically|usually|generally)\b|\bnext steps? (?:include|are|in)\b|\boverview of (?:our|the)\b|\bwhat(?:'s| is) next\b|\bwhen (?:we|your application)\b/i;
+
+// Sentence-ish units. Splitting on terminators plus newlines is enough for email
+// bodies, and keeps a subject line separate from the first body sentence.
+function sentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+// Does this pattern fire somewhere that isn't hedged? A stage phrase found only
+// inside hypothetical clauses is a description of the process, not an event.
+//
+// Deliberately biased toward *not* firing: a tracked stage never moves backwards
+// (see STAGE_RANK), so a false positive is permanent and unfixable by later
+// mail, while a false negative is corrected by the next email that arrives.
+function firesPlainly(re: RegExp, parts: string[]): boolean {
+  const hits = parts.filter((s) => re.test(s));
+  return hits.some((s) => !HYPOTHETICAL.test(s));
+}
+
 function detectStage(text: string): AppStage | null {
   if (!isJobRelated(text)) return null;
-  if (OFFER.test(text)) return "offer";
-  if (REJECT.test(text)) return "rejected";
-  if (INTERVIEW_INVITE.test(text)) return "interview";
-  if (OA_INVITE.test(text)) return "assessment";
+  const parts = sentences(text);
+
+  if (firesPlainly(OFFER, parts)) return "offer";
+  if (firesPlainly(REJECT, parts)) return "rejected";
+  if (firesPlainly(INTERVIEW_INVITE, parts)) return "interview";
+  if (firesPlainly(OA_INVITE, parts)) return "assessment";
+  // A bare "unfortunately" only outranks an acknowledgment when it's paired with
+  // candidacy language in the same sentence.
+  const softReject = parts.some(
+    (s) =>
+      SOFT_REJECT_CUE.test(s) &&
+      SOFT_REJECT_TOPIC.test(s) &&
+      !HYPOTHETICAL.test(s),
+  );
+  if (softReject) return "rejected";
+  // ACK is left unhedged on purpose: it's the lowest stage, so a false positive
+  // costs nothing, and suppressing it would drop the email entirely.
   if (ACK.test(text)) return "applied";
   return null;
 }
@@ -112,6 +165,17 @@ function toDate(value: string | Date | undefined): Date | null {
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
+
+// The calendar day of a zone-less parsed date ("July 15, 2026 8:30 AM"). Those
+// components were meant literally, so read them back literally instead of
+// shifting them through UTC.
+function localDay(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 // --- Company / role extraction ---------------------------------------------
 
@@ -234,12 +298,21 @@ function extractRole(body: string): string | null {
 
 // --- Entry point ------------------------------------------------------------
 
+// The day the event actually happened, most trustworthy source first:
+//   1. the original send date quoted in a forward — the real event date
+//   2. the reader's local calendar day, computed where the timezone is known
+//   3. the received instant, as a last resort (may be a day off for late mail)
+function resolveEventDate(email: RawEmail): string {
+  const forwarded = parseForwardedDate(email.body);
+  if (forwarded) return localDay(forwarded);
+  if (email.localDate && ISO_DAY.test(email.localDate)) return email.localDate;
+  const received = toDate(email.receivedAt);
+  return isoDay(received ?? new Date());
+}
+
 export function classifyEmail(email: RawEmail): Classification {
   const text = `${email.subject}\n${email.body}`;
   const stage = detectStage(text);
-
-  const eventDate =
-    parseForwardedDate(email.body) ?? toDate(email.receivedAt) ?? new Date();
 
   const company = extractCompany(email.subject, email.body);
   const role = extractRole(email.body);
@@ -248,7 +321,7 @@ export function classifyEmail(email: RawEmail): Classification {
     company,
     role,
     stage,
-    eventDate: isoDay(eventDate),
+    eventDate: resolveEventDate(email),
     // High only when we have both a stage and a company to attach it to.
     confidence: stage && company ? "high" : "low",
   };

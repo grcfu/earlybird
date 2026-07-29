@@ -214,6 +214,86 @@ test("terse vendor mail still reads as job-related", () => {
   assert.equal(c.company, "Chicago Trading Company");
 });
 
+// Real Ashby-sent acknowledgment from Deepgram. It was tracked as INTERVIEW
+// because the body says "schedule an interview" — inside a conditional about
+// what happens *if* the application looks like a fit.
+const DEEPGRAM_ACK = {
+  subject: "Thank you for applying to Deepgram!",
+  from: "Deepgram Recruiting Team <no-reply@ashbyhq.com>",
+  receivedAt: "2026-07-18T10:00:00Z",
+  body: `Hello Grace!
+
+We've received your application for the Software Engineering- Internship role at http://deepgram.com, and we're excited that you're interested in joining our team!
+
+Our hiring team reviews every application thoroughly, so it may take some time before you hear back from us due to the high number of applications for this role. Once we've had a chance to review your background, we will reach out to schedule an interview as soon as possible if your experience looks like a good fit.
+
+If you are not selected for this position, keep an eye on our https://deepgram.com/careers as we're growing quickly and will be opening additional opportunities in the near future.
+
+We appreciate your patience, and thanks again for your interest in Deepgram!`,
+};
+
+test("Deepgram: a promised future interview is still just 'applied'", () => {
+  const c = classifyEmail(DEEPGRAM_ACK);
+  assert.equal(c.stage, "applied");
+  assert.equal(c.company, "Deepgram");
+  assert.equal(c.role, "Software Engineering- Internship");
+});
+
+test("hypothetical stage phrases don't advance the stage", () => {
+  const hedged: [string, string][] = [
+    ["conditional assessment", "Thank you for applying. If your application stands out, you'll be invited to complete a HackerRank assessment."],
+    ["conditional offer", "Thank you for applying. If we extend you an offer, onboarding takes two weeks."],
+    ["process overview", "Thanks for applying! Our process typically includes an interview invitation after the resume screen."],
+  ];
+  for (const [label, body] of hedged) {
+    const c = classifyEmail({ subject: "Thanks for applying", body, receivedAt: "2026-07-10" });
+    assert.equal(c.stage, "applied", `${label} should stay at applied`);
+  }
+});
+
+test("'unfortunately' alone is not a rejection", () => {
+  // Extremely common in acknowledgments; used to mark the application rejected.
+  const c = classifyEmail({
+    subject: "Thank you for applying to Acme",
+    body: "Thank you for applying to Acme. Unfortunately we cannot respond to every applicant individually.",
+    receivedAt: "2026-07-10",
+  });
+  assert.equal(c.stage, "applied");
+});
+
+test("'unfortunately' about your application is a rejection", () => {
+  const c = classifyEmail({
+    subject: "Acme: update on your application",
+    body: "Unfortunately, we will not be advancing your application for this role.",
+    receivedAt: "2026-07-10",
+  });
+  assert.equal(c.stage, "rejected");
+});
+
+test("eventDate uses the reader's calendar day, not the UTC instant", () => {
+  const evening = {
+    subject: "Acme: Video Interview Invitation",
+    body: "x",
+    receivedAt: "2026-07-15T21:30:00-05:00", // 02:30 UTC on the 16th
+  };
+  // Without the local day, an evening email is filed under tomorrow.
+  assert.equal(classifyEmail(evening).eventDate, "2026-07-16");
+  assert.equal(
+    classifyEmail({ ...evening, localDate: "2026-07-15" }).eventDate,
+    "2026-07-15",
+  );
+});
+
+test("a quoted forward date still outranks the local day", () => {
+  const c = classifyEmail({
+    subject: "Fw: Your Application with Akuna Capital",
+    body: "Sent: Wednesday, July 15, 2026 8:30 AM\n\nThank you for applying to Akuna Capital.",
+    receivedAt: "2026-07-20T12:00:00Z",
+    localDate: "2026-07-20",
+  });
+  assert.equal(c.eventDate, "2026-07-15");
+});
+
 test("non-application email → no stage", () => {
   const c = classifyEmail({
     subject: "Your Amazon order shipped",
