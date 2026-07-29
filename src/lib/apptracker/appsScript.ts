@@ -35,9 +35,10 @@ const SKIPPED_LABEL = "EarlyBird-Unmatched";
 // Threads per run. Apps Script caps execution at ~6 minutes and each message
 // costs one HTTP round-trip, so we stay well inside that.
 const BATCH = 50;
-// Where the last backfill run stopped, so repeated runs walk forward instead of
-// redoing the first page forever.
+// Where the last replay run stopped, so repeated runs walk forward instead of
+// redoing the first page forever. One cursor per replay target.
 const CURSOR_PROP = "earlybirdBackfillCursor";
+const RETRY_CURSOR_PROP = "earlybirdRetryCursor";
 
 function labelOrCreate(name) {
   return GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
@@ -122,55 +123,80 @@ function trackApplications() {
   );
 }
 
-// --- Backfill: replay EarlyBird-Done through the current classifier -----------
-// Run this by hand from the editor (pick backfillApplications in the function
-// dropdown → Run), then check the execution log. Anything the classifier still
-// can't read gets the EarlyBird-Unmatched label so you can find it in Gmail.
+// --- Replay: re-post already-processed mail through the current classifier ----
+// Run these by hand from the editor (pick the function in the dropdown → Run),
+// then read the execution log. Anything still unreadable gets the
+// EarlyBird-Unmatched label so you can find it in Gmail.
 //
 // Idempotent: the server dedupes each message and only ever advances a stage, so
-// replaying an email that was already tracked changes nothing. Run it until the
-// log says the cursor reached the end.
+// replaying an email that was already tracked changes nothing.
 
-function backfillApplications() {
-  const done = GmailApp.getUserLabelByName(DONE_LABEL);
-  if (!done) {
-    Logger.log("No '" + DONE_LABEL + "' label — nothing to backfill.");
+// Walk a label one page at a time, remembering the position across runs so
+// repeated runs move forward instead of redoing the first page forever.
+function replayLabel(sourceName, cursorProp, dropOnSuccess) {
+  const src = GmailApp.getUserLabelByName(sourceName);
+  if (!src) {
+    Logger.log("No '" + sourceName + "' label — nothing to replay.");
     return;
   }
   const unmatched = labelOrCreate(SKIPPED_LABEL);
   const props = PropertiesService.getScriptProperties();
-  var start = parseInt(props.getProperty(CURSOR_PROP) || "0", 10);
+  var start = parseInt(props.getProperty(cursorProp) || "0", 10);
   if (isNaN(start) || start < 0) start = 0;
 
-  const threads = done.getThreads(start, BATCH);
+  const threads = src.getThreads(start, BATCH);
   if (threads.length === 0) {
+    props.deleteProperty(cursorProp);
     Logger.log(
-      "Backfill complete — replayed everything in " + DONE_LABEL +
-        ". Run resetBackfill() to start over.",
+      "Done — replayed everything in " + sourceName +
+        ". (Cursor reset, so running again starts over.)",
     );
     return;
   }
 
   var counts = { ok: 0, skipped: 0, failed: 0 };
+  var removed = 0;
   for (var t = 0; t < threads.length; t++) {
     const thread = threads[t];
     const outcome = postThread(thread);
     counts[outcome]++;
-    // Surface the still-unreadable ones without pulling them out of Done, so
-    // the cursor's view of the label stays stable while we page through it.
-    if (outcome === "skipped") thread.addLabel(unmatched);
+    if (outcome === "skipped") {
+      thread.addLabel(unmatched);
+    } else if (outcome === "ok" && dropOnSuccess) {
+      // Now tracked, so it no longer belongs in the retry queue.
+      thread.removeLabel(src);
+      removed++;
+    }
   }
-  props.setProperty(CURSOR_PROP, String(start + threads.length));
+  // Pulling threads out of the label shifts everything after them down, so the
+  // next page starts that many slots earlier.
+  props.setProperty(cursorProp, String(start + threads.length - removed));
   Logger.log(
-    "Backfill " + start + "-" + (start + threads.length) + ": " + counts.ok +
-      " tracked, " + counts.skipped + " unmatched, " + counts.failed +
-      " failed. Run again to continue.",
+    sourceName + " " + start + "-" + (start + threads.length) + ": " +
+      counts.ok + " tracked, " + counts.skipped + " unmatched, " +
+      counts.failed + " failed. Run again to continue.",
   );
 }
 
+// Full sweep of everything ever processed. Use this once, after a fix that could
+// affect any email. Leaves EarlyBird-Done intact.
+function backfillApplications() {
+  replayLabel(DONE_LABEL, CURSOR_PROP, false);
+}
+
+// Just the emails EarlyBird couldn't read last time — far smaller than a full
+// sweep, so this is the one to use after each classifier improvement. Threads
+// that now classify lose the EarlyBird-Unmatched label, so the queue shrinks
+// toward only genuine non-job mail.
+function retryUnmatched() {
+  replayLabel(SKIPPED_LABEL, RETRY_CURSOR_PROP, true);
+}
+
 function resetBackfill() {
-  PropertiesService.getScriptProperties().deleteProperty(CURSOR_PROP);
-  Logger.log("Backfill cursor reset — the next run starts from the beginning.");
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty(CURSOR_PROP);
+  props.deleteProperty(RETRY_CURSOR_PROP);
+  Logger.log("Cursors reset — the next replay run starts from the beginning.");
 }
 `;
 }
