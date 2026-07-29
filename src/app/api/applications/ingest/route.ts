@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     body?: string;
     from?: string;
     receivedAt?: string;
+    localDate?: string;
   };
   try {
     payload = await req.json();
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
     body: payload.body ?? "",
     from: payload.from,
     receivedAt: payload.receivedAt,
+    localDate: payload.localDate,
   });
 
   const result = await recordApplication(key, classification, {

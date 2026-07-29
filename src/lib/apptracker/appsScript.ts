@@ -59,6 +59,13 @@ function postThread(thread) {
       body: msg.getPlainBody(),
       from: msg.getFrom(),
       receivedAt: msg.getDate().toISOString(),
+      // receivedAt is a UTC instant, so an email that arrived at 8pm local would
+      // be filed under tomorrow. Send the local calendar day too.
+      localDate: Utilities.formatDate(
+        msg.getDate(),
+        Session.getScriptTimeZone(),
+        "yyyy-MM-dd",
+      ),
     };
     try {
       const res = UrlFetchApp.fetch(ENDPOINT, {
