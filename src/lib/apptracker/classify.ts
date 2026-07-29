@@ -54,7 +54,34 @@ const OA_INVITE =
 const ACK =
   /thank you for (?:applying|your application|your interest|considering|taking the time to apply)|thanks for applying|we(?:’|'|)?ve received your application|your application (?:has been|was) received|application received|received your application|currently reviewing your application|we are (?:currently )?reviewing/i;
 
+// Unmistakable hiring-platform names, used as evidence that an email is job mail.
+// Deliberately narrower than the VENDORS list below: names that double as
+// ordinary English ("Indeed", "Lever", "Criteria", "Workable") are left out,
+// since they'd wave almost anything through.
+const VENDOR_CONTEXT =
+  /\b(?:codility|hackerrank|code ?signal|hire ?vue|coderpad|byteboard|pymetrics|testgorilla|imocha|greenhouse|smartrecruiters|workday|icims|taleo|jobvite|bamboohr|successfactors|brassring|ashbyhq)\b/i;
+
+function mentionsVendor(text: string): boolean {
+  return VENDOR_CONTEXT.test(text);
+}
+
+// Every stage phrase above also occurs in ordinary consumer mail — a retailer is
+// "pleased to offer" a discount, a courier says "unfortunately" about a package,
+// a bank's "offer letter" is a credit line. So an email must additionally show
+// some hiring context before we'll read it as an application event at all. This
+// matters because the label feeding the tracker is usually a broad Gmail filter,
+// not a curated list.
+const JOB_CONTEXT =
+  /\b(?:applicat(?:ion|ions|nt)|appl(?:y|ying|ied)|candidate|candidacy|recruit(?:er|ers|ing|ment)?|intern(?:ship)?|position|role|vacancy|hiring|career|résumé|resume|cv|interview|assessment|onboarding|requisition|req ?id|talent|employment|new grad|summer analyst|co-?op)\b/i;
+
+function isJobRelated(text: string): boolean {
+  // Naming a hiring platform counts as context on its own — a Codility or
+  // HireVue mail is job mail even when the copy is terse.
+  return JOB_CONTEXT.test(text) || mentionsVendor(text);
+}
+
 function detectStage(text: string): AppStage | null {
+  if (!isJobRelated(text)) return null;
   if (OFFER.test(text)) return "offer";
   if (REJECT.test(text)) return "rejected";
   if (INTERVIEW_INVITE.test(text)) return "interview";

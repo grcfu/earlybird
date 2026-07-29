@@ -186,6 +186,34 @@ test("referral invites and OTP mail are not application events", () => {
   }
 });
 
+// The label feeding the tracker is a broad Gmail filter, so consumer mail lands
+// in the classifier too — and it reuses every stage phrase we look for. Without a
+// hiring-context requirement these all registered as real applications.
+test("consumer mail borrowing our stage phrases is not an application", () => {
+  const junk: [string, string][] = [
+    ["Aeropostale: We're pleased to offer you 40% off everything", "Shop now before it ends."],
+    ["Chase: Your offer letter is waiting", "Claim your new card today."],
+    ["USPS: Unfortunately your package was delayed", "Unfortunately, your package could not be delivered."],
+    ["CreditWise: You've earned an offer for an additional line of credit", "Congrats!"],
+  ];
+  for (const [subject, body] of junk) {
+    const c = classifyEmail({ subject, body, receivedAt: "2026-07-28" });
+    assert.equal(c.stage, null, `${subject} should not be an application event`);
+  }
+});
+
+test("terse vendor mail still reads as job-related", () => {
+  // No "application"/"position"/"role" anywhere — naming Codility is the only
+  // signal that this is hiring mail at all.
+  const c = classifyEmail({
+    subject: "Chicago Trading Company (CTC) invites you to a test at Codility",
+    body: "Chicago Trading Company (CTC) invites you to a test at Codility.\n\nGood luck!",
+    receivedAt: "2026-07-27",
+  });
+  assert.equal(c.stage, "assessment");
+  assert.equal(c.company, "Chicago Trading Company");
+});
+
 test("non-application email → no stage", () => {
   const c = classifyEmail({
     subject: "Your Amazon order shipped",
