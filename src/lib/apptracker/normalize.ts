@@ -10,6 +10,39 @@
 const TRAILING =
   /\s+(recruitment|recruiting|recruiter|recruiters|talent acquisition|talent|careers|career|hiring team|hiring|team|hr|human resources|campus|university recruiting|people team|people|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/;
 
+// The initials of a multi-word company name: "Chicago Trading Company" → "ctc".
+// Null when the name is one word (nothing to abbreviate) or long enough that the
+// initials would be too generic to match on.
+export function acronymOf(raw: string): string | null {
+  const words = normalizeCompany(raw).split(" ").filter(Boolean);
+  if (words.length < 2 || words.length > 5) return null;
+  return words.map((w) => w[0]).join("");
+}
+
+// Is this raw string already an acronym rather than a name? Used to prefer the
+// spelled-out form for display once the two are known to be the same company.
+export function looksLikeAcronym(raw: string): boolean {
+  const s = raw.trim();
+  return /^[A-Z]{2,5}$/.test(s.replace(/[.\s]/g, ""));
+}
+
+// Do two company strings refer to the same employer? Exact normalized match, or
+// one side is the other's initials — ATSes and their vendors mix the two freely
+// ("Chicago Trading Company (CTC) invites you..." then "CTC: Your assessment"),
+// which otherwise forks one application into two.
+//
+// Bounded on purpose: only 2–5 letter acronyms of 2–5 word names, so this can't
+// quietly collapse unrelated companies the way a fuzzy match would.
+export function sameCompany(a: string, b: string): boolean {
+  const ka = normalizeCompany(a);
+  const kb = normalizeCompany(b);
+  if (!ka || !kb) return false;
+  if (ka === kb) return true;
+  if (/^[a-z]{2,5}$/.test(ka) && acronymOf(b) === ka) return true;
+  if (/^[a-z]{2,5}$/.test(kb) && acronymOf(a) === kb) return true;
+  return false;
+}
+
 export function normalizeCompany(raw: string): string {
   let s = raw
     .toLowerCase()
