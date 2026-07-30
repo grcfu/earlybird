@@ -7,8 +7,12 @@
 // a leading "the", never distinctive words — so genuinely different companies
 // (e.g. "Meta" vs "Meta Platforms") stay separate.
 
+// "ai" is in here because one email says "Scale AI" in the subject and "here at
+// Scale" in the body — without stripping it, one application forks into two.
+// Dropping it is safe: no pair of distinct employers is separated only by an "AI"
+// suffix, and the display name keeps whichever form the email actually used.
 const TRAILING =
-  /\s+(recruitment|recruiting|recruiter|recruiters|talent acquisition|talent|careers|career|hiring team|hiring|hiring|team|hr|human resources|campus|university recruiting|people team|people|notifications|notification|noreply|no-reply|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/i;
+  /\s+(recruitment|recruiting|recruiter|recruiters|talent acquisition|talent|careers|career|hiring team|hiring|team|hr|human resources|campus|university recruiting|people team|people|notifications|notification|noreply|no-reply|ai|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/i;
 
 // Same boilerplate peel as normalizeCompany, but case- and spacing-preserving so
 // the result is usable as a display name: "Microsoft Careers" → "Microsoft",

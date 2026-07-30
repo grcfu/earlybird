@@ -367,8 +367,9 @@ function extractCompany(
     new RegExp(String.raw`application (?:with|to|at)\s+${NAME}${NAME_END}`, "m"),
     // "Thank you for applying to Akuna Capital [for ...]"
     new RegExp(String.raw`appl(?:y|ied|ying)\s+(?:to|with)\s+${NAME}${NAME_END}`, "m"),
-    // "...interest in Hudson River Trading's 2027..."
-    new RegExp(String.raw`interest in\s+${NAME}(?:\s+\d{4}|${NAME_END})`, "m"),
+    // "...interest in Hudson River Trading's 2027...", and the "interest with
+    // Scale AI" variant Scale's rejection template uses.
+    new RegExp(String.raw`interest (?:in|with)\s+${NAME}(?:\s+\d{4}|${NAME_END})`, "m"),
     // "...considering Akuna Capital as an employer"
     new RegExp(String.raw`considering\s+${NAME}\s+as (?:an? )?(?:employer|company)`, "m"),
     // "Chicago Trading Company (CTC) invites you to a test at Codility" — the

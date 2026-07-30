@@ -28,6 +28,16 @@ test("normalizeCompany: distinct companies stay distinct", () => {
   assert.notEqual(normalizeCompany("Jane Street"), normalizeCompany("Jane"));
 });
 
+test("an AI suffix doesn't fork one company into two", () => {
+  // Scale's rejection says "Scale AI" in the subject and "here at Scale" in the
+  // body, so the two forms have to share a key.
+  assert.ok(sameCompany("Scale", "Scale AI"));
+  assert.ok(sameCompany("Snorkel AI", "Snorkel"));
+  assert.equal(normalizeCompany("Scale AI"), normalizeCompany("Scale"));
+  // Still distinct from an unrelated company.
+  assert.ok(!sameCompany("Scale AI", "Snorkel AI"));
+});
+
 test("acronymOf: initials of a multi-word name", () => {
   assert.equal(acronymOf("Chicago Trading Company"), "ctc");
   assert.equal(acronymOf("Hudson River Trading"), "hrt");
