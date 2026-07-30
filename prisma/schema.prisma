@@ -145,6 +145,12 @@ model TrackedApplication {
   source      String  @default("email") // "email" | "manual"
   lastSubject String? // subject of the most recent email, for context
 
+  // Which recruiting cycle this application belongs to, as the summer year it
+  // targets (2027 = Summer 2027). Persisted rather than derived so that applying
+  // to the same company again next season is a separate application instead of
+  // folding into last season's outcome. 0 = couldn't be determined.
+  cycle Int @default(0)
+
   // Soft delete: set when the user removes it, so it can be restored from Trash.
   deletedAt DateTime?
 
@@ -153,8 +159,10 @@ model TrackedApplication {
 
   emails ApplicationEmail[]
 
-  // One row per (owner, company, role); repeat emails update it in place.
-  @@unique([ownerKey, company, role])
+  // One row per (owner, company, role, cycle); repeat emails update it in place.
+  // Cycle is part of the key so a re-application next season can coexist with
+  // this season's — without it, a second Google row collides on (company, role).
+  @@unique([ownerKey, company, role, cycle])
   @@index([ownerKey])
 }
 
