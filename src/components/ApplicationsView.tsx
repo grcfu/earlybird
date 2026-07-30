@@ -15,6 +15,12 @@ import {
   generateTrackerKey,
 } from "@/lib/apptracker/key";
 import { buildAppsScript } from "@/lib/apptracker/appsScript";
+import {
+  applicationCycle,
+  cyclesPresent,
+  currentCycle,
+  cycleLabel,
+} from "@/lib/apptracker/cycle";
 
 // When you last exported, so we can nudge only when there's something new.
 const EXPORT_KEY = "earlybird:apps:lastExport";
@@ -26,6 +32,8 @@ function fmtDate(iso: string): string {
 }
 
 type Filter = AppStageKey | "all";
+// Which recruiting cycle is on screen — a year, or every cycle at once.
+type CycleFilter = number | "all";
 
 export function ApplicationsView({
   signedIn,
@@ -39,6 +47,7 @@ export function ApplicationsView({
   const [apps, setApps] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [cycle, setCycle] = useState<CycleFilter>("all");
   const [setupOpen, setSetupOpen] = useState(false);
   const [copied, setCopied] = useState<"" | "key" | "script" | "sheets">("");
   const [endpoint, setEndpoint] = useState("");
@@ -208,21 +217,64 @@ export function ApplicationsView({
   };
 
   // Split live applications from Trash (soft-deleted).
-  const activeApps = apps.filter((a) => !a.deletedAt);
+  const liveApps = apps.filter((a) => !a.deletedAt);
   const trashApps = apps.filter((a) => a.deletedAt);
+
+  // Cycles you've actually applied in, newest first.
+  const cycles = cyclesPresent(liveApps);
+  const thisCycle = currentCycle();
+  // Stable scalar key so the effect below has a statically checkable dependency.
+  const cycleKey = cycles.join(",");
+
+  // Land on the current cycle once the data arrives, so a multi-year history
+  // doesn't bury the search you're actually running. Falls back to "all" when
+  // there's nothing in the current cycle yet (early in a season).
+  useEffect(() => {
+    if (!cycleKey) return; // no applications loaded yet
+    const present = cycleKey.split(",").map(Number);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCycle(present.includes(thisCycle) ? thisCycle : "all");
+  }, [cycleKey, thisCycle]);
+
+  // Everything downstream — counts, stage chips, export — respects the cycle.
+  const activeApps =
+    cycle === "all"
+      ? liveApps
+      : liveApps.filter(
+          (a) => applicationCycle(a.role, a.appliedAt, a.eventDate)?.year === cycle,
+        );
+
+  const countInCycle = (c: CycleFilter) =>
+    c === "all"
+      ? liveApps.length
+      : liveApps.filter(
+          (a) => applicationCycle(a.role, a.appliedAt, a.eventDate)?.year === c,
+        ).length;
 
   // Export helpers — one CSV file, or tab-separated text you can paste straight
   // into a Google Sheet (row per application). Trash is excluded.
-  const EXPORT_HEADER = ["Company", "Role", "Stage", "Applied", "Last update", "Source"];
+  const EXPORT_HEADER = [
+    "Company",
+    "Role",
+    "Stage",
+    "Cycle",
+    "Applied",
+    "Last update",
+    "Source",
+  ];
   const exportRows = () =>
-    activeApps.map((a) => [
-      a.company,
-      a.role,
-      STAGE_LABEL[a.stage],
-      a.appliedAt ? a.appliedAt.slice(0, 10) : "",
-      a.eventDate.slice(0, 10),
-      a.source,
-    ]);
+    activeApps.map((a) => {
+      const c = applicationCycle(a.role, a.appliedAt, a.eventDate);
+      return [
+        a.company,
+        a.role,
+        STAGE_LABEL[a.stage],
+        c ? cycleLabel(c.year) : "",
+        a.appliedAt ? a.appliedAt.slice(0, 10) : "",
+        a.eventDate.slice(0, 10),
+        a.source,
+      ];
+    });
 
   const exportCsv = () => {
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
@@ -272,14 +324,44 @@ export function ApplicationsView({
   return (
     <div>
       {/* Count header */}
-      <div className="mb-6 flex items-baseline gap-3">
+      <div className="mb-2 flex items-baseline gap-3">
         <span className="font-display text-6xl font-extrabold tabular-nums text-accent sm:text-7xl">
           {activeApps.length.toLocaleString()}
         </span>
         <span className="text-2xl font-semibold text-ink sm:text-3xl">
-          {activeApps.length === 1 ? "application" : "applications"} tracked
+          {activeApps.length === 1 ? "application" : "applications"}
+          {cycle === "all" ? " tracked" : ` for ${cycleLabel(cycle)}`}
         </span>
       </div>
+
+      {/* Cycle picker — only worth showing once there's more than one cycle */}
+      {cycles.length > 1 && (
+        <div className="mb-6 flex flex-wrap items-center gap-1.5">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            cycle
+          </span>
+          {([...cycles, "all"] as CycleFilter[]).map((c) => {
+            const active = cycle === c;
+            return (
+              <button
+                key={String(c)}
+                onClick={() => setCycle(c)}
+                className={`pop rounded-lg border px-2.5 py-1 font-mono text-[11px] transition-all ${
+                  active
+                    ? "border-accent bg-accent text-canvas shadow-pop-sm"
+                    : "border-line bg-surface text-ink-soft hover:border-accent-bright hover:text-ink"
+                }`}
+              >
+                {c === "all" ? "All cycles" : cycleLabel(c)}
+                <span className={active ? "text-canvas/75" : "text-ink-faint"}>
+                  {" "}
+                  {countInCycle(c)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Setup toggle */}
       <div className="mb-4 flex items-center gap-2">
