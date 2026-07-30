@@ -1,8 +1,10 @@
 // Email → application-event classifier for the auto-tracker.
 //
 // The Gmail Apps Script ships each job email's raw fields here (via the ingest
-// endpoint); this module decides the company, role, stage, and event date. Kept
-// dependency-free and pure so it's easy to unit-test against real emails.
+// endpoint); this module decides the company, role, stage, and event date. Pure
+// and DB-free so it's easy to unit-test against real emails.
+
+import { stripCompanyBoilerplate } from "@/lib/apptracker/normalize";
 
 export interface RawEmail {
   subject: string;
@@ -247,44 +249,175 @@ function bareSubject(subject: string): string {
   return s;
 }
 
-function extractCompany(subject: string, body: string): string | null {
+// Mail hosts that identify a person, never an employer.
+const PERSONAL_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com",
+  "yahoo.com", "ymail.com", "icloud.com", "me.com", "aol.com", "msn.com",
+  "proton.me", "protonmail.com", "pm.me", "fastmail.com", "zoho.com",
+]);
+
+// Domains belonging to an ATS, assessment platform or generic mail relay. Mail
+// *from* one of these tells you nothing about the employer — but its display
+// name usually does ("Southwest Airlines <swa@myworkday.com>").
+const VENDOR_DOMAIN =
+  /^(?:.*\.)?(?:greenhouse-mail\.io|greenhouse\.io|myworkday\.com|workday\.com|lever\.co|ashbyhq\.com|smartrecruiters\.com|icims\.com|taleo\.net|successfactors\.com|brassring\.com|jobvite\.com|bamboohr\.com|workable\.com|avature\.net|phenompeople\.com|paradox\.ai|oraclecloud\.com|codility\.com|hackerrank\.com|codesignal\.com|hirevue\.com|karat\.io|airtableemail\.com|sendgrid\.net|amazonses\.com|mailgun\.org|mandrillapp\.com|sparkpostmail\.com)$/i;
+
+// Salutations and generic openers that a loose pattern can mistake for a name.
+const NOT_A_NAME = /^(?:dear|hi|hello|hey|greetings|good (?:morning|afternoon|evening))\b/i;
+
+// Split "Southwest Airlines <swa@myworkday.com>" into its parts.
+function parseFrom(from: string): { display: string; domain: string } {
+  const m = from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  const display = (m ? m[1] : "").replace(/^["']|["']$/g, "").trim();
+  const addr = (m ? m[2] : from).trim();
+  const at = addr.lastIndexOf("@");
+  const domain = at === -1 ? "" : addr.slice(at + 1).toLowerCase();
+  return { display, domain };
+}
+
+// The registrable part of a hostname — "email.careers.microsoft.com" →
+// "microsoft.com". Two labels is right for every domain this sees in practice.
+function registrable(domain: string): string {
+  const parts = domain.split(".").filter(Boolean);
+  return parts.slice(-2).join(".");
+}
+
+// The employer's own name as written in the From display name. Only trustworthy
+// when it isn't a person, a salutation, or the vendor that relayed the mail.
+// Does this display name belong to a human rather than an organization? Threads
+// contain the user's own sent mail and replies from individuals, and treating
+// "Ryan McCulla" or "Gabel, Harrison" as an employer creates junk applications.
+function looksLikePerson(display: string, addr: string): boolean {
+  // "Gabel, Harrison" / "Yi, Jason" — the surname-first form institutions use.
+  if (/^[A-Z][\w'’-]+,\s*[A-Z]/.test(display)) return true;
+  // A mailbox local part leaking into the display name ("DBBS ysp.summerfocus").
+  if (/\b[a-z0-9]+\.[a-z0-9]+\b/.test(display)) return true;
+  // The display name simply spells out the address: "Ryan McCulla"
+  // <ryan.mcculla@slu.edu>. One-word names are exempt — "MITES" <mitesapp@…> is
+  // an organization, not a person.
+  const tokens = display.toLowerCase().match(/[a-z]+/g) ?? [];
+  if (tokens.length >= 2) {
+    const local = addr.slice(0, addr.lastIndexOf("@")).toLowerCase().replace(/[^a-z]/g, "");
+    if (local && tokens.every((t) => t.length > 1 && local.includes(t))) return true;
+  }
+  return false;
+}
+
+function senderDisplayName(from: string | undefined): string | null {
+  if (!from) return null;
+  const { display } = parseFrom(from);
+  if (!display || display.includes("@")) return null;
+
+  const m = from.match(/<([^>]+)>/);
+  const addr = (m ? m[1] : from).trim();
+  // A personal mail host means the display name is a person, full stop — this is
+  // also what keeps the user's own forwarded mail from becoming an employer.
+  if (PERSONAL_DOMAINS.has(registrable(addr.slice(addr.lastIndexOf("@") + 1).toLowerCase()))) {
+    return null;
+  }
+  if (looksLikePerson(display, addr)) return null;
+
+  const cleaned = stripCompanyBoilerplate(
+    display
+      // "Chicago Trading Company (CTC) via Codility" → drop the relay and the
+      // parenthetical acronym, so the key matches the spelled-out name.
+      .replace(/\s+via\s+.*$/i, "")
+      .replace(/\s*\([^)]*\)\s*$/, "")
+      .trim(),
+  );
+  if (cleaned.length < 2 || cleaned.length > 40) return null;
+  if (NOT_A_NAME.test(cleaned) || isStopword(cleaned)) return null;
+  return cleaned;
+}
+
+// Last-resort company name derived from the sending domain: "careers@trimble.com"
+// → "Trimble". Skipped for personal and vendor domains, which say nothing about
+// the employer.
+function senderDomainName(from: string | undefined): string | null {
+  if (!from) return null;
+  const { domain } = parseFrom(from);
+  if (!domain) return null;
+  const reg = registrable(domain);
+  if (PERSONAL_DOMAINS.has(reg) || VENDOR_DOMAIN.test(domain)) return null;
+  const label = reg.split(".")[0];
+  if (!label || label.length < 2 || label.length > 30) return null;
+  if (/^(?:mail|email|smtp|notify|notifications|reply|noreply|info)$/.test(label)) {
+    return null;
+  }
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// A company name: starts capitalised, at most 40 chars, matched lazily.
+const NAME = String.raw`([A-Z][A-Za-z0-9.&'\- ]{1,40}?)`;
+// Where a company name ends. Every pattern shares this, because each time one of
+// them carried its own boundary, one preposition got left out and the capture ran
+// on into the sentence — that produced "Bank of America. Please use the link
+// belo", "MIT in the future", and "R-2025-61963 Data and Analytics Summer 20".
+const NAME_END = String.raw`(?:'s|[.!,;]|\s+(?:in|for|regarding|office|located|and)\b|\s*$)`;
+
+function extractCompany(
+  subject: string,
+  body: string,
+  from?: string,
+): string | null {
   const patterns: RegExp[] = [
-    // "Your Application with/to/at Akuna Capital"
-    /application (?:with|to|at|for)\s+([A-Z][A-Za-z0-9.&'\- ]{1,40})/,
+    // "Your Application with/to/at Akuna Capital". Note "application FOR ..." is
+    // deliberately absent — that names the role, not the company, and reading it
+    // as a company produced entries like "Software Engineering Intern - Summer".
+    new RegExp(String.raw`application (?:with|to|at)\s+${NAME}${NAME_END}`, "m"),
     // "Thank you for applying to Akuna Capital [for ...]"
-    /appl(?:y|ied|ying)\s+(?:to|with)\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:\s+for\b|'s|[.!,]|\s*$)/,
+    new RegExp(String.raw`appl(?:y|ied|ying)\s+(?:to|with)\s+${NAME}${NAME_END}`, "m"),
     // "...interest in Hudson River Trading's 2027..."
-    /interest in\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:'s|\s+\d{4}|[.!,])/,
+    new RegExp(String.raw`interest in\s+${NAME}(?:\s+\d{4}|${NAME_END})`, "m"),
     // "...considering Akuna Capital as an employer"
-    /considering\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)\s+as (?:an? )?(?:employer|company)/,
+    new RegExp(String.raw`considering\s+${NAME}\s+as (?:an? )?(?:employer|company)`, "m"),
     // "Chicago Trading Company (CTC) invites you to a test at Codility" — the
     // employer leads, the assessment vendor trails. The optional parenthetical
     // absorbs a trailing acronym so it doesn't break the match.
-    /^\s*([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:\s*\([^)]{1,20}\))?\s+(?:invites?|has invited|would like)\b/m,
-    // "...position at The Trade Desk!" — lazy + anchored on a terminator, or it
-    // runs past the company and swallows the rest of the sentence.
-    /\b(?:position|role|internship|opportunity|opening)\b[^.\n]{0,20}?\bat\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:[.!,]|\s+(?:in|for|office|located)|\s*$)/m,
+    new RegExp(
+      String.raw`^\s*${NAME}(?:\s*\([^)]{1,20}\))?\s+(?:invites?|has invited|would like)\b`,
+      "m",
+    ),
+    // (the From display name is tried here — see SENDER_SLOT below)
+    // "...position at The Trade Desk!"
+    new RegExp(
+      String.raw`\b(?:position|role|internship|opportunity|opening)\b[^.\n]{0,20}?\bat\s+${NAME}${NAME_END}`,
+      "m",
+    ),
     // generic "at <Company>" fallback
-    /\bat\s+([A-Z][A-Za-z0-9.&'\- ]{1,40}?)(?:[.!,]|\s+(?:in|for|office|located)|\s*$)/m,
+    new RegExp(String.raw`\bat\s+${NAME}${NAME_END}`, "m"),
     // "Bank of America: Video Interview Invitation" — the ATS subject-line form,
     // where the employer is just a colon-delimited prefix and no prose names it.
     // Last resort, and gated by STOPWORDS so "Reminder:" can't become a company.
-    /^([A-Z][A-Za-z0-9.&'\- ]{1,40}?):\s+\S/,
+    new RegExp(String.raw`^${NAME}:\s+\S`),
   ];
-  // Collect every candidate in priority order, then prefer the first that isn't
-  // a hiring vendor — otherwise "a test at Codility" beats the real employer.
+  // Where the From display name sits in the ordering: after the explicit prose
+  // patterns (which are usually exactly right) but ahead of the loose fallbacks,
+  // so it rescues emails whose prose names only the role.
+  const SENDER_SLOT = 5;
+
   const candidates: string[] = [];
-  for (const src of [bareSubject(subject), body]) {
-    for (const p of patterns) {
+  const add = (raw: string | null) => {
+    if (!raw) return;
+    const c = clean(raw);
+    if (c.length < 2) return;
+    if (/^your\b/i.test(c) || NOT_A_NAME.test(c) || isStopword(c)) return;
+    candidates.push(c);
+  };
+
+  patterns.forEach((p, i) => {
+    if (i === SENDER_SLOT) add(senderDisplayName(from));
+    for (const src of [bareSubject(subject), body]) {
       const m = src.match(p);
-      if (m?.[1]) {
-        const c = clean(m[1]);
-        if (c.length >= 2 && !/^your\b/i.test(c) && !isStopword(c)) {
-          candidates.push(c);
-        }
-      }
+      if (m?.[1]) add(m[1]);
     }
-  }
+  });
+  // Dead last: the sending domain. It's reliable but badly formatted
+  // ("oldmissioncapital"), so anything the text can name should win first.
+  add(senderDomainName(from));
+
+  // Prefer the first candidate that isn't a hiring vendor — otherwise "a test at
+  // Codility" beats the real employer.
   return candidates.find((c) => !isVendor(c)) ?? candidates[0] ?? null;
 }
 
@@ -314,7 +447,7 @@ export function classifyEmail(email: RawEmail): Classification {
   const text = `${email.subject}\n${email.body}`;
   const stage = detectStage(text);
 
-  const company = extractCompany(email.subject, email.body);
+  const company = extractCompany(email.subject, email.body, email.from);
   const role = extractRole(email.body);
 
   return {

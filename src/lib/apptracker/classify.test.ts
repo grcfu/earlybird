@@ -294,6 +294,99 @@ test("a quoted forward date still outranks the local day", () => {
   assert.equal(c.eventDate, "2026-07-15");
 });
 
+// Sender-derived company names. These all come from real mail that produced a
+// junk company: the prose names the *role*, so the employer has to come from the
+// From header instead.
+
+test("From display name beats a role-shaped prose match", () => {
+  // Was tracked as "R-2025-61963 Data and Analytics Summer 20".
+  const c = classifyEmail({
+    subject:
+      "An update on your Southwest Airlines job application for R-2025-61963 Data and Analytics Summer 2026 Internships - TX-Dallas",
+    from: "Southwest Airlines <swa@myworkday.com>",
+    body: "Hello Grace,\n\nThank you for your interest in the R-2025-61963 Data and Analytics Summer 2026 Internships position and a career at Southwest Airlines!",
+    receivedAt: "2026-02-02",
+  });
+  assert.equal(c.company, "Southwest Airlines");
+});
+
+test("From display name drops recruiting boilerplate", () => {
+  // Was tracked as "Software" / "Silicon" / "Explore" — the role's first word.
+  const c = classifyEmail({
+    subject: "Thank you for your application!",
+    from: "Microsoft Careers <donotreply@email.careers.microsoft.com>",
+    body: "Hi Grace,\nThank you for taking the time to submit your application for Silicon\nEngineering Intern (Job number: 200013334).",
+    receivedAt: "2025-12-07",
+  });
+  assert.equal(c.company, "Microsoft");
+});
+
+test("sending domain is the last resort when nothing names the company", () => {
+  // Was tracked as "Software Engineering Intern - Summer".
+  const c = classifyEmail({
+    subject: "Grace, we have received your application",
+    from: "careers@trimble.com",
+    body: "Hello Grace,\nWe have received your application for Software Engineering Intern - Summer\n2026. We are currently reviewing it.",
+    receivedAt: "2025-12-10",
+  });
+  assert.equal(c.company, "Trimble");
+});
+
+test("a vendor relay falls back to the display name, not the vendor domain", () => {
+  assert.equal(
+    classifyEmail({
+      subject: "Thank you for applying to Deepgram!",
+      from: "Deepgram Recruiting Team <no-reply@ashbyhq.com>",
+      body: "We've received your application.",
+      receivedAt: "2026-07-18",
+    }).company,
+    "Deepgram",
+  );
+  // The parenthetical acronym is dropped so the key matches the spelled-out name.
+  assert.equal(
+    classifyEmail({
+      subject: "Your assessment is ready",
+      from: '"Chicago Trading Company (CTC) via Codility" <robot@codility.com>',
+      body: "Please complete your assessment.",
+      receivedAt: "2026-07-24",
+    }).company,
+    "Chicago Trading Company",
+  );
+});
+
+test("people are never treated as companies", () => {
+  const senders = [
+    "Grace F <gracefu201@gmail.com>", // the user's own mail in a thread
+    '"Gabel, Harrison" <gabelh@wustl.edu>', // surname-first
+    "Ryan McCulla <ryan.mcculla@slu.edu>", // display name spells the address
+    '"DBBS ysp.summerfocus" <ysp.summerfocus@wustl.edu>', // mailbox in the name
+  ];
+  for (const from of senders) {
+    const c = classifyEmail({
+      subject: "Re: Internship Inquiry",
+      from,
+      body: "Thank you for your application.",
+      receivedAt: "2025-01-01",
+    });
+    assert.ok(
+      c.company === null || !/Grace|Gabel|McCulla|summerfocus/i.test(c.company),
+      `${from} should not yield a person as the company (got ${c.company})`,
+    );
+  }
+});
+
+test("an organization with a one-word name still comes through", () => {
+  // Guard against the person heuristic over-firing: "MITES" <mitesapp@mit.edu>
+  // is an org even though its name appears inside the mailbox.
+  const c = classifyEmail({
+    subject: "Application received",
+    from: "MITES <mitesapp@mit.edu>",
+    body: "We have received your application.",
+    receivedAt: "2024-04-17",
+  });
+  assert.equal(c.company, "MITES");
+});
+
 test("non-application email → no stage", () => {
   const c = classifyEmail({
     subject: "Your Amazon order shipped",

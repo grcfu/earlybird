@@ -8,7 +8,20 @@
 // (e.g. "Meta" vs "Meta Platforms") stay separate.
 
 const TRAILING =
-  /\s+(recruitment|recruiting|recruiter|recruiters|talent acquisition|talent|careers|career|hiring team|hiring|team|hr|human resources|campus|university recruiting|people team|people|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/;
+  /\s+(recruitment|recruiting|recruiter|recruiters|talent acquisition|talent|careers|career|hiring team|hiring|hiring|team|hr|human resources|campus|university recruiting|people team|people|notifications|notification|noreply|no-reply|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/i;
+
+// Same boilerplate peel as normalizeCompany, but case- and spacing-preserving so
+// the result is usable as a display name: "Microsoft Careers" → "Microsoft",
+// "Deepgram Recruiting Team" → "Deepgram".
+export function stripCompanyBoilerplate(raw: string): string {
+  let s = raw.replace(/\s+/g, " ").trim();
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(TRAILING, "").trim();
+  } while (s !== prev && s.length > 0);
+  return s;
+}
 
 // The initials of a multi-word company name: "Chicago Trading Company" → "ctc".
 // Null when the name is one word (nothing to abbreviate) or long enough that the
