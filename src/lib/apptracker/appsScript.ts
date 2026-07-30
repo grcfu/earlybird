@@ -205,5 +205,62 @@ function resetBackfill() {
   props.deleteProperty(RETRY_CURSOR_PROP);
   Logger.log("Cursors reset — the next replay run starts from the beginning.");
 }
+
+// --- Diagnose a missing application -------------------------------------------
+// When something you applied to never shows up, run this to find out where the
+// pipeline lost it. Edit QUERY to the company name, pick diagnoseMail in the
+// function dropdown, Run, and read the log. It only reads — nothing is posted.
+//
+// What the label line tells you:
+//   (none)              → this account never labeled it; the filter missed it
+//   EarlyBird           → labeled but not processed yet; run trackApplications
+//   EarlyBird-Done      → already posted and accepted
+//   EarlyBird-Unmatched → posted, but nothing classifiable; run retryUnmatched
+// No thread at all → the mail isn't in this account. Check the other account and
+// whether forwarding from your university address was active on that date.
+
+const QUERY = "Anduril";
+
+function diagnoseMail() {
+  // "in:anywhere" so a thread sitting in Spam or Trash still turns up.
+  const threads = GmailApp.search(QUERY + " in:anywhere", 0, 20);
+  if (threads.length === 0) {
+    Logger.log(
+      'No thread matches "' + QUERY + '" in this account (' +
+        Session.getActiveUser().getEmail() +
+        ") — the mail never arrived here.",
+    );
+    return;
+  }
+  Logger.log(
+    threads.length + ' thread(s) matching "' + QUERY + '" in ' +
+      Session.getActiveUser().getEmail(),
+  );
+  for (var t = 0; t < threads.length; t++) {
+    const thread = threads[t];
+    const names = thread.getLabels().map(function (l) {
+      return l.getName();
+    });
+    Logger.log(
+      "\\nTHREAD: " + thread.getFirstMessageSubject() +
+        "\\n  labels: " +
+        (names.length ? names.join(", ") : "(none — nothing labeled it)"),
+    );
+    const messages = thread.getMessages();
+    for (var m = 0; m < messages.length; m++) {
+      const msg = messages[m];
+      Logger.log(
+        "  msg " + (m + 1) + ": " +
+          Utilities.formatDate(
+            msg.getDate(),
+            Session.getScriptTimeZone(),
+            "yyyy-MM-dd",
+          ) +
+          "  from=" + msg.getFrom() +
+          "  subject=" + msg.getSubject(),
+      );
+    }
+  }
+}
 `;
 }
