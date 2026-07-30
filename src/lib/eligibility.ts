@@ -20,10 +20,17 @@ export function eligibleSummerYears(now: Date): number[] {
   return years;
 }
 
+// The summer a recruiting-season date belongs to. Postings and applications from
+// June onward are for *next* summer; January–May are for the coming one. So June
+// 2026 → Summer 2027. Shared by the feed and the application tracker so both
+// agree on where one cycle ends and the next begins.
+export function summerCycleOf(date: Date): number {
+  const month = date.getUTCMonth() + 1; // 1–12
+  return month >= 6 ? date.getUTCFullYear() + 1 : date.getUTCFullYear();
+}
+
 // Which summer cycle a role is for. Prefers an explicit year in the season or
-// title; otherwise estimates from the posting date using the recruiting-season
-// rule: posted Jun–Dec → next year's summer, Jan–May → that year's summer.
-// (So a role posted in June 2026 is treated as Summer 2027.)
+// title; otherwise estimates from the posting date via summerCycleOf.
 // `estimated` flags the date-inferred case so the UI can mark it "~".
 export function listingCycle(
   season: string | null,
@@ -36,7 +43,5 @@ export function listingCycle(
   if (fromTitle) return { year: Number(fromTitle), estimated: false };
   const d = new Date(effectiveAt);
   if (Number.isNaN(d.getTime())) return null;
-  const month = d.getUTCMonth() + 1; // 1–12
-  const year = month >= 6 ? d.getUTCFullYear() + 1 : d.getUTCFullYear();
-  return { year, estimated: true };
+  return { year: summerCycleOf(d), estimated: true };
 }
