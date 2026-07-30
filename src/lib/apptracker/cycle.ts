@@ -39,14 +39,63 @@ export function cycleLabel(year: number): string {
   return `Summer ${year}`;
 }
 
+// How far apart two events can be and still plausibly belong to one application.
+// A pipeline inside one season runs months, not a year; a re-application to the
+// same company comes back around at ~12. 120 days sits comfortably between.
+const STRADDLE_DAYS = 120;
+const DAY_MS = 86_400_000;
+
+// Do an existing application and an incoming email belong to the same cycle?
+//
+// Not simply "equal cycle year": the June boundary can fall in the middle of one
+// application's correspondence — apply in May (Summer 2026), get rejected in June
+// (Summer 2027) — and splitting that in two would be wrong. So a disagreement is
+// only believed when the years were stated outright, or when the events are far
+// enough apart to be separate seasons.
+export function sameCycle(
+  existing: { role: string; appliedAt: string | null; eventDate: string },
+  incoming: { role: string; eventDate: string },
+): boolean {
+  const a = applicationCycle(existing.role, existing.appliedAt, existing.eventDate);
+  const b = applicationCycle(incoming.role, incoming.eventDate, incoming.eventDate);
+  // No usable date on either side — don't invent a distinction.
+  if (!a || !b) return true;
+  if (a.year === b.year) return true;
+  // Both roles named their year and the years differ: a genuine re-application.
+  if (!a.estimated && !b.estimated) return false;
+  // Otherwise this may just be the boundary cutting through one application.
+  const anchor = new Date(existing.appliedAt ?? existing.eventDate).getTime();
+  const event = new Date(incoming.eventDate).getTime();
+  if (Number.isNaN(anchor) || Number.isNaN(event)) return true;
+  return Math.abs(event - anchor) / DAY_MS <= STRADDLE_DAYS;
+}
+
+// An application's cycle for display. Prefers the value stored on the row, which
+// is what dedup keyed on; derives it only for rows written before the column
+// existed (cycle 0).
+export function cycleOf(app: {
+  cycle: number;
+  role: string;
+  appliedAt: string | null;
+  eventDate: string;
+}): number | null {
+  if (app.cycle > 0) return app.cycle;
+  return applicationCycle(app.role, app.appliedAt, app.eventDate)?.year ?? null;
+}
+
 // Cycles present in a set of applications, newest first — the options to offer.
 export function cyclesPresent(
-  apps: { role: string; appliedAt: string | null; eventDate: string }[],
+  apps: {
+    cycle: number;
+    role: string;
+    appliedAt: string | null;
+    eventDate: string;
+  }[],
 ): number[] {
   const years = new Set<number>();
   for (const a of apps) {
-    const c = applicationCycle(a.role, a.appliedAt, a.eventDate);
-    if (c) years.add(c.year);
+    const y = cycleOf(a);
+    if (y != null) years.add(y);
   }
   return [...years].sort((a, b) => b - a);
 }
