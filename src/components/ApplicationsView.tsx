@@ -16,7 +16,7 @@ import {
 } from "@/lib/apptracker/key";
 import { buildAppsScript } from "@/lib/apptracker/appsScript";
 import {
-  applicationCycle,
+  cycleOf,
   cyclesPresent,
   currentCycle,
   cycleLabel,
@@ -240,16 +240,12 @@ export function ApplicationsView({
   const activeApps =
     cycle === "all"
       ? liveApps
-      : liveApps.filter(
-          (a) => applicationCycle(a.role, a.appliedAt, a.eventDate)?.year === cycle,
-        );
+      : liveApps.filter((a) => cycleOf(a) === cycle);
 
   const countInCycle = (c: CycleFilter) =>
     c === "all"
       ? liveApps.length
-      : liveApps.filter(
-          (a) => applicationCycle(a.role, a.appliedAt, a.eventDate)?.year === c,
-        ).length;
+      : liveApps.filter((a) => cycleOf(a) === c).length;
 
   // Export helpers — one CSV file, or tab-separated text you can paste straight
   // into a Google Sheet (row per application). Trash is excluded.
@@ -264,12 +260,12 @@ export function ApplicationsView({
   ];
   const exportRows = () =>
     activeApps.map((a) => {
-      const c = applicationCycle(a.role, a.appliedAt, a.eventDate);
+      const y = cycleOf(a);
       return [
         a.company,
         a.role,
         STAGE_LABEL[a.stage],
-        c ? cycleLabel(c.year) : "",
+        y ? cycleLabel(y) : "",
         a.appliedAt ? a.appliedAt.slice(0, 10) : "",
         a.eventDate.slice(0, 10),
         a.source,
