@@ -502,6 +502,25 @@ const BOARDS: WorkdayCompany[] = [
     host: "worldpay.wd5.myworkdayjobs.com",
     site: "Worldpay_External_Careers_Site",
   },
+  // Host + site grepped from the careers page, CXS-confirmed 2026-08-04.
+  {
+    company: "S&P Global",
+    token: "spgi",
+    host: "spgi.wd5.myworkdayjobs.com",
+    site: "SPGI_Careers",
+  },
+  {
+    company: "Nasdaq",
+    token: "nasdaq",
+    host: "nasdaq.wd1.myworkdayjobs.com",
+    site: "Global_External_Site",
+  },
+  {
+    company: "Expedia Group",
+    token: "expedia",
+    host: "expedia.wd108.myworkdayjobs.com",
+    site: "search",
+  },
 ];
 
 interface WdPosting {

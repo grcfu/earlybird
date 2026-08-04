@@ -88,7 +88,9 @@ const BOARDS: AtsCompany[] = [
   { company: "Dremio", token: "dremio" },
   { company: "Zipline", token: "flyzipline" },
   { company: "Figure", token: "figureai" },
-  { company: "Aurora", token: "aurorainnovation" },
+  // Pruned 2026-08-04: Fireworks AI + Thinking Machines moved to Ashby (they
+  // live in ashby.ts now). Aurora dropped — its board 404s on both the API and
+  // the public job-boards host, and no replacement slug exists.
   { company: "Stability AI", token: "stabilityai" },
   { company: "Hume AI", token: "humeai" },
   { company: "AssemblyAI", token: "assemblyai" },
@@ -273,8 +275,6 @@ const BOARDS: AtsCompany[] = [
   { company: "Jump Crypto", token: "jumpcrypto" },
   { company: "Quadrature", token: "quadraturecapital" },
   { company: "TransMarket Group", token: "transmarketgroup" },
-  // AI lab (probed 2026-07-21):
-  { company: "Thinking Machines", token: "thinkingmachines" },
   // Mined from aggregator apply-URLs — batch 1 (2026-07-22)
   { company: "10a Labs", token: "10alabs" },
   { company: "10Beauty", token: "10beauty" },
@@ -404,7 +404,6 @@ const BOARDS: AtsCompany[] = [
   { company: "Fussball Club Cincinnati LLC (\u201cFC Cincinnati\u201d)", token: "fccincinnati" },
   { company: "Figure", token: "figure" },
   { company: "Financial Technology Partners", token: "financialtechnologypartners" },
-  { company: "Fireworks AI", token: "fireworksai" },
   { company: "Flagship Pioneering", token: "flagshippioneeringinc" },
   { company: "Focus Financial Partners", token: "focusfinancialpartners" },
   { company: "Foley Hoag", token: "foleyhoag" },
@@ -678,6 +677,54 @@ const BOARDS: AtsCompany[] = [
   { company: "YOU.com", token: "youcom" },
   { company: "Zocdoc", token: "zocdoc" },
   { company: "Zone 5 Technologies", token: "zone5technologies" },
+  // Probed live 2026-08-04 — the 2027 cycle opens in August, so this batch
+  // targets recognizable names + campus-specific boards (which is where the
+  // big firms put their intern reqs) that earlier sweeps missed.
+  // Quant / trading:
+  { company: "XTX Markets", token: "xtxmarketstechnologies" },
+  { company: "Hudson River Trading", token: "hrttalentcommunity" },
+  { company: "Stevens Capital Management", token: "scm" },
+  { company: "Maven Securities", token: "mavensecuritiesholdingltd" },
+  { company: "Chicago Trading Company", token: "chicagotradingcampus" },
+  { company: "Farallon Capital Management", token: "faralloncapitalmanagementllc" },
+  { company: "Gelber Group", token: "gelberhandshake" },
+  { company: "UVIMCO", token: "uvimco" },
+  // Established tech / enterprise:
+  { company: "Oscar Health", token: "oscar" },
+  { company: "Rubrik", token: "rubrik" },
+  { company: "Netskope", token: "netskope" },
+  { company: "Tanium", token: "tanium" },
+  { company: "ZipRecruiter", token: "ziprecruiter" },
+  { company: "Monzo", token: "monzo" },
+  { company: "Couchbase", token: "couchbaseinc" },
+  { company: "Veeam", token: "veeamsoftware" },
+  { company: "NICE", token: "nice" },
+  { company: "Coupang", token: "coupang" },
+  { company: "Bungie", token: "bungie" },
+  { company: "Fever", token: "feverup" },
+  { company: "LHV Bank", token: "lhvuk" },
+  // Nuclear / fusion / energy:
+  { company: "TerraPower", token: "terrapowerllc" },
+  { company: "Valar Atomics", token: "valaratomics" },
+  { company: "Pacific Fusion", token: "pacificfusion" },
+  { company: "General Matter", token: "generalmatter" },
+  // AI / robotics / deep tech:
+  { company: "Rendezvous Robotics", token: "rendezvousrobotics" },
+  { company: "Gensyn", token: "gensyn" },
+  { company: "PolyAI", token: "polyai" },
+  { company: "Speechmatics", token: "speechmatics" },
+  { company: "PhysicsX", token: "physicsx" },
+  { company: "Axiomatic AI", token: "axiomaticai" },
+  { company: "InstaLILY", token: "instalilyai" },
+  // Campus / co-op boards (empty off-season, fill for the cycle):
+  { company: "Klaviyo", token: "klaviyocampus" },
+  { company: "PlayStation", token: "waterloocoop" },
+  { company: "MORSE Corp", token: "morsecorpcoop" },
+  { company: "Bloomberg Philanthropies", token: "bloombergdotorg" },
+  // Other:
+  { company: "Incident IQ", token: "incidentiq" },
+  { company: "Omnicom Health", token: "omnicomhealth" },
+  { company: "Prophet", token: "prophet" },
 ];
 
 interface GhJob {

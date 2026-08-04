@@ -98,7 +98,6 @@ const BOARDS: AtsCompany[] = [
   { company: "Alchemy", token: "alchemy" },
   { company: "Helius", token: "helius" },
   // From speedyapply/2027-SWE-College-Jobs (probed live 2026-07-11):
-  { company: "Atomic Semi", token: "atomicsemi" },
   { company: "Auctor", token: "auctor" },
   { company: "Base Power", token: "base-power" },
   { company: "Beacon Software", token: "beaconsoftware" },
@@ -232,7 +231,7 @@ const BOARDS: AtsCompany[] = [
   { company: "ETHGlobal", token: "ethglobal" },
   { company: "Exa Labs", token: "exa" },
   { company: "Eyebot", token: "eyebot" },
-  { company: "Fab2", token: "fab2" },
+  { company: "Atomic Semi", token: "fab2" }, // atomicsemi board is gone; fab2 is theirs
   { company: "Faculty AI", token: "faculty" },
   { company: "Faculte", token: "faculty-fellowship" },
   { company: "Farsight", token: "farsight" },
@@ -295,7 +294,6 @@ const BOARDS: AtsCompany[] = [
   { company: "Mistral AI", token: "mistral.ai" },
   { company: "Monarch Money", token: "monarchmoney" },
   { company: "Monogram", token: "monogram" },
-  { company: "Mistral AI", token: "mtesting.ai" },
   { company: "MUBI", token: "mubi" },
   { company: "Nash", token: "nash" },
   { company: "NationGraph", token: "nationgraph" },
@@ -388,6 +386,39 @@ const BOARDS: AtsCompany[] = [
   { company: "Zello", token: "zello" },
   { company: "Zip", token: "zip" },
   { company: "Zuru", token: "zuru" },
+  // Moved off Greenhouse (confirmed 2026-08-04):
+  { company: "Thinking Machines", token: "thinkingmachines" },
+  // Probed live 2026-08-04 (2027-cycle sweep). Ashby slugs are case-sensitive
+  // and some orgs use a spaced display name as the slug — hence the encoding in
+  // fetchCompany below.
+  { company: "Kraken", token: "kraken.com" },
+  { company: "Hinge Health", token: "hinge-health" },
+  { company: "Clerk", token: "Clerk" },
+  { company: "Redis", token: "redis" },
+  { company: "InfluxData", token: "influxdata" },
+  { company: "Luma AI", token: "lumaai" },
+  { company: "OpenRouter", token: "openrouter" },
+  { company: "Coder", token: "coder" },
+  { company: "E2B", token: "e2b" },
+  { company: "Rain", token: "rain" },
+  { company: "Tools for Humanity", token: "Tools for Humanity" },
+  { company: "General Intuition", token: "generalintuition-medal" },
+  { company: "NTT DATA AIVista", token: "ntt-data-aivista" },
+  { company: "Verne Robotics", token: "Verne Robotics" },
+  { company: "Remedy Scientific", token: "Remedy Scientific" },
+  { company: "Heliux", token: "heliux" },
+  { company: "Kastle AI", token: "kastle" },
+  { company: "Melius", token: "melius" },
+  { company: "Alljoined", token: "alljoined" },
+  { company: "Yotta Labs", token: "yotta" },
+  { company: "Zettabyte", token: "zettabyte-space" },
+  { company: "Forus", token: "forus" },
+  { company: "Colonist", token: "colonist" },
+  { company: "RapDev", token: "rapdev" },
+  { company: "Sweatpals", token: "sweatpals" },
+  // Quant / trading:
+  { company: "Cubist Systematic Strategies", token: "cubist" },
+  { company: "Anthelion Capital", token: "anthelioncap" },
 ];
 
 interface AshbyJob {
@@ -400,8 +431,10 @@ interface AshbyJob {
 }
 
 async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
+  // Some orgs' slugs contain spaces (e.g. "Tools for Humanity"), so encode.
+  // Safe for the existing dotted slugs — encodeURIComponent leaves . - _ alone.
   const raw = await fetchJson(
-    `https://api.ashbyhq.com/posting-api/job-board/${c.token}`,
+    `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(c.token)}`,
   );
   const jobs = (raw as { jobs?: AshbyJob[] })?.jobs ?? [];
   return jobs

@@ -109,6 +109,10 @@ const BOARDS: AtsCompany[] = [
   { company: "Wabtec", token: "wabtec" },
   { company: "Wellmark", token: "wellmarkinc" },
   { company: "Westgate Resorts", token: "westgateresorts" },
+  // Probed live 2026-08-04 (2027-cycle sweep):
+  { company: "Ubisoft", token: "Ubisoft2" },
+  { company: "Turner & Townsend", token: "TurnerTownsend" },
+  { company: "ATPCO", token: "ATPCO1" },
 ];
 
 interface SrPosting {
