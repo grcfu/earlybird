@@ -13,6 +13,29 @@ test("urlHostPath: strips scheme, www, query, hash, trailing slash", () => {
   );
 });
 
+test("urlHostPath: lowercases the path, not just the host", () => {
+  // Workday's CXS resolves the site path case-insensitively, so these are one
+  // posting and must reduce to one key.
+  assert.equal(
+    urlHostPath("https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/R123"),
+    urlHostPath("https://nvidia.wd5.myworkdayjobs.com/en-us/nvidiaexternalcareersite/job/r123"),
+  );
+});
+
+test("listingId: same posting under two path casings collapses to one id", () => {
+  const a = listingId({
+    company: "NVIDIA",
+    title: "Software Intern",
+    url: "https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/R1",
+  });
+  const b = listingId({
+    company: "NVIDIA",
+    title: "Software Intern",
+    url: "https://nvidia.wd5.myworkdayjobs.com/en-US/nvidiaexternalcareersite/job/R1",
+  });
+  assert.equal(a, b);
+});
+
 test("urlHostPath: falls back gracefully on non-URLs", () => {
   assert.equal(urlHostPath("not a url"), "not a url");
 });
