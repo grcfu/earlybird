@@ -325,7 +325,7 @@ const BOARDS: AtsCompany[] = [
   { company: "World Wide Professional Solutions", token: "wwprosolutions" },
   { company: "Wpromote", token: "wpromote" },
   { company: "Wyetech", token: "wyetechllc" },
-  { company: "Xpansiv", token: "Xpansiv%20" },
+  { company: "Xpansiv", token: "Xpansiv " },
   { company: "Zopa", token: "zopa" },
 ];
 
@@ -344,7 +344,13 @@ function locations(cats: LeverJob["categories"]): string[] {
 }
 
 async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
-  const raw = await fetchJson(`https://api.lever.co/v0/postings/${c.token}?mode=json`);
+  // Encoded, because a few Lever slugs contain a space ("Xpansiv "). Tokens are
+  // stored decoded so the registry holds the slug itself and not one particular
+  // escaping of it — encoding here is what makes that safe. No-op for the rest:
+  // encodeURIComponent leaves alphanumerics and - . _ ~ alone.
+  const raw = await fetchJson(
+    `https://api.lever.co/v0/postings/${encodeURIComponent(c.token)}?mode=json`,
+  );
   if (!Array.isArray(raw)) return [];
   return (raw as LeverJob[]).map((j) => ({
     title: typeof j.text === "string" ? j.text.trim() : "",
