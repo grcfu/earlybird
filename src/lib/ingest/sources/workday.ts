@@ -521,6 +521,769 @@ const BOARDS: WorkdayCompany[] = [
     host: "expedia.wd108.myworkdayjobs.com",
     site: "search",
   },
+
+  // Mined 2026-08-04: host + tenant + site pulled straight out of aggregator
+  // apply-URLs (they embed the full CXS path), then every board POSTed once and
+  // kept only on a 200 with a non-empty jobPostings array. This is how the big
+  // enterprises finally got covered — their careers pages are JS shells that
+  // expose nothing to grep. Several entries are deliberately the *early-career*
+  // site rather than the main one (Salesforce Futureforce, PwC US_Entry_Level,
+  // BlackRock_Early_Careers, Cadence University_Talent, Agilent_Student_Careers,
+  // KLA UR, Chevron University, BD US_EARLY_TALENT) — that is where the intern
+  // reqs live.
+  //
+  // Two rules when adding here, both learned the hard way:
+  //   - Never add a second board for a company whose site path differs from an
+  //     existing one only in case. CXS resolves the path case-insensitively, so
+  //     it is the same board, but urlHostPath() lowercases only the host — the
+  //     two spellings hash to two listingIds and every req lands twice.
+  //   - Reuse the company's existing display name verbatim (HPE, not Hewlett
+  //     Packard Enterprise). The name is part of listingId, so a variant splits
+  //     one employer into two in the UI.
+  {
+    company: "Intel",
+    token: "intel",
+    host: "intel.wd1.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "NXP Semiconductors",
+    token: "nxp",
+    host: "nxp.wd3.myworkdayjobs.com",
+    site: "careers",
+  },
+  {
+    company: "ASML",
+    token: "asml",
+    host: "asml.wd3.myworkdayjobs.com",
+    site: "asmlext1",
+  },
+  {
+    company: "Tokyo Electron",
+    token: "tel",
+    host: "tel.wd3.myworkdayjobs.com",
+    site: "tel-careers",
+  },
+  {
+    company: "Axcelis Technologies",
+    token: "axcelis",
+    host: "axcelis.wd1.myworkdayjobs.com",
+    site: "axcelis",
+  },
+  {
+    company: "Illumina",
+    token: "illumina",
+    host: "illumina.wd1.myworkdayjobs.com",
+    site: "illumina-careers",
+  },
+  {
+    company: "Agilent Technologies",
+    token: "agilent",
+    host: "agilent.wd5.myworkdayjobs.com",
+    site: "Agilent_Student_Careers",
+  },
+  {
+    company: "KLA",
+    token: "kla",
+    host: "kla.wd1.myworkdayjobs.com",
+    site: "UR",
+  },
+  {
+    company: "Cadence",
+    token: "cadence",
+    host: "cadence.wd1.myworkdayjobs.com",
+    site: "University_Talent",
+  },
+  {
+    company: "Zebra Technologies",
+    token: "zebra",
+    host: "zebra.wd501.myworkdayjobs.com",
+    site: "Zebra_careers",
+  },
+  {
+    company: "Samsung",
+    token: "sec",
+    host: "sec.wd3.myworkdayjobs.com",
+    site: "Samsung_Careers",
+  },
+  {
+    company: "HPE",
+    token: "hpe",
+    host: "hpe.wd5.myworkdayjobs.com",
+    site: "acjobsite",
+  },
+  {
+    company: "HP",
+    token: "hp",
+    host: "hp.wd5.myworkdayjobs.com",
+    site: "EXTEU-AC-CareerSite",
+  },
+  {
+    company: "Equinix",
+    token: "equinix",
+    host: "equinix.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Iron Mountain",
+    token: "ironmountain",
+    host: "ironmountain.wd5.myworkdayjobs.com",
+    site: "iron-mountain-jobs",
+  },
+  {
+    company: "Salesforce",
+    token: "salesforce",
+    host: "salesforce.wd12.myworkdayjobs.com",
+    site: "Futureforce_Internships",
+  },
+  {
+    company: "Cisco",
+    token: "cisco",
+    host: "cisco.wd5.myworkdayjobs.com",
+    site: "cisco_careers",
+  },
+  {
+    company: "Palo Alto Networks",
+    token: "paloaltonetworks",
+    host: "paloaltonetworks.wd5.myworkdayjobs.com",
+    site: "panwexternalcareers",
+  },
+  {
+    company: "Autodesk",
+    token: "autodesk",
+    host: "autodesk.wd1.myworkdayjobs.com",
+    site: "uni",
+  },
+  {
+    company: "Workday",
+    token: "workday",
+    host: "workday.wd5.myworkdayjobs.com",
+    site: "Workday_Jobs",
+  },
+  {
+    company: "Accenture",
+    token: "accenture",
+    host: "accenture.wd103.myworkdayjobs.com",
+    site: "AccentureCareers",
+  },
+  {
+    company: "Kyndryl",
+    token: "kyndryl",
+    host: "kyndryl.wd5.myworkdayjobs.com",
+    site: "KyndrylProfessionalCareers",
+  },
+  {
+    company: "DXC Technology",
+    token: "dxctechnology",
+    host: "dxctechnology.wd1.myworkdayjobs.com",
+    site: "dxcjobs",
+  },
+  {
+    company: "Unisys",
+    token: "unisys",
+    host: "unisys.wd5.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Etsy",
+    token: "etsy",
+    host: "etsy.wd5.myworkdayjobs.com",
+    site: "Etsy_Careers",
+  },
+  {
+    company: "Zillow",
+    token: "zillow",
+    host: "zillow.wd5.myworkdayjobs.com",
+    site: "Zillow_Group_External",
+  },
+  {
+    company: "Expedia Group",
+    token: "expedia",
+    host: "expedia.wd108.myworkdayjobs.com",
+    site: "private",
+  },
+  {
+    company: "CCC Intelligent Solutions",
+    token: "cccis",
+    host: "cccis.wd1.myworkdayjobs.com",
+    site: "broadbean_external",
+  },
+  {
+    company: "Vertex Inc",
+    token: "vertexinc",
+    host: "vertexinc.wd1.myworkdayjobs.com",
+    site: "VertexInc",
+  },
+  {
+    company: "Citi",
+    token: "citi",
+    host: "citi.wd5.myworkdayjobs.com",
+    site: "Citi_Early_Careers_Events_Site",
+  },
+  {
+    company: "BlackRock",
+    token: "blackrock",
+    host: "blackrock.wd1.myworkdayjobs.com",
+    site: "BlackRock_Early_Careers_Program",
+  },
+  {
+    company: "Bank of America",
+    token: "ghr",
+    host: "ghr.wd1.myworkdayjobs.com",
+    site: "us-emplsv",
+  },
+  {
+    company: "PNC Financial Services",
+    token: "pnc",
+    host: "pnc.wd5.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Vanguard",
+    token: "vanguard",
+    host: "vanguard.wd5.myworkdayjobs.com",
+    site: "vanguard_external",
+  },
+  {
+    company: "State Street",
+    token: "statestreet",
+    host: "statestreet.wd1.myworkdayjobs.com",
+    site: "equest",
+  },
+  {
+    company: "Neuberger Berman",
+    token: "nb",
+    host: "nb.wd1.myworkdayjobs.com",
+    site: "NBCareers",
+  },
+  {
+    company: "AllianceBernstein",
+    token: "abglobal",
+    host: "abglobal.wd1.myworkdayjobs.com",
+    site: "alliancebernsteincareers",
+  },
+  {
+    company: "Fidelity International",
+    token: "fil",
+    host: "fil.wd3.myworkdayjobs.com",
+    site: "001",
+  },
+  {
+    company: "CME Group",
+    token: "cmegroup",
+    host: "cmegroup.wd1.myworkdayjobs.com",
+    site: "cme_careers",
+  },
+  {
+    company: "Mastercard",
+    token: "mastercard",
+    host: "mastercard.wd1.myworkdayjobs.com",
+    site: "Public_Posting_Site",
+  },
+  {
+    company: "Visa",
+    token: "visa",
+    host: "visa.wd5.myworkdayjobs.com",
+    site: "Visa",
+  },
+  {
+    company: "Fiserv",
+    token: "fiserv",
+    host: "fiserv.wd5.myworkdayjobs.com",
+    site: "ext",
+  },
+  {
+    company: "FIS",
+    token: "fis",
+    host: "fis.wd5.myworkdayjobs.com",
+    site: "searchjobs",
+  },
+  {
+    company: "Global Payments",
+    token: "tsys",
+    host: "tsys.wd1.myworkdayjobs.com",
+    site: "TSYS",
+  },
+  {
+    company: "Synchrony Bank",
+    token: "synchronyfinancial",
+    host: "synchronyfinancial.wd5.myworkdayjobs.com",
+    site: "careers",
+  },
+  {
+    company: "Prudential Financial",
+    token: "pru",
+    host: "pru.wd5.myworkdayjobs.com",
+    site: "Careers",
+  },
+  {
+    company: "The Hartford",
+    token: "thehartford",
+    host: "thehartford.wd5.myworkdayjobs.com",
+    site: "Careers_External",
+  },
+  {
+    company: "Travelers",
+    token: "travelers",
+    host: "travelers.wd5.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Allstate",
+    token: "allstate",
+    host: "allstate.wd5.myworkdayjobs.com",
+    site: "allstate_careers",
+  },
+  {
+    company: "Nationwide",
+    token: "nationwide",
+    host: "nationwide.wd1.myworkdayjobs.com",
+    site: "Nationwide_Career",
+  },
+  {
+    company: "PwC",
+    token: "pwc",
+    host: "pwc.wd3.myworkdayjobs.com",
+    site: "US_Entry_Level_Careers",
+  },
+  {
+    company: "DraftKings",
+    token: "draftkings",
+    host: "draftkings.wd1.myworkdayjobs.com",
+    site: "DraftKings",
+  },
+  {
+    company: "Dow Jones",
+    token: "dowjones",
+    host: "dowjones.wd1.myworkdayjobs.com",
+    site: "Dow_Jones_Career",
+  },
+  {
+    company: "RTX",
+    token: "globalhr",
+    host: "globalhr.wd5.myworkdayjobs.com",
+    site: "rec_rtx_ext_gateway",
+  },
+  {
+    company: "GE Aerospace",
+    token: "geaerospace",
+    host: "geaerospace.wd5.myworkdayjobs.com",
+    site: "ge_externalsite",
+  },
+  {
+    company: "Airbus",
+    token: "ag",
+    host: "ag.wd3.myworkdayjobs.com",
+    site: "Airbus",
+  },
+  {
+    company: "Sierra Space",
+    token: "sierraspace",
+    host: "sierraspace.wd1.myworkdayjobs.com",
+    site: "Sierra_Space_External_Career_Site",
+  },
+  {
+    company: "The Aerospace Corporation",
+    token: "aero",
+    host: "aero.wd5.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "CACI",
+    token: "caci",
+    host: "caci.wd1.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Ultra",
+    token: "ultra",
+    host: "ultra.wd3.myworkdayjobs.com",
+    site: "ultra-careers",
+  },
+  {
+    company: "Ensign-Bickford Aerospace & Defense",
+    token: "ebi",
+    host: "ebi.wd5.myworkdayjobs.com",
+    site: "ebadcareers",
+  },
+  {
+    company: "Caterpillar",
+    token: "cat",
+    host: "cat.wd5.myworkdayjobs.com",
+    site: "CaterpillarCareers",
+  },
+  {
+    company: "Rockwell Automation",
+    token: "rockwellautomation",
+    host: "rockwellautomation.wd1.myworkdayjobs.com",
+    site: "External_Rockwell_Automation",
+  },
+  {
+    company: "ABB",
+    token: "abb",
+    host: "abb.wd3.myworkdayjobs.com",
+    site: "external_career_page",
+  },
+  {
+    company: "Stanley Black & Decker",
+    token: "sbdinc",
+    host: "sbdinc.wd1.myworkdayjobs.com",
+    site: "Stanley_Black_Decker_Career_Site",
+  },
+  {
+    company: "Terex",
+    token: "terex",
+    host: "terex.wd1.myworkdayjobs.com",
+    site: "terexcareers",
+  },
+  {
+    company: "Oshkosh",
+    token: "oshkoshcorporation",
+    host: "oshkoshcorporation.wd5.myworkdayjobs.com",
+    site: "Oshkosh",
+  },
+  {
+    company: "Carrier Global",
+    token: "carrier",
+    host: "carrier.wd5.myworkdayjobs.com",
+    site: "jobs",
+  },
+  {
+    company: "General Motors",
+    token: "generalmotors",
+    host: "generalmotors.wd5.myworkdayjobs.com",
+    site: "Careers_GM",
+  },
+  {
+    company: "Magna International",
+    token: "magna",
+    host: "magna.wd3.myworkdayjobs.com",
+    site: "Magna",
+  },
+  {
+    company: "Aptiv",
+    token: "aptiv",
+    host: "aptiv.wd5.myworkdayjobs.com",
+    site: "aptiv_careers",
+  },
+  {
+    company: "Valeo",
+    token: "valeo",
+    host: "valeo.wd3.myworkdayjobs.com",
+    site: "valeo_jobs",
+  },
+  {
+    company: "Novartis",
+    token: "novartis",
+    host: "novartis.wd3.myworkdayjobs.com",
+    site: "Novartis_Careers",
+  },
+  {
+    company: "Bristol Myers Squibb",
+    token: "bristolmyerssquibb",
+    host: "bristolmyerssquibb.wd5.myworkdayjobs.com",
+    site: "bms",
+  },
+  {
+    company: "Biogen",
+    token: "biibhr",
+    host: "biibhr.wd3.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Moderna",
+    token: "modernatx",
+    host: "modernatx.wd1.myworkdayjobs.com",
+    site: "M_tx",
+  },
+  {
+    company: "Regeneron",
+    token: "regeneron",
+    host: "regeneron.wd1.myworkdayjobs.com",
+    site: "Careers",
+  },
+  {
+    company: "Vertex Pharmaceuticals",
+    token: "vrtx",
+    host: "vrtx.wd501.myworkdayjobs.com",
+    site: "vertex_careers",
+  },
+  {
+    company: "AstraZeneca",
+    token: "astrazeneca",
+    host: "astrazeneca.wd3.myworkdayjobs.com",
+    site: "Careers",
+  },
+  {
+    company: "GSK",
+    token: "gsk",
+    host: "gsk.wd5.myworkdayjobs.com",
+    site: "GSKCareers",
+  },
+  {
+    company: "Sanofi",
+    token: "sanofi",
+    host: "sanofi.wd3.myworkdayjobs.com",
+    site: "SanofiCareers",
+  },
+  {
+    company: "Genentech",
+    token: "roche",
+    host: "roche.wd3.myworkdayjobs.com",
+    site: "ROG-A2O-GENE",
+  },
+  {
+    company: "Medtronic",
+    token: "medtronic",
+    host: "medtronic.wd1.myworkdayjobs.com",
+    site: "MedtronicCareers",
+  },
+  {
+    company: "Edwards Lifesciences",
+    token: "edwards",
+    host: "edwards.wd5.myworkdayjobs.com",
+    site: "edwardscareers",
+  },
+  {
+    company: "Baxter International",
+    token: "baxter",
+    host: "baxter.wd1.myworkdayjobs.com",
+    site: "baxter",
+  },
+  {
+    company: "Becton Dickinson",
+    token: "bdx",
+    host: "bdx.wd1.myworkdayjobs.com",
+    site: "US_EARLY_TALENT_SITE",
+  },
+  {
+    company: "Revvity",
+    token: "revvity",
+    host: "revvity.wd103.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "PerkinElmer",
+    token: "newperkinelmer",
+    host: "newperkinelmer.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Labcorp",
+    token: "labcorp",
+    host: "labcorp.wd1.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Abbott",
+    token: "abbott",
+    host: "abbott.wd5.myworkdayjobs.com",
+    site: "abbottcareers2",
+  },
+  {
+    company: "Chevron",
+    token: "chevron",
+    host: "chevron.wd5.myworkdayjobs.com",
+    site: "University",
+  },
+  {
+    company: "Shell",
+    token: "shell",
+    host: "shell.wd3.myworkdayjobs.com",
+    site: "ShellCareers",
+  },
+  {
+    company: "Vistra",
+    token: "vst",
+    host: "vst.wd5.myworkdayjobs.com",
+    site: "vistra_careers",
+  },
+  {
+    company: "Xcel Energy",
+    token: "xcelenergy",
+    host: "xcelenergy.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Dow",
+    token: "dow",
+    host: "dow.wd1.myworkdayjobs.com",
+    site: "ExternalCareers",
+  },
+  {
+    company: "PPG Industries",
+    token: "ppg",
+    host: "ppg.wd5.myworkdayjobs.com",
+    site: "PPG_CAREERS",
+  },
+  {
+    company: "Air Products",
+    token: "airproducts",
+    host: "airproducts.wd5.myworkdayjobs.com",
+    site: "AP0001",
+  },
+  {
+    company: "Corteva",
+    token: "corteva",
+    host: "corteva.wd5.myworkdayjobs.com",
+    site: "corteva",
+  },
+  {
+    company: "The Mosaic Company",
+    token: "mosaic",
+    host: "mosaic.wd5.myworkdayjobs.com",
+    site: "mosaic",
+  },
+  {
+    company: "Procter & Gamble",
+    token: "pg",
+    host: "pg.wd5.myworkdayjobs.com",
+    site: "1000",
+  },
+  {
+    company: "The Coca-Cola Company",
+    token: "coke",
+    host: "coke.wd1.myworkdayjobs.com",
+    site: "coca-cola-careers",
+  },
+  {
+    company: "Kraft Heinz",
+    token: "heinz",
+    host: "heinz.wd1.myworkdayjobs.com",
+    site: "KraftHeinz_Careers_UR",
+  },
+  {
+    company: "Conagra Brands",
+    token: "conagrabrands",
+    host: "conagrabrands.wd1.myworkdayjobs.com",
+    site: "Careers_US",
+  },
+  {
+    company: "The Campbell's Company",
+    token: "campbellsoup",
+    host: "campbellsoup.wd5.myworkdayjobs.com",
+    site: "externalcareers_globalsite",
+  },
+  {
+    company: "Tyson Foods",
+    token: "tysonfoods",
+    host: "tysonfoods.wd5.myworkdayjobs.com",
+    site: "TSN",
+  },
+  {
+    company: "Clorox",
+    token: "clorox",
+    host: "clorox.wd1.myworkdayjobs.com",
+    site: "InviteClorox",
+  },
+  {
+    company: "Unilever",
+    token: "unilever",
+    host: "unilever.wd3.myworkdayjobs.com",
+    site: "Unilever_Experienced_Professionals",
+  },
+  {
+    company: "Levi Strauss & Co.",
+    token: "levistraussandco",
+    host: "levistraussandco.wd5.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Lowe's",
+    token: "lowes",
+    host: "lowes.wd5.myworkdayjobs.com",
+    site: "LWS_External_CS",
+  },
+  {
+    company: "TJX",
+    token: "tjx",
+    host: "tjx.wd1.myworkdayjobs.com",
+    site: "tjx_external",
+  },
+  {
+    company: "Dick's Sporting Goods",
+    token: "dickssportinggoods",
+    host: "dickssportinggoods.wd1.myworkdayjobs.com",
+    site: "DSG",
+  },
+  {
+    company: "O'Reilly Auto Parts",
+    token: "oreillyauto",
+    host: "oreillyauto.wd1.myworkdayjobs.com",
+    site: "oreilly",
+  },
+  {
+    company: "Walmart",
+    token: "walmart",
+    host: "walmart.wd504.myworkdayjobs.com",
+    site: "WalmartExternal",
+  },
+  {
+    company: "UPS",
+    token: "hcmportal",
+    host: "hcmportal.wd5.myworkdayjobs.com",
+    site: "Search",
+  },
+  {
+    company: "Southwest Airlines",
+    token: "swa",
+    host: "swa.wd1.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Warner Bros.",
+    token: "warnerbros",
+    host: "warnerbros.wd5.myworkdayjobs.com",
+    site: "global",
+  },
+  {
+    company: "Warner Music",
+    token: "wmg",
+    host: "wmg.wd1.myworkdayjobs.com",
+    site: "WMGUS",
+  },
+  {
+    company: "Live Nation",
+    token: "livenation",
+    host: "livenation.wd503.myworkdayjobs.com",
+    site: "LNExternalSite",
+  },
+  {
+    company: "Sony Pictures Entertainment",
+    token: "spe",
+    host: "spe.wd1.myworkdayjobs.com",
+    site: "SonyPicturesEntertainment",
+  },
+  {
+    company: "TelevisaUnivision",
+    token: "univision",
+    host: "univision.wd1.myworkdayjobs.com",
+    site: "External",
+  },
+  {
+    company: "Verizon",
+    token: "verizon",
+    host: "verizon.wd12.myworkdayjobs.com",
+    site: "verizon-careers",
+  },
+  {
+    company: "JLL",
+    token: "jll",
+    host: "jll.wd1.myworkdayjobs.com",
+    site: "jllcareers",
+  },
+  {
+    company: "Cushman & Wakefield",
+    token: "cw",
+    host: "cw.wd1.myworkdayjobs.com",
+    site: "external",
+  },
+  {
+    company: "Colliers",
+    token: "colliers",
+    host: "colliers.wd3.myworkdayjobs.com",
+    site: "Colliers-External-Career-Site",
+  },
 ];
 
 interface WdPosting {
@@ -554,16 +1317,27 @@ async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
   const out: AtsJob[] = [];
 
   for (let page = 0; page < MAX_PAGES; page++) {
-    const raw = (await fetchJson(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        appliedFacets: {},
-        limit: PAGE,
-        offset: page * PAGE,
-        searchText: "intern",
-      }),
-    })) as { jobPostings?: WdPosting[]; total?: number };
+    let raw: { jobPostings?: WdPosting[]; total?: number };
+    try {
+      raw = (await fetchJson(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appliedFacets: {},
+          limit: PAGE,
+          offset: page * PAGE,
+          searchText: "intern",
+        }),
+        // Workday's search is slow and times out at the shared 20s default often
+        // enough to drop whole companies. Give it more room.
+        timeoutMs: 35_000,
+      })) as { jobPostings?: WdPosting[]; total?: number };
+    } catch (err) {
+      // A flaky later page shouldn't discard the pages we already have — keep
+      // them and stop. Only a first-page failure is a real per-company failure.
+      if (page > 0) break;
+      throw err;
+    }
 
     const postings = raw?.jobPostings ?? [];
     for (const p of postings) {
@@ -582,5 +1356,7 @@ async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
 
 export const workdaySource: Source = {
   name: SOURCE_NAME,
-  load: () => loadAts({ sourceName: SOURCE_NAME, companies: BOARDS, fetchCompany, concurrency: 4 }),
+  // Concurrency raised from 4 with the 2026-08-04 batch (84 -> 208 boards).
+  // Every board is a different tenant host, so this doesn't hammer one origin.
+  load: () => loadAts({ sourceName: SOURCE_NAME, companies: BOARDS, fetchCompany, concurrency: 8 }),
 };
