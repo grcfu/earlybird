@@ -22,7 +22,9 @@ import {
   cycleLabel,
 } from "@/lib/apptracker/cycle";
 
-// When you last exported, so we can nudge only when there's something new.
+// When you last exported. Drives both the nudge and, more importantly, WHAT a
+// copy contains: everything since this instant, rather than the whole table
+// again. Per-browser, like the tracker key when signed out.
 const EXPORT_KEY = "earlybird:apps:lastExport";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -49,7 +51,7 @@ export function ApplicationsView({
   const [filter, setFilter] = useState<Filter>("all");
   const [cycle, setCycle] = useState<CycleFilter>("all");
   const [setupOpen, setSetupOpen] = useState(false);
-  const [copied, setCopied] = useState<"" | "key" | "script" | "sheets">("");
+  const [copied, setCopied] = useState<"" | "key" | "script" | "sheets" | "sheets-all">("");
   const [endpoint, setEndpoint] = useState("");
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [restoreInput, setRestoreInput] = useState("");
@@ -258,8 +260,8 @@ export function ApplicationsView({
     "Last update",
     "Source",
   ];
-  const exportRows = () =>
-    activeApps.map((a) => {
+  const exportRows = (list: ApplicationRow[]) =>
+    list.map((a) => {
       const y = cycleOf(a);
       return [
         a.company,
@@ -272,11 +274,19 @@ export function ApplicationsView({
       ];
     });
 
+  // Applications added or updated since the last export. When nothing has been
+  // exported yet, that's all of them.
+  const unexported = lastExport
+    ? activeApps.filter((a) => new Date(a.updatedAt).getTime() > new Date(lastExport).getTime())
+    : activeApps;
+
+  // The CSV stays a full snapshot — it's a file, and a file with only the last
+  // three changes in it is a strange artifact to keep.
   const exportCsv = () => {
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const lines = [
       EXPORT_HEADER.map(esc).join(","),
-      ...exportRows().map((r) => r.map((v) => esc(String(v))).join(",")),
+      ...exportRows(activeApps).map((r) => r.map((v) => esc(String(v))).join(",")),
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -288,23 +298,30 @@ export function ApplicationsView({
     markExported();
   };
 
-  const copyForSheets = () => {
+  // Copy for pasting into a sheet, in one of two modes.
+  //
+  // "changed" is the everyday one: only what's been added or updated since the
+  // last copy, and NO header row, so it lands on the end of the sheet you
+  // already have. Re-copying all of it every time meant either pasting
+  // duplicates of rows already there or wiping the sheet and starting over.
+  //
+  // "all" is the full table with a header, for a sheet you're building fresh.
+  // A first-ever copy is always "all" in effect — with no previous export there
+  // is no baseline to be newer than, and you need the header anyway.
+  const copyForSheets = (mode: "changed" | "all") => {
+    const delta = mode === "changed" && lastExport !== null;
+    const rows = exportRows(delta ? unexported : activeApps);
+    if (rows.length === 0) return;
     const tsv = [
-      EXPORT_HEADER.join("\t"),
-      ...exportRows().map((r) => r.join("\t")),
+      ...(delta ? [] : [EXPORT_HEADER.join("\t")]),
+      ...rows.map((r) => r.join("\t")),
     ].join("\n");
     navigator.clipboard?.writeText(tsv).then(() => {
-      setCopied("sheets");
+      setCopied(delta ? "sheets" : "sheets-all");
       setTimeout(() => setCopied(""), 1500);
       markExported();
     });
   };
-
-  // Applications added or updated since the last export — the only time it's
-  // actually worth exporting again, so that's the only time we nudge.
-  const unexported = lastExport
-    ? activeApps.filter((a) => new Date(a.updatedAt).getTime() > new Date(lastExport).getTime())
-    : activeApps;
 
   const countIn = (f: Filter) =>
     f === "all" ? activeApps.length : activeApps.filter((a) => a.stage === f).length;
@@ -382,12 +399,25 @@ export function ApplicationsView({
                 exported {fmtDate(lastExport)}
               </span>
             )}
+            {lastExport && unexported.length > 0 && (
+              <button
+                onClick={() => copyForSheets("changed")}
+                title="Copy only what changed since your last copy, without a header row — paste it onto the end of your sheet"
+                className="pop rounded-lg border border-accent/40 bg-accent-soft px-3 py-1.5 font-mono text-[11px] text-accent-ink shadow-pop-sm hover:border-accent"
+              >
+                {copied === "sheets" ? "✓ copied" : `⧉ Copy ${unexported.length} changed`}
+              </button>
+            )}
             <button
-              onClick={copyForSheets}
-              title="Copy as tab-separated text — paste straight into a Google Sheet"
+              onClick={() => copyForSheets("all")}
+              title="Copy every tracked application, header row included — for a sheet you're starting fresh"
               className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
             >
-              {copied === "sheets" ? "✓ copied" : "⧉ Copy for Sheets"}
+              {copied === "sheets-all"
+                ? "✓ copied"
+                : lastExport
+                  ? `⧉ Copy all ${activeApps.length}`
+                  : "⧉ Copy for Sheets"}
             </button>
             <button
               onClick={exportCsv}
@@ -544,10 +574,14 @@ export function ApplicationsView({
             — keep your sheet in sync.
           </span>
           <button
-            onClick={copyForSheets}
+            onClick={() => copyForSheets("changed")}
             className="pop shrink-0 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
           >
-            {copied === "sheets" ? "✓ copied" : "Copy for Sheets"}
+            {copied === "sheets" || copied === "sheets-all"
+              ? "✓ copied"
+              : lastExport
+                ? `Copy ${unexported.length} for Sheets`
+                : "Copy for Sheets"}
           </button>
         </div>
       )}
