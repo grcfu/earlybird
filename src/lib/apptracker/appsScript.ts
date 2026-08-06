@@ -20,6 +20,17 @@ export function buildAppsScript(key: string, endpoint: string): string {
 //      every 15 minutes.
 // Run this in EACH Gmail account you want tracked (same key is fine).
 //
+// If you paste a NEWER version of this file over an older one, run
+// trackApplications by hand once afterwards and approve the prompt if it
+// appears. Apps Script works out which permissions a project needs by reading
+// the whole file, and if that set changes, the every-15-minutes trigger keeps
+// running under the old approval and fails with "Authorization is required to
+// perform that action" until a human re-approves. Nothing is lost while that
+// happens — mail stays on the EarlyBird label until it actually posts — but
+// nothing gets tracked either, and the only signal is Google's failure email.
+// (This is also why nothing below reaches for the signed-in user's address:
+// that alone would require a permission no other part of the script needs.)
+//
 // Re-processing old mail: run backfillApplications (see the bottom of this file)
 // to replay everything already in EarlyBird-Done. Safe to run repeatedly —
 // re-sending an email never duplicates it and never moves a stage backwards.
@@ -226,16 +237,13 @@ function diagnoseMail() {
   const threads = GmailApp.search(QUERY + " in:anywhere", 0, 20);
   if (threads.length === 0) {
     Logger.log(
-      'No thread matches "' + QUERY + '" in this account (' +
-        Session.getActiveUser().getEmail() +
-        ") — the mail never arrived here.",
+      'No thread matches "' + QUERY +
+        '" in this account — the mail never arrived here. (This account is' +
+        " whichever Gmail the editor is signed into, top right.)",
     );
     return;
   }
-  Logger.log(
-    threads.length + ' thread(s) matching "' + QUERY + '" in ' +
-      Session.getActiveUser().getEmail(),
-  );
+  Logger.log(threads.length + ' thread(s) matching "' + QUERY + '"');
   for (var t = 0; t < threads.length; t++) {
     const thread = threads[t];
     const names = thread.getLabels().map(function (l) {
