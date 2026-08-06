@@ -62,6 +62,13 @@ function mergeGroup(
     sorted.map((l) => l.category).find((c) => c !== Category.OTHER) ??
     Category.OTHER;
 
+  // Country: a US answer from any source wins, matching inferCountry's rule
+  // that a role you can take in the US is a US role. Otherwise the
+  // highest-priority source that named one.
+  const country =
+    sorted.map((l) => l.country).find((c) => c === "US") ??
+    firstDefined((l) => l.country);
+
   // Combined source label, e.g. "Simplify+vanshb03" (priority order, unique).
   const source = Array.from(new Set(sorted.map((l) => l.source))).join("+");
 
@@ -72,6 +79,7 @@ function mergeGroup(
     title: primary.title,
     category,
     locations,
+    country,
     applyUrl: primary.applyUrl,
     sponsorship: firstDefined((l) => l.sponsorship),
     season: firstDefined((l) => l.season),

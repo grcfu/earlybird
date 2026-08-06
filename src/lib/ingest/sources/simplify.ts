@@ -1,5 +1,6 @@
 import { normalizeCategory } from "@/lib/ingest/categorize";
 import { listingId } from "@/lib/ingest/hash";
+import { inferCountry } from "@/lib/ingest/country";
 import type { NormalizedListing, Source } from "@/lib/ingest/types";
 
 /**
@@ -97,6 +98,8 @@ function adapt(raw: unknown): NormalizedListing[] {
       title,
       category: normalizeCategory(asString(item?.category), title),
       locations: asStringArray(item?.locations),
+      // No country field in the feed — all we have is the location text.
+      country: inferCountry(asStringArray(item?.locations)),
       applyUrl: url,
       sponsorship: asString(item?.sponsorship),
       season,

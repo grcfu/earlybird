@@ -45,6 +45,12 @@ model Listing {
   title       String
   category    Category  @default(OTHER)
   locations   String[] // may be empty if the source omits it
+  // ISO-3166 alpha-2 of where the role is, or null when the source gave us
+  // nothing to go on ("5 Locations"). Resolved at ingest — see ingest/country.ts
+  // — from the ATS's own country field where it reports one, else from the
+  // location text. The feed's US-only rule reads this instead of pattern-
+  // matching the location strings at query time.
+  country     String?
   applyUrl    String
   sponsorship String? // free-text from the source, nullable
   season      String? // e.g. "Summer", "Winter"
@@ -71,6 +77,8 @@ model Listing {
   @@index([firstSeenAt])
   @@index([active])
   @@index([category])
+  // Every feed query filters on this (US-only is always on).
+  @@index([country])
 }
 
 // How a hackathon runs — online, physically, or both.

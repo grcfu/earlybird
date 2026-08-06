@@ -60,9 +60,9 @@ async function loadSource(
   }
 }
 
-// 16 columns per row; Postgres caps a statement at 65535 bind params, so keep
-// chunks well under 65535/16 ≈ 4095 rows.
-const COLUMNS_PER_ROW = 16;
+// 17 columns per row; Postgres caps a statement at 65535 bind params, so keep
+// chunks well under 65535/17 ≈ 3855 rows.
+const COLUMNS_PER_ROW = 17;
 const UPSERT_CHUNK_ROWS = 1000;
 
 // Bulk INSERT ... ON CONFLICT upsert. firstSeenAt + createdAt are set on insert
@@ -94,7 +94,8 @@ async function bulkUpsert(
       valueTuples.push(
         `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5}::"Category",` +
           `$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10},` +
-          `$${b + 11},$${b + 12},$${b + 13},$${b + 14},$${b + 15},$${b + 16})`,
+          `$${b + 11},$${b + 12},$${b + 13},$${b + 14},$${b + 15},` +
+          `$${b + 16},$${b + 17})`,
       );
       params.push(
         r.id,
@@ -103,6 +104,7 @@ async function bulkUpsert(
         r.title,
         r.category,
         r.locations,
+        r.country,
         r.applyUrl,
         r.sponsorship,
         r.season,
@@ -119,12 +121,13 @@ async function bulkUpsert(
 
     const sql =
       `INSERT INTO "Listing" ` +
-      `(id, source, company, title, category, locations, "applyUrl", sponsorship, ` +
+      `(id, source, company, title, category, locations, country, "applyUrl", sponsorship, ` +
       `season, "datePosted", "firstSeenAt", "lastSeenAt", active, "effectiveAt", "createdAt", "updatedAt") ` +
       `VALUES ${valueTuples.join(",")} ` +
       `ON CONFLICT (id) DO UPDATE SET ` +
       `source = EXCLUDED.source, company = EXCLUDED.company, title = EXCLUDED.title, ` +
-      `category = EXCLUDED.category, locations = EXCLUDED.locations, "applyUrl" = EXCLUDED."applyUrl", ` +
+      `category = EXCLUDED.category, locations = EXCLUDED.locations, country = EXCLUDED.country, ` +
+      `"applyUrl" = EXCLUDED."applyUrl", ` +
       `sponsorship = EXCLUDED.sponsorship, season = EXCLUDED.season, "datePosted" = EXCLUDED."datePosted", ` +
       `"lastSeenAt" = EXCLUDED."lastSeenAt", active = EXCLUDED.active, "updatedAt" = EXCLUDED."updatedAt", ` +
       // Recompute effectiveAt against the PRESERVED firstSeenAt on update.

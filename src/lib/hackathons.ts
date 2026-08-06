@@ -1,6 +1,57 @@
 import { prisma } from "@/lib/prisma";
 import { HackathonFormat } from "@/generated/prisma/client";
-import { NON_US_PATTERN } from "@/lib/listings";
+
+// US-only: a role is dropped when every one of its listed locations is
+// recognizably non-US. We match on countries / regions / unambiguous foreign
+// cities (avoiding names that collide with US places, e.g. no "Ontario" since
+// Ontario, CA exists). Roles with no location, or any US/remote/ambiguous
+// location, are kept.
+const NON_US_NAMES = [
+  // countries & nations
+  "canada", "mexico", "united kingdom", "england", "scotland", "wales",
+  "ireland", "germany", "france", "spain", "portugal", "italy", "netherlands",
+  "belgium", "luxembourg", "switzerland", "austria", "sweden", "norway",
+  "denmark", "finland", "iceland", "poland", "czech", "slovakia", "hungary",
+  "romania", "bulgaria", "greece", "turkey", "russia", "ukraine", "serbia",
+  "croatia", "estonia", "latvia", "lithuania", "india", "china", "japan",
+  "south korea", "korea", "singapore", "hong kong", "taiwan", "thailand",
+  "vietnam", "philippines", "malaysia", "indonesia", "cambodia", "australia",
+  "new zealand", "brazil", "argentina", "chile", "colombia", "peru", "israel",
+  "united arab emirates", "saudi arabia", "qatar", "egypt", "morocco",
+  "south africa", "nigeria", "kenya", "pakistan", "bangladesh", "sri lanka",
+  // Canadian places (Canada often omitted from the string)
+  "toronto", "montreal", "ottawa", "calgary", "edmonton", "winnipeg",
+  // unambiguous foreign cities (no major US namesake)
+  "bengaluru", "bangalore", "hyderabad", "gurgaon", "gurugram", "noida",
+  "chennai", "mumbai", "new delhi", "pune", "kolkata", "beijing", "shanghai",
+  "shenzhen", "guangzhou", "hangzhou", "tokyo", "osaka", "seoul", "taipei",
+  "tel aviv", "dubai", "abu dhabi", "sao paulo", "são paulo", "warsaw",
+  "krakow", "bucharest", "lisbon", "dublin", "amsterdam", "munich", "berlin",
+  "frankfurt", "zurich", "stockholm", "copenhagen", "helsinki", "barcelona",
+  "madrid", "ho chi minh", "hanoi", "manila", "jakarta", "kuala lumpur",
+  "bangkok", "auckland", "wellington", "christchurch", "edinburgh", "glasgow",
+  "cork", "galway", "gothenburg", "rotterdam", "hamburg", "cologne", "prague",
+  "budapest", "oslo", "brisbane", "adelaide",
+];
+
+// Country/region codes with NO US state-or-DC collision, matched as whole words
+// (so "Auckland, NZ" or "Sydney, AUS" is caught, but "Austin, TX" isn't).
+// Deliberately excludes ambiguous 2-letter codes like CA/DE/IN/IL/OR/PA/LA/GA…
+const NON_US_CODES = [
+  "nz", "uk", "au", "aus", "ie", "jp", "jpn", "sg", "sgp", "hk", "hkg",
+  "kr", "kor", "cn", "chn", "br", "bra", "mx", "mex", "es", "esp", "it",
+  "ita", "nl", "nld", "se", "swe", "ch", "che", "pl", "be", "at", "dk",
+  "fi", "pt", "gr", "cz", "ro", "ua", "tr", "eg", "ng", "ke", "pk", "bd",
+  "lk", "my", "th", "sa", "ae", "uae", "ph", "phl", "vn", "vnm", "tw",
+  "twn", "za", "zaf", "gbr", "deu", "fra",
+];
+
+// Lives here because hackathons are its last user: the internships feed now
+// filters on a country resolved at ingest (lib/ingest/country.ts). Hackathon
+// venues only ever arrive as a free-text label, so for now they still get the
+// name-matching treatment, with all of its blind spots.
+const NON_US_PATTERN =
+  NON_US_NAMES.join("|") + "|\\m(" + NON_US_CODES.join("|") + ")\\M";
 
 // Which format bucket the UI is filtering to. "online" includes hybrids (you can
 // attend remotely); "inperson" includes hybrids too (you can attend on-site).

@@ -677,6 +677,9 @@ const BOARDS: AtsCompany[] = [
 
 interface AshbyJob {
   title?: unknown;
+  // Ashby gives a structured address; addressCountry is a full name
+  // ("United States"), which normalizeCountryCode maps to an ISO code.
+  address?: { postalAddress?: { addressCountry?: unknown } | null } | null;
   jobUrl?: unknown;
   applyUrl?: unknown;
   publishedAt?: unknown;
@@ -696,6 +699,7 @@ async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
     .map((j) => ({
       title: typeof j.title === "string" ? j.title.trim() : "",
       locations: typeof j.location === "string" ? [j.location.trim()] : [],
+      country: j.address?.postalAddress?.addressCountry,
       url:
         (typeof j.jobUrl === "string" && j.jobUrl) ||
         (typeof j.applyUrl === "string" && j.applyUrl) ||

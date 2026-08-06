@@ -14,6 +14,7 @@ function listing(over: Partial<NormalizedListing>): NormalizedListing {
     title: "Software Engineer Intern",
     category: Category.SWE,
     locations: [],
+    country: null,
     applyUrl: "https://acme.com/1",
     sponsorship: null,
     season: null,

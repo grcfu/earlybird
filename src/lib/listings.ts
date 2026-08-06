@@ -53,56 +53,6 @@ export interface ListingPage {
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 20;
 
-// US-only: a role is dropped when every one of its listed locations is
-// recognizably non-US. We match on countries / regions / unambiguous foreign
-// cities (avoiding names that collide with US places, e.g. no "Ontario" since
-// Ontario, CA exists). Roles with no location, or any US/remote/ambiguous
-// location, are kept.
-const NON_US_NAMES = [
-  // countries & nations
-  "canada", "mexico", "united kingdom", "england", "scotland", "wales",
-  "ireland", "germany", "france", "spain", "portugal", "italy", "netherlands",
-  "belgium", "luxembourg", "switzerland", "austria", "sweden", "norway",
-  "denmark", "finland", "iceland", "poland", "czech", "slovakia", "hungary",
-  "romania", "bulgaria", "greece", "turkey", "russia", "ukraine", "serbia",
-  "croatia", "estonia", "latvia", "lithuania", "india", "china", "japan",
-  "south korea", "korea", "singapore", "hong kong", "taiwan", "thailand",
-  "vietnam", "philippines", "malaysia", "indonesia", "cambodia", "australia",
-  "new zealand", "brazil", "argentina", "chile", "colombia", "peru", "israel",
-  "united arab emirates", "saudi arabia", "qatar", "egypt", "morocco",
-  "south africa", "nigeria", "kenya", "pakistan", "bangladesh", "sri lanka",
-  // Canadian places (Canada often omitted from the string)
-  "toronto", "montreal", "ottawa", "calgary", "edmonton", "winnipeg",
-  // unambiguous foreign cities (no major US namesake)
-  "bengaluru", "bangalore", "hyderabad", "gurgaon", "gurugram", "noida",
-  "chennai", "mumbai", "new delhi", "pune", "kolkata", "beijing", "shanghai",
-  "shenzhen", "guangzhou", "hangzhou", "tokyo", "osaka", "seoul", "taipei",
-  "tel aviv", "dubai", "abu dhabi", "sao paulo", "são paulo", "warsaw",
-  "krakow", "bucharest", "lisbon", "dublin", "amsterdam", "munich", "berlin",
-  "frankfurt", "zurich", "stockholm", "copenhagen", "helsinki", "barcelona",
-  "madrid", "ho chi minh", "hanoi", "manila", "jakarta", "kuala lumpur",
-  "bangkok", "auckland", "wellington", "christchurch", "edinburgh", "glasgow",
-  "cork", "galway", "gothenburg", "rotterdam", "hamburg", "cologne", "prague",
-  "budapest", "oslo", "brisbane", "adelaide",
-];
-
-// Country/region codes with NO US state-or-DC collision, matched as whole words
-// (so "Auckland, NZ" or "Sydney, AUS" is caught, but "Austin, TX" isn't).
-// Deliberately excludes ambiguous 2-letter codes like CA/DE/IN/IL/OR/PA/LA/GA…
-const NON_US_CODES = [
-  "nz", "uk", "au", "aus", "ie", "jp", "jpn", "sg", "sgp", "hk", "hkg",
-  "kr", "kor", "cn", "chn", "br", "bra", "mx", "mex", "es", "esp", "it",
-  "ita", "nl", "nld", "se", "swe", "ch", "che", "pl", "be", "at", "dk",
-  "fi", "pt", "gr", "cz", "ro", "ua", "tr", "eg", "ng", "ke", "pk", "bd",
-  "lk", "my", "th", "sa", "ae", "uae", "ph", "phl", "vn", "vnm", "tw",
-  "twn", "za", "zaf", "gbr", "deu", "fra",
-];
-
-// Exported so the hackathons query can apply the identical US-only rule to
-// in-person event locations (single source of truth for "looks non-US").
-export const NON_US_PATTERN =
-  NON_US_NAMES.join("|") + "|\\m(" + NON_US_CODES.join("|") + ")\\M";
-
 // Keyset cursor = the ordering key parts joined, so pagination is stable under
 // inserts. Recent sort uses [effectiveAt, id]; top sort uses [tier, effectiveAt, id].
 function encodeCursor(...parts: string[]): string {
@@ -210,14 +160,15 @@ function buildWhere(q: ListingFilters): { clause: string; params: unknown[] } {
     );
   }
 
-  // US-only (always on): keep roles with no location or at least one
-  // non-foreign location; drop roles whose every location is recognizably
-  // outside the US.
-  params.push(NON_US_PATTERN);
-  conditions.push(
-    `(cardinality(locations) = 0 OR EXISTS (` +
-      `SELECT 1 FROM unnest(locations) loc WHERE loc !~* $${params.length}))`,
-  );
+  // US-only (always on). Reads the country resolved at ingest (see
+  // ingest/country.ts) rather than re-deriving it from the location text on
+  // every query, which is what let "München" and "Eindhoven" through.
+  //
+  // NULL is kept, not dropped: it means the board named no place we could read
+  // ("5 Locations", "In-Office"), and those are more often a US employer's
+  // postings than not. Dropping them would hide real roles to remove some
+  // foreign ones — the wrong trade for a feed whose job is not missing things.
+  conditions.push(`(country IS NULL OR country = 'US')`);
 
   // Internships only (always on): drop new-grad / entry-level / MBA / full-time
   // / PhD roles that slip past the per-source internship filter.

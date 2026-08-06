@@ -331,6 +331,8 @@ const BOARDS: AtsCompany[] = [
 
 interface LeverJob {
   text?: unknown;
+  // ISO alpha-2, e.g. "GB" — Lever reports this per posting.
+  country?: unknown;
   hostedUrl?: unknown;
   createdAt?: unknown;
   categories?: { location?: unknown; allLocations?: unknown; commitment?: unknown };
@@ -355,6 +357,7 @@ async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
   return (raw as LeverJob[]).map((j) => ({
     title: typeof j.text === "string" ? j.text.trim() : "",
     locations: locations(j.categories),
+    country: j.country,
     url: typeof j.hostedUrl === "string" ? j.hostedUrl : "",
     // Lever gives a real creation timestamp (epoch ms).
     datePosted:

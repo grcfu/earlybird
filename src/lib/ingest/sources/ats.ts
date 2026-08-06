@@ -1,6 +1,7 @@
 import { listingId } from "@/lib/ingest/hash";
 import { normalizeCategory } from "@/lib/ingest/categorize";
 import { isInternship } from "@/lib/ingest/internship";
+import { resolveCountry } from "@/lib/ingest/country";
 import { mapPool } from "@/lib/ingest/http";
 import type { NormalizedListing } from "@/lib/ingest/types";
 
@@ -16,6 +17,11 @@ export interface AtsJob {
   locations: string[];
   url: string;
   datePosted: Date | null;
+  // What the ATS itself says the country is, in whatever form it says it
+  // ("us", "United States", "GB"). Lever, Ashby and SmartRecruiters all report
+  // one; Greenhouse and Workday don't, and those fall back to reading the
+  // location text. Leave undefined when the provider has no such field.
+  country?: unknown;
 }
 
 // Shared engine for every ATS provider source: fan out across the company
@@ -58,6 +64,7 @@ export async function loadAts(opts: {
         title: job.title,
         category: normalizeCategory(null, job.title),
         locations: job.locations.filter(Boolean),
+        country: resolveCountry(job.country, job.locations),
         applyUrl: job.url,
         sponsorship: null,
         season: null,

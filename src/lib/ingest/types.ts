@@ -8,6 +8,7 @@ export interface NormalizedListing {
   title: string;
   category: Category;
   locations: string[];
+  country: string | null; // ISO alpha-2; null when the source gave no clue
   applyUrl: string;
   sponsorship: string | null;
   season: string | null;

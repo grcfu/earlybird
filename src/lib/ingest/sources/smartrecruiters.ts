@@ -220,6 +220,8 @@ interface SrPosting {
   location?: {
     city?: unknown;
     region?: unknown;
+    // Lowercase ISO alpha-2, e.g. "us".
+    country?: unknown;
     fullLocation?: unknown;
     remote?: unknown;
   };
@@ -254,6 +256,7 @@ async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
       out.push({
         title: typeof p.name === "string" ? p.name.trim() : "",
         locations: srLocation(p.location),
+        country: p.location?.country,
         url: id ? `https://jobs.smartrecruiters.com/${c.token}/${id}` : "",
         datePosted: parseIsoDate(p.releasedDate),
       });
