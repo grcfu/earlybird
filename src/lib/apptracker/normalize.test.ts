@@ -2,9 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeCompany,
+  companyKey,
   sameCompany,
   acronymOf,
   looksLikeAcronym,
+  stripCompanyBoilerplate,
 } from "@/lib/apptracker/normalize";
 
 test("normalizeCompany: variants of one company collapse", () => {
@@ -13,6 +15,14 @@ test("normalizeCompany: variants of one company collapse", () => {
   assert.equal(normalizeCompany("the Akuna Capital team"), key);
   assert.equal(normalizeCompany("AKUNA CAPITAL"), key);
   assert.equal(normalizeCompany("Akuna Capital, Inc."), key);
+});
+
+test("a recruiting-team label peels as a unit, not word by word", () => {
+  // "Roblox Early Careers" stopping at "Roblox Early" would fork Roblox in two.
+  assert.equal(stripCompanyBoilerplate("Roblox Early Careers"), "Roblox");
+  assert.equal(stripCompanyBoilerplate("Stripe University Recruiting"), "Stripe");
+  assert.equal(stripCompanyBoilerplate("Nvidia Campus Recruiting"), "Nvidia");
+  assert.equal(normalizeCompany("Roblox Early Careers"), normalizeCompany("Roblox"));
 });
 
 test("normalizeCompany: 'The Trade Desk' loses the leading 'the'", () => {
@@ -36,6 +46,21 @@ test("an AI suffix doesn't fork one company into two", () => {
   assert.equal(normalizeCompany("Scale AI"), normalizeCompany("Scale"));
   // Still distinct from an unrelated company.
   assert.ok(!sameCompany("Scale AI", "Snorkel AI"));
+});
+
+test("where the word breaks fall doesn't fork one company into two", () => {
+  // Grace's real case: an email said "Capital One" and the assessment mail said
+  // "Capitalone", so one application showed up twice with different stages.
+  assert.ok(sameCompany("Capital One", "Capitalone"));
+  assert.equal(companyKey("Capital One"), companyKey("CapitalOne"));
+  assert.ok(sameCompany("Jane Street", "JaneStreet"));
+  assert.ok(sameCompany("T-Mobile", "TMobile"));
+  // Still runs through the rest of the normalization.
+  assert.ok(sameCompany("The Trade Desk Recruiting", "tradedesk"));
+  // And still can't collapse companies that differ by a real word.
+  assert.ok(!sameCompany("Capital One", "Capital Group"));
+  assert.ok(!sameCompany("Meta", "Meta Platforms"));
+  assert.notEqual(companyKey("Jane Street"), companyKey("Jane"));
 });
 
 test("acronymOf: initials of a multi-word name", () => {

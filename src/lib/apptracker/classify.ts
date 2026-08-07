@@ -220,6 +220,9 @@ const STOPWORDS = new Set([
   "applications", "next steps", "invitation", "invite", "careers", "career",
   "jobs", "job", "hiring", "recruiting", "recruitment", "attention", "note",
   "fyi", "heads up", "final reminder", "follow up", "re", "fwd", "fw",
+  // bracket tags a mail gateway or helpdesk prepends to the subject
+  "external", "ext", "caution", "secure", "encrypted", "spam", "suspicious",
+  "warning", "auto-reply", "automated", "ticket", "case", "support",
 ]);
 
 function isStopword(name: string): boolean {
@@ -249,6 +252,19 @@ function bareSubject(subject: string): string {
   return s;
 }
 
+// "[Roblox] Re: Assessment Next Steps" — helpdesks (Zendesk, Freshdesk, Jira)
+// tag the subject with the tenant they're mailing for, which is the employer.
+// bareSubject peels these off before the patterns run, so it's read here or the
+// only mention of the company in the whole email is lost.
+function subjectTag(subject: string): string | null {
+  const m = subject.trim().match(/^\[([^\]]{2,40})\]/);
+  if (!m) return null;
+  const tag = stripCompanyBoilerplate(clean(m[1]));
+  if (tag.length < 2 || !/^[A-Za-z]/.test(tag)) return null;
+  if (isStopword(tag) || NOT_A_NAME.test(tag) || isVendor(tag)) return null;
+  return tag;
+}
+
 // Mail hosts that identify a person, never an employer.
 const PERSONAL_DOMAINS = new Set([
   "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com",
@@ -260,7 +276,7 @@ const PERSONAL_DOMAINS = new Set([
 // *from* one of these tells you nothing about the employer — but its display
 // name usually does ("Southwest Airlines <swa@myworkday.com>").
 const VENDOR_DOMAIN =
-  /^(?:.*\.)?(?:greenhouse-mail\.io|greenhouse\.io|myworkday\.com|workday\.com|lever\.co|ashbyhq\.com|smartrecruiters\.com|icims\.com|taleo\.net|successfactors\.com|brassring\.com|jobvite\.com|bamboohr\.com|workable\.com|avature\.net|phenompeople\.com|paradox\.ai|oraclecloud\.com|codility\.com|hackerrank\.com|codesignal\.com|hirevue\.com|karat\.io|airtableemail\.com|sendgrid\.net|amazonses\.com|mailgun\.org|mandrillapp\.com|sparkpostmail\.com)$/i;
+  /^(?:.*\.)?(?:greenhouse-mail\.io|greenhouse\.io|myworkday\.com|workday\.com|lever\.co|ashbyhq\.com|smartrecruiters\.com|icims\.com|taleo\.net|successfactors\.com|brassring\.com|jobvite\.com|bamboohr\.com|workable\.com|avature\.net|phenompeople\.com|paradox\.ai|oraclecloud\.com|codility\.com|hackerrank\.com|codesignal\.com|hirevue\.com|karat\.io|zendesk\.com|freshdesk\.com|helpscout\.net|intercom-mail\.com|airtableemail\.com|sendgrid\.net|amazonses\.com|mailgun\.org|mandrillapp\.com|sparkpostmail\.com)$/i;
 
 // Salutations and generic openers that a loose pattern can mistake for a name.
 const NOT_A_NAME = /^(?:dear|hi|hello|hey|greetings|good (?:morning|afternoon|evening))\b/i;
@@ -303,6 +319,26 @@ function looksLikePerson(display: string, addr: string): boolean {
   return false;
 }
 
+// Resolve a display name that ends in a parenthetical. Two shapes show up, and
+// they point opposite ways:
+//
+//   "Chicago Trading Company (CTC)"  — the parenthetical abbreviates the name
+//   "Nav (Roblox Early Careers)"     — the parenthetical IS the employer, and
+//                                      the lead is the coordinator writing
+//
+// A recruiting-team label inside the brackets ("Early Careers", "University
+// Recruiting") is the tell for the second shape: it's how an employer signs its
+// recruiting mail and never how an acronym reads. Anything else is noise on a
+// name that already leads.
+function withoutParenthetical(display: string): string {
+  const m = display.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  if (!m) return display;
+  const [, lead, inner] = m;
+  const peeled = stripCompanyBoilerplate(inner.trim());
+  const isTeamLabel = peeled.length > 0 && peeled !== inner.trim();
+  return (isTeamLabel ? peeled : lead).trim() || lead || peeled;
+}
+
 function senderDisplayName(from: string | undefined): string | null {
   if (!from) return null;
   const { display } = parseFrom(from);
@@ -317,14 +353,9 @@ function senderDisplayName(from: string | undefined): string | null {
   }
   if (looksLikePerson(display, addr)) return null;
 
-  const cleaned = stripCompanyBoilerplate(
-    display
-      // "Chicago Trading Company (CTC) via Codility" → drop the relay and the
-      // parenthetical acronym, so the key matches the spelled-out name.
-      .replace(/\s+via\s+.*$/i, "")
-      .replace(/\s*\([^)]*\)\s*$/, "")
-      .trim(),
-  );
+  // "Chicago Trading Company (CTC) via Codility" → drop the relay.
+  const relayed = display.replace(/\s+via\s+.*$/i, "").trim();
+  const cleaned = stripCompanyBoilerplate(withoutParenthetical(relayed));
   if (cleaned.length < 2 || cleaned.length > 40) return null;
   if (NOT_A_NAME.test(cleaned) || isStopword(cleaned)) return null;
   return cleaned;
@@ -392,9 +423,9 @@ function extractCompany(
     // Last resort, and gated by STOPWORDS so "Reminder:" can't become a company.
     new RegExp(String.raw`^${NAME}:\s+\S`),
   ];
-  // Where the From display name sits in the ordering: after the explicit prose
-  // patterns (which are usually exactly right) but ahead of the loose fallbacks,
-  // so it rescues emails whose prose names only the role.
+  // Where the sender's own claims about who they are sit in the ordering: after
+  // the explicit prose patterns (which are usually exactly right) but ahead of
+  // the loose fallbacks, so they rescue emails whose prose names only the role.
   const SENDER_SLOT = 5;
 
   const candidates: string[] = [];
@@ -407,7 +438,10 @@ function extractCompany(
   };
 
   patterns.forEach((p, i) => {
-    if (i === SENDER_SLOT) add(senderDisplayName(from));
+    if (i === SENDER_SLOT) {
+      add(senderDisplayName(from));
+      add(subjectTag(subject));
+    }
     for (const src of [bareSubject(subject), body]) {
       const m = src.match(p);
       if (m?.[1]) add(m[1]);

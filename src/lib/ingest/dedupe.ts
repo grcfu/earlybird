@@ -1,7 +1,7 @@
 import type { NormalizedListing } from "@/lib/ingest/types";
 import { Category } from "@/generated/prisma/client";
 import { urlHostPath } from "@/lib/ingest/hash";
-import { normalizeCompany } from "@/lib/apptracker/normalize";
+import { companyKey } from "@/lib/apptracker/normalize";
 
 // A per-posting deep link contains an id token (long number / uuid / id-ish
 // slug). Generic careers pages ("zipline.com/open-roles", greenhouse embed URLs
@@ -24,7 +24,7 @@ function crossKey(company: string, url: string): string | null {
   const slash = hp.indexOf("/");
   if (slash < 0 || hp.length - slash < 6) return null; // no real path
   if (!hasIdToken(hp)) return null;
-  return `${normalizeCompany(company)}@@${hp}`;
+  return `${companyKey(company)}@@${hp}`;
 }
 
 // Merge a group of listings that share the same id (same logical role found in

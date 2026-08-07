@@ -1,5 +1,5 @@
 import type { ListingRow } from "@/lib/listings";
-import { normalizeCompany } from "@/lib/apptracker/normalize";
+import { companyKey } from "@/lib/apptracker/normalize";
 
 // Loose title for grouping look-alike postings (multi-location / near-identical
 // reruns of the same role). Strips punctuation, year/season, and unifies
@@ -15,7 +15,7 @@ function looseTitle(title: string): string {
 }
 
 export function feedGroupKey(company: string, title: string): string {
-  return `${normalizeCompany(company)}|${looseTitle(title)}`;
+  return `${companyKey(company)}|${looseTitle(title)}`;
 }
 
 export interface ListingGroup {

@@ -11,8 +11,10 @@
 // Scale" in the body — without stripping it, one application forks into two.
 // Dropping it is safe: no pair of distinct employers is separated only by an "AI"
 // suffix, and the display name keeps whichever form the email actually used.
+// Multi-word labels come first so they peel as a unit: "Roblox Early Careers"
+// must lose both words, not stop at "Roblox Early".
 const TRAILING =
-  /\s+(recruitment|recruiting|recruiter|recruiters|talent acquisition|talent|careers|career|hiring team|hiring|team|hr|human resources|campus|university recruiting|people team|people|notifications|notification|noreply|no-reply|ai|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/i;
+  /\s+(early careers|early career|early talent|university recruiting|university relations|campus recruiting|student programs|talent acquisition|recruitment|recruiting|recruiter|recruiters|talent|careers|career|hiring team|hiring|team|hr|human resources|campus|people team|people|notifications|notification|noreply|no-reply|ai|inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|gmbh|plc|co)$/i;
 
 // Same boilerplate peel as normalizeCompany, but case- and spacing-preserving so
 // the result is usable as a display name: "Microsoft Careers" → "Microsoft",
@@ -43,10 +45,19 @@ export function looksLikeAcronym(raw: string): boolean {
   return /^[A-Z]{2,5}$/.test(s.replace(/[.\s]/g, ""));
 }
 
-// Do two company strings refer to the same employer? Exact normalized match, or
-// one side is the other's initials — ATSes and their vendors mix the two freely
-// ("Chicago Trading Company (CTC) invites you..." then "CTC: Your assessment"),
-// which otherwise forks one application into two.
+// Match key for "is this the same employer?" — the normalized name with word
+// breaks removed. Where the words fall carries no signal: the same company
+// arrives spelled "Capital One" in a recruiter's email and "Capitalone" from an
+// ATS or a sending domain, and that split forks one application into two.
+// Nothing distinctive is dropped, so unrelated companies still can't collide.
+export function companyKey(raw: string): string {
+  return normalizeCompany(raw).replace(/[\s-]/g, "");
+}
+
+// Do two company strings refer to the same employer? Same match key (normalized,
+// spacing-insensitive), or one side is the other's initials — ATSes and their
+// vendors mix the two freely ("Chicago Trading Company (CTC) invites you..."
+// then "CTC: Your assessment"), which otherwise forks one application into two.
 //
 // Bounded on purpose: only 2–5 letter acronyms of 2–5 word names, so this can't
 // quietly collapse unrelated companies the way a fuzzy match would.
@@ -54,7 +65,7 @@ export function sameCompany(a: string, b: string): boolean {
   const ka = normalizeCompany(a);
   const kb = normalizeCompany(b);
   if (!ka || !kb) return false;
-  if (ka === kb) return true;
+  if (companyKey(a) === companyKey(b)) return true;
   if (/^[a-z]{2,5}$/.test(ka) && acronymOf(b) === ka) return true;
   if (/^[a-z]{2,5}$/.test(kb) && acronymOf(a) === kb) return true;
   return false;

@@ -6,7 +6,7 @@ import { ListingCard } from "@/components/ListingCard";
 import { groupListings } from "@/lib/listing-group";
 import { isApplied, STATUS_LABEL, type TrackStatus } from "@/lib/track";
 import { getTrackerKey } from "@/lib/apptracker/key";
-import { normalizeCompany } from "@/lib/apptracker/normalize";
+import { companyKey } from "@/lib/apptracker/normalize";
 import type { AppStageKey } from "@/lib/apptracker/stages";
 
 // Bridges the feed's TrackStatus and the server tracker's AppStage.
@@ -169,7 +169,7 @@ export function Feed({
         const map: Record<string, AppStageKey> = {};
         for (const a of data.applications as { company: string; stage: AppStageKey; deletedAt: string | null }[]) {
           if (a.deletedAt) continue;
-          map[normalizeCompany(a.company)] = a.stage;
+          map[companyKey(a.company)] = a.stage;
         }
         setServerStages(map);
       } catch {
@@ -188,7 +188,7 @@ export function Feed({
     (l: ListingRow): TrackStatus | undefined => {
       const local = statuses[l.id];
       if (local === "not_interested") return "not_interested";
-      const srvStage = serverStages[normalizeCompany(l.company)];
+      const srvStage = serverStages[companyKey(l.company)];
       const srv = srvStage ? STAGE_TO_FEED[srvStage] : undefined;
       if (local && srv) return STATUS_RANK[srv] > STATUS_RANK[local] ? srv : local;
       return local ?? srv;
@@ -252,7 +252,7 @@ export function Feed({
       // cleared aren't application stages, so they don't sync.
       const stage = status ? FEED_TO_STAGE[status] : undefined;
       if (trackerKey && stage) {
-        const norm = normalizeCompany(listing.company);
+        const norm = companyKey(listing.company);
         setServerStages((prev) => {
           const cur = prev[norm];
           if (cur && STATUS_RANK[STAGE_TO_FEED[cur]] >= STATUS_RANK[status as TrackStatus]) {

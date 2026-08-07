@@ -354,6 +354,53 @@ test("a vendor relay falls back to the display name, not the vendor domain", () 
   );
 });
 
+test("a coordinator writing on an employer's behalf isn't the employer", () => {
+  // Was tracked as "Nav" — the recruiter's first name, with the only mention of
+  // Roblox sitting in the parenthetical and the subject's helpdesk tag.
+  const c = classifyEmail({
+    subject: "[Roblox] Re: Error Verifying Email - Assessment Next Steps",
+    from: '"Nav (Roblox Early Careers)" <support@roblox-assessment.zendesk.com>',
+    body: "Hi Grace,\n\nWe have verified your information, and we are moving you on to the next step ( Techincal Assessment).\n\nYou can access your skills assessment directly here: Assessment Link",
+    receivedAt: "2026-08-06",
+  });
+  assert.equal(c.company, "Roblox");
+  // Either signal alone is enough.
+  assert.equal(
+    classifyEmail({
+      subject: "Assessment invitation",
+      from: '"Nav (Roblox Early Careers)" <support@roblox-assessment.zendesk.com>',
+      body: "Please complete your assessment.",
+      receivedAt: "2026-08-06",
+    }).company,
+    "Roblox",
+  );
+  assert.equal(
+    classifyEmail({
+      subject: "[Roblox] Assessment invitation",
+      from: "support@roblox-assessment.zendesk.com",
+      body: "Please complete your assessment.",
+      receivedAt: "2026-08-06",
+    }).company,
+    "Roblox",
+  );
+});
+
+test("a gateway's subject tag is not a company", () => {
+  // "[EXTERNAL]" and friends sit exactly where "[Roblox]" does.
+  for (const tag of ["[EXTERNAL]", "[CAUTION]", "[Action Required]", "[Ticket]"]) {
+    assert.equal(
+      classifyEmail({
+        subject: `${tag} Thank you for applying`,
+        from: "careers@trimble.com",
+        body: "We have received your application.",
+        receivedAt: "2026-08-06",
+      }).company,
+      "Trimble",
+      `${tag} should not become the company`,
+    );
+  }
+});
+
 test("people are never treated as companies", () => {
   const senders = [
     "Grace F <gracefu201@gmail.com>", // the user's own mail in a thread
