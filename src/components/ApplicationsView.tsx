@@ -181,6 +181,18 @@ export function ApplicationsView({
     );
   };
 
+  // Referral yes/no — the one field no email can tell us, so it's set by hand.
+  // Optimistic: the toggle flips immediately and the write follows.
+  const setReferral = async (id: string, referral: boolean) => {
+    if (!key) return;
+    setApps((prev) => prev.map((a) => (a.id === id ? { ...a, referral } : a)));
+    await fetch("/api/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, id, action: "referral", referral }),
+    });
+  };
+
   // Restore from Trash → back to All.
   const restore = async (id: string) => {
     if (!key) return;
@@ -255,6 +267,7 @@ export function ApplicationsView({
     "Company",
     "Role",
     "Stage",
+    "Referral",
     "Cycle",
     "Applied",
     "Last update",
@@ -267,6 +280,9 @@ export function ApplicationsView({
         a.company,
         a.role,
         STAGE_LABEL[a.stage],
+        // Marked only when there is one — a column of "No" is noise in a sheet
+        // you scan, and blank cells make the referrals the thing that stands out.
+        a.referral ? "Yes" : "",
         y ? cycleLabel(y) : "",
         a.appliedAt ? a.appliedAt.slice(0, 10) : "",
         a.eventDate.slice(0, 10),
@@ -687,6 +703,40 @@ export function ApplicationsView({
                           : ""}
                       </div>
                     </button>
+                    {/* Referral — the one thing no email can tell us */}
+                    <div
+                      className="flex shrink-0 items-center gap-1.5"
+                      title="Did someone refer you for this one?"
+                    >
+                      <span className="hidden font-mono text-[10px] uppercase tracking-wider text-ink-faint sm:inline">
+                        referral
+                      </span>
+                      <div
+                        role="group"
+                        aria-label={`Referral for ${a.company}`}
+                        className="flex overflow-hidden rounded-md border border-line bg-mist"
+                      >
+                        {([true, false] as const).map((yes) => {
+                          const on = a.referral === yes;
+                          return (
+                            <button
+                              key={String(yes)}
+                              onClick={() => setReferral(a.id, yes)}
+                              aria-pressed={on}
+                              className={`px-2 py-[3px] font-mono text-[10px] uppercase tracking-wider transition-all ${
+                                on
+                                  ? yes
+                                    ? "bg-leaf text-canvas"
+                                    : "bg-surface text-ink-soft"
+                                  : "text-ink-faint hover:text-ink"
+                              }`}
+                            >
+                              {yes ? "yes" : "no"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <button
                       onClick={() => remove(a.id)}
                       title="Move to Trash"

@@ -3,6 +3,7 @@ import {
   listApplications,
   deleteApplication,
   restoreApplication,
+  setReferral,
 } from "@/lib/apptracker/store";
 
 export const runtime = "nodejs";
@@ -32,9 +33,10 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ ok: deleted });
 }
 
-// POST /api/applications { key, id, action: "restore" } — restore from Trash.
+// POST /api/applications { key, id, action } — "restore" from Trash, or
+// "referral" with { referral: boolean } to set the hand-marked referral flag.
 export async function POST(req: NextRequest) {
-  let body: { key?: string; id?: string; action?: string };
+  let body: { key?: string; id?: string; action?: string; referral?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -51,6 +53,10 @@ export async function POST(req: NextRequest) {
   if (body.action === "restore") {
     const restored = await restoreApplication(key, id);
     return NextResponse.json({ ok: restored });
+  }
+  if (body.action === "referral") {
+    const set = await setReferral(key, id, body.referral === true);
+    return NextResponse.json({ ok: set });
   }
   return NextResponse.json({ ok: false, error: "unknown action" }, { status: 400 });
 }

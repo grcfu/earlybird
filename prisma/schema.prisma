@@ -153,6 +153,10 @@ model TrackedApplication {
   source      String  @default("email") // "email" | "manual"
   lastSubject String? // subject of the most recent email, for context
 
+  // Did someone refer you for this one? Set by hand — no email says it — and
+  // false until you say otherwise, since most applications have no referral.
+  referral Boolean @default(false)
+
   // Which recruiting cycle this application belongs to, as the summer year it
   // targets (2027 = Summer 2027). Persisted rather than derived so that applying
   // to the same company again next season is a separate application instead of
