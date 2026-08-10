@@ -1004,6 +1004,7 @@ const BOARDS: AtsCompany[] = [
   { company: "InterSystems", token: "intersystems" },
   { company: "IonQ", token: "ionq" },
   { company: "Lucid Software", token: "lucidsoftware" },
+  { company: "Verifone", token: "verifone" },
   { company: "WelbeHealth", token: "welbehealth" },
 ];
 
