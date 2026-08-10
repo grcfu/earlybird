@@ -327,6 +327,11 @@ const BOARDS: AtsCompany[] = [
   { company: "Wyetech", token: "wyetechllc" },
   { company: "Xpansiv", token: "Xpansiv " },
   { company: "Zopa", token: "zopa" },
+  // Mined 2026-08-10 from the new-grad aggregator feeds' apply-URLs, then
+  // each board probed against the live API and kept only on a 200 with at
+  // least one open posting. Same screen as the 08-05 batch: one board per
+  // employer, and nothing already covered here or by another source.
+  { company: "Layup Parts", token: "layup" },
 ];
 
 interface LeverJob {
