@@ -215,6 +215,7 @@ const BOARDS: AtsCompany[] = [
   // each board probed against the live API and kept only on a 200 with at
   // least one open posting. Same screen as the 08-05 batch: one board per
   // employer, and nothing already covered here or by another source.
+  { company: "Alto-Shaam", token: "alto-shaam" },
   { company: "SquareTrade", token: "squaretrade1" },
 ];
 
