@@ -673,6 +673,11 @@ const BOARDS: AtsCompany[] = [
   { company: "Watney", token: "watney" },
   { company: "ZeroMark", token: "zeromark" },
   { company: "Zilch", token: "zilch" },
+  // Mined 2026-08-10 from the new-grad aggregator feeds' apply-URLs, then
+  // each board probed against the live API and kept only on a 200 with at
+  // least one open posting. Same screen as the 08-05 batch: one board per
+  // employer, and nothing already covered here or by another source.
+  { company: "Teya", token: "teya" },
 ];
 
 interface AshbyJob {
