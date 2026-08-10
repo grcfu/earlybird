@@ -333,6 +333,7 @@ const BOARDS: AtsCompany[] = [
   // employer, and nothing already covered here or by another source.
   { company: "Layup Parts", token: "layup" },
   { company: "Nium", token: "nium" },
+  { company: "PDI Technologies", token: "pditechnologies" },
   { company: "Rover", token: "rover" },
 ];
 
