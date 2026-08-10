@@ -679,6 +679,7 @@ const BOARDS: AtsCompany[] = [
   // employer, and nothing already covered here or by another source.
   { company: "Candid Health", token: "candidhealth" },
   { company: "Cape", token: "cape" },
+  { company: "Emerald AI", token: "emerald-ai" },
   { company: "interface.ai", token: "interface-ai" },
   { company: "Teya", token: "teya" },
   { company: "Thumbtack", token: "thumbtack" },
