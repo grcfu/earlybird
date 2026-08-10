@@ -332,6 +332,7 @@ const BOARDS: AtsCompany[] = [
   // least one open posting. Same screen as the 08-05 batch: one board per
   // employer, and nothing already covered here or by another source.
   { company: "Layup Parts", token: "layup" },
+  { company: "Nium", token: "nium" },
 ];
 
 interface LeverJob {
