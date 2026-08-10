@@ -336,6 +336,7 @@ const BOARDS: AtsCompany[] = [
   { company: "PDI Technologies", token: "pditechnologies" },
   { company: "Perforce", token: "perforce" },
   { company: "Rover", token: "rover" },
+  { company: "Valkyrie Trading", token: "valkyrietrading" },
 ];
 
 interface LeverJob {
