@@ -334,6 +334,7 @@ const BOARDS: AtsCompany[] = [
   { company: "Layup Parts", token: "layup" },
   { company: "Nium", token: "nium" },
   { company: "PDI Technologies", token: "pditechnologies" },
+  { company: "Perforce", token: "perforce" },
   { company: "Rover", token: "rover" },
 ];
 
