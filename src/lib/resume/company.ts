@@ -81,3 +81,64 @@ export function guessCompany(jd: string): string {
 
   return "";
 }
+
+// --- Export filename ---------------------------------------------------------
+
+// Generational and credential suffixes, so "Ada Lovelace, PhD" surnames to
+// "Lovelace" rather than "PhD".
+const NAME_SUFFIX = new Set([
+  "jr", "sr", "ii", "iii", "iv", "v",
+  "phd", "md", "mba", "ms", "ma", "bs", "ba", "msc", "bsc", "jd", "dds", "rn",
+]);
+
+/**
+ * The company as a filename fragment: legal suffix dropped, punctuation
+ * stripped, whitespace collapsed.
+ */
+export function sanitizeCompany(company: string): string {
+  let s = company.trim().replace(SUFFIX_RE, "");
+  // Ampersand reads better spelled out than deleted: "P&G" -> "PandG" would be
+  // odd, but "Johnson & Johnson" -> "Johnson Johnson" loses nothing.
+  s = s.replace(/&/g, " ");
+  // Strip everything that isn't a letter, digit or space — including the
+  // characters that are illegal in a filename.
+  s = s.replace(/[^\p{L}\p{N}\s]/gu, " ");
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/** Surname from a full name, or "" when there isn't one to take. */
+export function lastNameOf(fullName: string): string {
+  const cleaned = fullName
+    .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+
+  const parts = cleaned
+    .split(" ")
+    .filter((p) => !NAME_SUFFIX.has(p.toLowerCase().replace(/[.'-]/g, "")));
+  if (parts.length === 0) return "";
+
+  const last = parts[parts.length - 1];
+  // Resumes very often set the name in all caps. Shouting in a filename is
+  // avoidable, so title-case it — but only when the whole name was uppercase,
+  // so deliberate casing like "McDonald" survives untouched.
+  const allCaps = cleaned === cleaned.toUpperCase();
+  return allCaps
+    ? last.charAt(0).toUpperCase() + last.slice(1).toLowerCase()
+    : last;
+}
+
+/**
+ * "{LastName}_Resume_{Company}.docx", per the feature spec.
+ *
+ * Falls back gracefully at each step: no company gives "Lovelace_Resume.docx",
+ * and no usable name gives "Resume_Kestrel Robotics.docx". A filename is never
+ * a reason to refuse a download the user has already earned.
+ */
+export function exportFilename(fullName: string, company: string): string {
+  const last = lastNameOf(fullName);
+  const co = sanitizeCompany(company);
+  const stem = [last, "Resume", co].filter(Boolean).join("_");
+  return `${stem}.docx`;
+}

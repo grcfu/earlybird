@@ -17,6 +17,7 @@ import {
   SkillsToSurface,
 } from "@/components/ResumeCoverage";
 import { BulletReview } from "@/components/ResumeBulletReview";
+import { ResumeExport } from "@/components/ResumeExport";
 
 // The Resume Tailor container: owns the stored resume and switches between the
 // three screens. Import writes to the server; Tailor and Export only ever read,
@@ -241,11 +242,13 @@ export function ResumeTailorView() {
       )}
 
       {screen === "export" && resume && (
-        <Panel>
-          <SectionTitle hint="Download your resume with the approved edits applied.">
-            Export
-          </SectionTitle>
-        </Panel>
+        <ResumeExport
+          resume={resume}
+          analysis={analysis}
+          accepted={accepted}
+          company={company}
+          surfaced={surfaced}
+        />
       )}
     </div>
   );

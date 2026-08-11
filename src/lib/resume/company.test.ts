@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { guessCompany } from "@/lib/resume/company";
+import {
+  guessCompany,
+  sanitizeCompany,
+  lastNameOf,
+  exportFilename,
+} from "@/lib/resume/company";
 
 test("an explicit Company: line wins", () => {
   assert.equal(guessCompany("Company: Kestrel Robotics\nBackend intern"), "Kestrel Robotics");
@@ -61,4 +66,59 @@ test("the real-world ad used to verify the analyze route", () => {
 
 About the role: You will work on our distributed control plane.`;
   assert.equal(guessCompany(jd), "Kestrel Robotics");
+});
+
+// --- Export filename ---------------------------------------------------------
+
+test("sanitizeCompany drops legal suffixes", () => {
+  assert.equal(sanitizeCompany("Kestrel Robotics, Inc."), "Kestrel Robotics");
+  assert.equal(sanitizeCompany("Acme LLC"), "Acme");
+});
+
+test("sanitizeCompany strips punctuation and collapses spaces", () => {
+  assert.equal(sanitizeCompany("Ben & Jerry's"), "Ben Jerry s");
+  assert.equal(sanitizeCompany("Yahoo!"), "Yahoo");
+  assert.equal(sanitizeCompany("  Spaced    Out  "), "Spaced Out");
+});
+
+test("sanitizeCompany removes characters that are illegal in a filename", () => {
+  // A slash would silently create a directory path, or fail the download.
+  assert.equal(sanitizeCompany("A/B Testing Co."), "A B Testing");
+  assert.equal(sanitizeCompany('Weird:*?"<>|Name'), "Weird Name");
+});
+
+test("lastNameOf takes the surname", () => {
+  assert.equal(lastNameOf("Ada Lovelace"), "Lovelace");
+  assert.equal(lastNameOf("Ada King Lovelace"), "Lovelace");
+});
+
+test("lastNameOf title-cases a shouted name but leaves deliberate casing alone", () => {
+  assert.equal(lastNameOf("ADA LOVELACE"), "Lovelace");
+  assert.equal(lastNameOf("Ronald McDonald"), "McDonald");
+});
+
+test("lastNameOf ignores credential and generational suffixes", () => {
+  assert.equal(lastNameOf("Ada Lovelace, PhD"), "Lovelace");
+  assert.equal(lastNameOf("John Smith Jr."), "Smith");
+  assert.equal(lastNameOf("Henry Ford III"), "Ford");
+});
+
+test("lastNameOf copes with one word and with nothing", () => {
+  assert.equal(lastNameOf("Prince"), "Prince");
+  assert.equal(lastNameOf(""), "");
+  assert.equal(lastNameOf("   "), "");
+});
+
+test("exportFilename builds LastName_Resume_Company.docx", () => {
+  assert.equal(
+    exportFilename("Ada Lovelace", "Kestrel Robotics, Inc."),
+    "Lovelace_Resume_Kestrel Robotics.docx",
+  );
+});
+
+test("exportFilename degrades rather than failing", () => {
+  // A missing piece should never block a download the user already earned.
+  assert.equal(exportFilename("Ada Lovelace", ""), "Lovelace_Resume.docx");
+  assert.equal(exportFilename("", "Acme Inc"), "Resume_Acme.docx");
+  assert.equal(exportFilename("", ""), "Resume.docx");
 });
