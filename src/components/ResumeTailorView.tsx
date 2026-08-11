@@ -16,6 +16,7 @@ import {
   HonestGaps,
   SkillsToSurface,
 } from "@/components/ResumeCoverage";
+import { BulletReview } from "@/components/ResumeBulletReview";
 
 // The Resume Tailor container: owns the stored resume and switches between the
 // three screens. Import writes to the server; Tailor and Export only ever read,
@@ -143,6 +144,9 @@ export function ResumeTailorView() {
   const [analysis, setAnalysis] = useState<TailorAnalysis | null>(null);
   // Which suggested skills to push to the front of their list on export.
   const [surfaced, setSurfaced] = useState<Set<string>>(new Set());
+  // Approved edits, by suggestion key. Nothing starts accepted: a tailored
+  // resume is a claim about yourself, so each change has to be an act.
+  const [accepted, setAccepted] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -214,6 +218,7 @@ export function ResumeTailorView() {
             // A fresh analysis proposes a different set of skills, so carrying
             // ticks across would leave selections attached to nothing.
             setSurfaced(new Set());
+            setAccepted(new Set());
           }}
         >
           {analysis && (
@@ -225,6 +230,11 @@ export function ResumeTailorView() {
                 setSelected={setSurfaced}
               />
               <HonestGaps analysis={analysis} />
+              <BulletReview
+                analysis={analysis}
+                accepted={accepted}
+                setAccepted={setAccepted}
+              />
             </>
           )}
         </ResumeTailor>
