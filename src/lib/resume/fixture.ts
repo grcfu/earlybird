@@ -23,16 +23,21 @@ export interface FixtureParagraph {
   // Wrap this paragraph in a single-cell table, the way resumes that use
   // invisible tables for layout do.
   inTable?: boolean;
+  // Font size in HALF-points (Word's unit), applied to the paragraph mark and
+  // to every run. Needed to express the height-saving trick real resumes use:
+  // an empty spacer paragraph set in 3pt (sz: 6) instead of full body size.
+  sz?: number;
 }
 
 function xmlEscape(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function runXml(r: FixtureRun): string {
+function runXml(r: FixtureRun, sz?: number): string {
   const props: string[] = [];
   if (r.bold) props.push("<w:b/>");
   if (r.italic) props.push("<w:i/>");
+  if (sz) props.push(`<w:sz w:val="${sz}"/>`);
   const rPr = props.length ? `<w:rPr>${props.join("")}</w:rPr>` : "";
   // xml:space="preserve" matters: without it Word drops leading/trailing
   // spaces, which is exactly how runs get glued together wrongly.
@@ -40,10 +45,11 @@ function runXml(r: FixtureRun): string {
 }
 
 function paragraphXml(p: FixtureParagraph): string {
-  const pPr = p.bullet
-    ? '<w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>'
-    : "";
-  const body = `<w:p>${pPr}${p.runs.map(runXml).join("")}</w:p>`;
+  const inner =
+    (p.bullet ? '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>' : "") +
+    (p.sz ? `<w:rPr><w:sz w:val="${p.sz}"/></w:rPr>` : "");
+  const pPr = inner ? `<w:pPr>${inner}</w:pPr>` : "";
+  const body = `<w:p>${pPr}${p.runs.map((r) => runXml(r, p.sz)).join("")}</w:p>`;
   if (!p.inTable) return body;
   return `<w:tbl><w:tr><w:tc>${body}</w:tc></w:tr></w:tbl>`;
 }
@@ -60,17 +66,46 @@ const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`;
 
-export function buildDocx(paragraphs: FixtureParagraph[]): Buffer {
+export interface FixtureOptions {
+  // Page geometry, in twips (1 inch = 1440). Defaults to US Letter with 1"
+  // margins, which is what a resume template almost always is.
+  pgSz?: { w: number; h: number };
+  pgMar?: { top: number; bottom: number; left: number; right: number };
+  // Word writes docProps/app.xml on save, with its own count of pages and
+  // lines. Omit to simulate a file from Google Docs or a LaTeX converter,
+  // which often ship without it.
+  appProps?: { pages: number; lines: number };
+}
+
+const DEFAULT_MAR = { top: 1440, bottom: 1440, left: 1440, right: 1440 };
+
+export function buildDocx(
+  paragraphs: FixtureParagraph[],
+  opts: FixtureOptions = {},
+): Buffer {
+  const pgSz = opts.pgSz ?? { w: 12240, h: 15840 };
+  const mar = opts.pgMar ?? DEFAULT_MAR;
   const body = paragraphs.map(paragraphXml).join("");
+  const sectPr =
+    `<w:sectPr><w:pgSz w:w="${pgSz.w}" w:h="${pgSz.h}"/>` +
+    `<w:pgMar w:top="${mar.top}" w:right="${mar.right}" w:bottom="${mar.bottom}" w:left="${mar.left}"/></w:sectPr>`;
   const document = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-<w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body>
+<w:body>${body}${sectPr}</w:body>
 </w:document>`;
 
   const zip = new PizZip();
   zip.file("[Content_Types].xml", CONTENT_TYPES);
   zip.file("_rels/.rels", RELS);
   zip.file(DOCUMENT_PATH, document);
+  if (opts.appProps) {
+    zip.file(
+      "docProps/app.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">
+<Pages>${opts.appProps.pages}</Pages><Lines>${opts.appProps.lines}</Lines><Words>420</Words></Properties>`,
+    );
+  }
   return zip.generate({ type: "nodebuffer" });
 }
 
