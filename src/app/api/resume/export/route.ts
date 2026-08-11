@@ -6,6 +6,7 @@ import { applyDocxEdits } from "@/lib/resume/docx-replace";
 import { surfaceSkillsInDocx } from "@/lib/resume/skills";
 import { exportFilename } from "@/lib/resume/company";
 import { coerceResumeData, bulletTextById } from "@/lib/resume/schema";
+import { encodeHeaderValue, asciiFilename } from "@/lib/resume/http-headers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,10 @@ interface ExportBody {
   additions?: unknown;
   // Skills ticked on the Tailor screen.
   surfaced?: unknown;
+  // Bullet ids the user chose to drop to fit one page.
+  dropIds?: unknown;
+  // Step the body font down by 0.5pt, never below 10pt.
+  shrinkBody?: unknown;
 }
 
 function asEdits(v: unknown): { bulletId: string; text: string }[] {
@@ -38,6 +43,7 @@ function asStrings(v: unknown): string[] {
     ? v.map((s) => (typeof s === "string" ? s.trim() : "")).filter(Boolean)
     : [];
 }
+
 
 // POST /api/resume/export → the tailored .docx as a download.
 //
@@ -65,6 +71,8 @@ export async function POST(req: NextRequest) {
   const edits = asEdits(body.edits);
   const additions = asStrings(body.additions);
   const surfaced = asStrings(body.surfaced);
+  const dropIds = asStrings(body.dropIds);
+  const shrinkBody = body.shrinkBody === true;
 
   const row = await prisma.resume.findUnique({
     where: { userId: uid },
@@ -109,6 +117,16 @@ export async function POST(req: NextRequest) {
     if (!replace.has(id)) replace.set(id, text);
   }
 
+  // Dropping a bullet is expressed as replacing it with empty text: the
+  // paragraph collapses and Word reflows around it. Applied after the edits so
+  // a bullet the user both reworded and then dropped ends up dropped.
+  const dropped: string[] = [];
+  for (const id of dropIds) {
+    if (!known.has(id)) continue;
+    replace.set(id, "");
+    dropped.push(id);
+  }
+
   // New bullets go after the last experience bullet, so they land inside the
   // experience section and inherit its list formatting. Without an anchor there
   // is nowhere safe to put them, so they're reported as skipped instead of
@@ -122,7 +140,13 @@ export async function POST(req: NextRequest) {
       ? { id: anchor, texts: additions }
       : undefined;
 
-  const result = applyDocxEdits(source, { replace, insertAfter });
+  const result = applyDocxEdits(source, {
+    replace,
+    insertAfter,
+    fit: shrinkBody
+      ? { shrinkBodyBy: 1, floorHalfPoints: 20 }
+      : undefined,
+  });
 
   const filename = exportFilename(data.basics.name, company);
   // The report rides along in headers so the UI can tell the user what happened
@@ -136,6 +160,10 @@ export async function POST(req: NextRequest) {
       `${result.flattened.length} bullet(s) lost inline bold/italic because the reworded text dropped the formatted words`,
     );
   }
+  if (dropped.length > 0) {
+    notes.push(`${dropped.length} bullet(s) removed to fit one page`);
+  }
+  for (const n of result.fitNotes) notes.push(n);
   if (additions.length > 0 && !insertAfter) {
     notes.push(
       `${additions.length} new bullet(s) skipped — no experience bullet to attach them to`,
@@ -147,12 +175,13 @@ export async function POST(req: NextRequest) {
     headers: {
       "content-type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      // RFC 5987 form as well, so a non-ASCII surname survives the trip.
-      "content-disposition": `attachment; filename="${filename.replace(/["\\]/g, "")}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      // ASCII fallback plus the RFC 5987 form, so a non-ASCII surname survives
+      // the trip instead of throwing on header construction.
+      "content-disposition": `attachment; filename="${asciiFilename(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       "content-length": String(result.buffer.length),
       "x-resume-replaced": String(result.replaced.length),
       "x-resume-inserted": String(result.inserted),
-      "x-resume-notes": notes.join("; "),
+      "x-resume-notes": encodeHeaderValue(notes.join("; ")),
       "cache-control": "no-store",
     },
   });

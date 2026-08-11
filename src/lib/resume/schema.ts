@@ -416,3 +416,45 @@ export function bulletTextById(data: ResumeData): Map<string, string> {
   for (const p of data.projects) for (const b of p.bullets) m.set(b.id, b.text);
   return m;
 }
+
+// --- Fit: which bullet to drop ----------------------------------------------
+// When the tailored resume spills onto a second page, the user is offered a cut
+// before a font change. Gemini ranks candidates; the user decides. Nothing is
+// ever removed automatically.
+
+export interface CutSuggestion {
+  bulletId: string;
+  // Why this one is the least costly to lose FOR THIS POSTING.
+  reason: string;
+}
+
+export const CUT_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    cuts: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { bulletId: STRING, reason: STRING },
+        required: ["bulletId", "reason"],
+        propertyOrdering: ["bulletId", "reason"],
+      },
+    },
+  },
+  required: ["cuts"],
+  propertyOrdering: ["cuts"],
+} as const;
+
+// Only bullets that exist may be proposed for removal — a cut naming an unknown
+// id would render as an option that silently does nothing.
+export function coerceCuts(
+  v: unknown,
+  validIds: ReadonlySet<string>,
+): CutSuggestion[] {
+  return arr(obj(v).cuts)
+    .map((c) => {
+      const x = obj(c);
+      return { bulletId: str(x.bulletId), reason: str(x.reason) };
+    })
+    .filter((c) => c.bulletId !== "" && validIds.has(c.bulletId));
+}

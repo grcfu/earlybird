@@ -291,6 +291,7 @@ export function ResumeTailorView() {
           accepted={accepted}
           company={company}
           surfaced={surfaced}
+          jd={jd}
         />
       )}
     </div>
