@@ -85,16 +85,31 @@ function paragraphSpacingTwips(xml: string): number {
   return before + after;
 }
 
+// Roughly how many characters fit on one line at this size.
+function charsPerLineIn(halfPoints: number, geom: Geometry): number {
+  const pt = halfPoints / 2;
+  const charWidth = CHAR_WIDTH_EM * pt * TWIPS_PER_POINT;
+  return Math.max(1, Math.floor(geom.usableWidthTwips / charWidth));
+}
+
+/**
+ * Characters per line for body text in this document.
+ *
+ * Exposed for the skills-line budget: a skills line that fits on one line today
+ * can wrap to two when a skill is added, which costs a line on a resume with
+ * none to spare. Same crude model the estimator uses, so the two agree.
+ */
+export function bodyCharsPerLine(documentXml: string): number {
+  return charsPerLineIn(bodyHalfPoints(documentXml), readGeometry(documentXml));
+}
+
 // How many wrapped lines a string of this length occupies at this size.
 function wrappedLines(
   chars: number,
   halfPoints: number,
   geom: Geometry,
 ): number {
-  const pt = halfPoints / 2;
-  const charWidth = CHAR_WIDTH_EM * pt * TWIPS_PER_POINT;
-  const perLine = Math.max(1, Math.floor(geom.usableWidthTwips / charWidth));
-  return Math.max(1, Math.ceil(chars / perLine));
+  return Math.max(1, Math.ceil(chars / charsPerLineIn(halfPoints, geom)));
 }
 
 // Vertical space a paragraph occupies, expressed in "standard lines" so that a

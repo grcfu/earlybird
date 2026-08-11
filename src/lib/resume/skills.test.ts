@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reorderSkillLine, surfaceSkillsInDocx } from "@/lib/resume/skills";
+import {
+  reorderSkillLine,
+  surfaceSkillsInDocx,
+  parseSkillLine,
+  renderSkillLine,
+  planSkillAddition,
+} from "@/lib/resume/skills";
 import { readDocx } from "@/lib/resume/docx";
 import { buildDocx } from "@/lib/resume/fixture";
 import { coerceResumeData } from "@/lib/resume/schema";
@@ -98,4 +104,86 @@ test("no surfaced skills means no edits at all", () => {
   const docx = buildDocx([{ runs: [{ text: "Languages: Go, TypeScript, Python" }] }]);
   const { paragraphs } = readDocx(docx);
   assert.equal(surfaceSkillsInDocx(paragraphs, resume, []).size, 0);
+});
+
+// --- Multi-list parsing and the one-line budget ------------------------------
+
+// The user's actual skills line: two lists in one paragraph.
+const REAL = "Languages: Go, TypeScript. Tools: Docker & git.";
+
+test("a multi-list skills line parses into its lists", () => {
+  const segs = parseSkillLine(REAL)!;
+  assert.equal(segs.length, 2);
+  assert.deepEqual(segs[0], { label: "Languages", items: ["Go", "TypeScript"], trailer: ".", lead: "" });
+  assert.deepEqual(segs[1].label, "Tools");
+  assert.deepEqual(segs[1].items, ["Docker & git"]);
+});
+
+test("parse then render round-trips the text exactly", () => {
+  // Anything less and rewriting a skills line would silently reformat it.
+  for (const text of [
+    REAL,
+    "Languages: Go, TypeScript, Python",
+    "Languages: Go, TypeScript; Tools: Docker, git;",
+    "Skills: A, B, C.",
+  ]) {
+    assert.equal(renderSkillLine(parseSkillLine(text)!), text, text);
+  }
+});
+
+test("a line with no label is refused rather than guessed at", () => {
+  assert.equal(parseSkillLine("Just a sentence with no list"), null);
+  assert.equal(parseSkillLine(""), null);
+});
+
+test("adding fits free when there is room on the line", () => {
+  const plan = planSkillAddition(REAL, "Tools", "Kubernetes", [], 200)!;
+  assert.equal(plan.freeFit, true);
+  assert.deepEqual(plan.dropped, []);
+  assert.ok(plan.text.includes("Kubernetes"));
+  assert.ok(plan.text.startsWith("Languages: Go, TypeScript."), "other list untouched");
+});
+
+test("adding swaps out the least relevant skill when the line would wrap", () => {
+  const text = "Languages: Go, TypeScript, Python, Ruby";
+  // Tight budget forces a swap. Ruby is rightmost and unwanted, so it goes.
+  const plan = planSkillAddition(text, "Languages", "Rust", ["Rust", "Go"], 40)!;
+  assert.equal(plan.freeFit, false);
+  assert.deepEqual(plan.dropped, ["Ruby"]);
+  assert.ok(plan.text.includes("Rust"));
+  assert.ok(!plan.text.includes("Ruby"));
+  assert.ok(plan.text.length <= 40, plan.text);
+});
+
+test("a swap never drops a skill the posting asked for", () => {
+  // Go is wanted, so even though it is a drop candidate by position, it stays.
+  const text = "Languages: Go, TypeScript, Python";
+  const plan = planSkillAddition(text, "Languages", "Rust", ["Rust", "Go", "Python"], 30)!;
+  assert.ok(!plan.dropped.includes("Go"));
+  assert.ok(!plan.dropped.includes("Python"));
+  assert.ok(plan.text.includes("Go"));
+});
+
+test("when everything left is wanted, it says the line still wraps", () => {
+  // Honesty over a bad swap: the caller decides what to do about it.
+  const text = "Languages: Go, TypeScript";
+  const plan = planSkillAddition(text, "Languages", "Rust", ["Go", "TypeScript", "Rust"], 10)!;
+  assert.equal(plan.stillWraps, true);
+  assert.deepEqual(plan.dropped, []);
+});
+
+test("adding a skill that is already listed changes nothing", () => {
+  const plan = planSkillAddition(REAL, "Languages", "go", [], 200)!;
+  assert.equal(plan.text, REAL);
+  assert.deepEqual(plan.dropped, []);
+});
+
+test("an unknown label is refused", () => {
+  assert.equal(planSkillAddition(REAL, "Frameworks", "React", [], 200), null);
+});
+
+test("the other lists are never disturbed by an addition", () => {
+  const text = "Languages: Go, TypeScript, Ruby. Tools: Docker, git, make.";
+  const plan = planSkillAddition(text, "Languages", "Rust", ["Rust"], 50)!;
+  assert.ok(plan.text.includes("Tools: Docker, git, make."), plan.text);
 });
