@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateJson, GeminiError } from "@/lib/resume/gemini";
+import { reserveGeminiCall, quotaMessage } from "@/lib/resume/quota";
 import {
   ANALYSIS_RESPONSE_SCHEMA,
   coerceAnalysis,
@@ -149,6 +150,15 @@ export async function POST(req: NextRequest) {
   }
   const data = coerceResumeData(row.data);
   const originals = bulletTextById(data);
+
+  // Count this against the user's daily ceiling before spending the call.
+  const quota = await reserveGeminiCall(uid);
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { ok: false, error: quotaMessage(quota) },
+      { status: 429 },
+    );
+  }
 
   let analysis: TailorAnalysis;
   try {

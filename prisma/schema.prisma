@@ -231,6 +231,7 @@ model User {
   preferences       NotificationPreference[]
   sentNotifications SentNotification[]
   resume            Resume?
+  aiUsage           AiUsage[]
 }
 
 // Auth.js: a linked OAuth account (Google) for a User.
@@ -347,4 +348,25 @@ model Resume {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Per-user, per-day count of Gemini calls made by the Resume Tailor.
+//
+// The API key is the app owner's, not the user's: every parse, analyze and fit
+// bills to one account and shares one rate limit. With a couple of users that
+// is fine; it stops being fine the moment someone discovers the tab. This is
+// the ceiling that keeps one enthusiastic user from spending the owner's quota
+// or 429-ing everyone else.
+//
+// A row per (user, day) rather than a rolling window: it is one indexed upsert
+// per call, and old rows are trivially prunable by day.
+model AiUsage {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day    String // "YYYY-MM-DD" (UTC)
+  count  Int    @default(0)
+
+  @@unique([userId, day])
+  @@index([day])
 }

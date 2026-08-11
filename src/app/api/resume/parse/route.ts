@@ -3,6 +3,7 @@ import mammoth from "mammoth";
 import { auth } from "@/auth";
 import { readDocx } from "@/lib/resume/docx";
 import { generateJson, GeminiError } from "@/lib/resume/gemini";
+import { reserveGeminiCall, quotaMessage } from "@/lib/resume/quota";
 import {
   RESUME_RESPONSE_SCHEMA,
   coerceResumeData,
@@ -147,6 +148,14 @@ export async function POST(req: NextRequest) {
     }
   } catch {
     // The cross-check is advisory; never fail an import over it.
+  }
+
+  const quota = await reserveGeminiCall(session.user.id);
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { ok: false, error: quotaMessage(quota) },
+      { status: 429 },
+    );
   }
 
   let data: ResumeData;

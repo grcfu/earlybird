@@ -5,6 +5,7 @@ import { readDocumentXml, extractParagraphs } from "@/lib/resume/docx";
 import { applySkillAdditions } from "@/lib/resume/skills";
 import { estimateFit, bodyHalfPoints, bodyCharsPerLine } from "@/lib/resume/fit";
 import { generateJson, GeminiError } from "@/lib/resume/gemini";
+import { reserveGeminiCall, quotaMessage } from "@/lib/resume/quota";
 import {
   CUT_RESPONSE_SCHEMA,
   coerceCuts,
@@ -150,6 +151,12 @@ export async function POST(req: NextRequest) {
   let cuts: CutSuggestion[] = [];
   let cutError = "";
   if (estimate.verdict === "spills") {
+    // Only the cut ranking costs a call, so only that branch is metered — a
+    // resume that fits never touches the quota.
+    const quota = await reserveGeminiCall(uid);
+    if (!quota.allowed) {
+      return NextResponse.json({ ok: true, estimate, cuts: [], cutError: quotaMessage(quota), canShrink, bodyPt: body_ / 2, shrunkPt: (body_ - STEP_HALF_POINTS) / 2 });
+    }
     const jd = typeof body.jd === "string" ? body.jd.trim().slice(0, 12_000) : "";
     // The bullets as they will appear after the accepted edits — cutting should
     // be judged on the tailored text, not the original.
