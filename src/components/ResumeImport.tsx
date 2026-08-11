@@ -10,8 +10,8 @@ import {
   SkeletonBlock,
   ErrorNote,
   WarningNote,
-  SectionTitle,
 } from "@/components/ResumeUi";
+import { ResumeReviewTable } from "@/components/ResumeReviewTable";
 import type { StoredResume } from "@/components/ResumeTailorView";
 
 // Import screen: drop a .docx, watch it get read, review the result, save.
@@ -171,8 +171,9 @@ export function ResumeImport({
           {draft.warnings.map((w, i) => (
             <WarningNote key={i}>{w}</WarningNote>
           ))}
-          <ParsedSummary
+          <ParsedReview
             draft={draft}
+            setDraft={setDraft}
             onSaved={onSaved}
             setError={setError}
             onDiscard={() => setDraft(null)}
@@ -183,15 +184,17 @@ export function ResumeImport({
   );
 }
 
-// Confirmation of what the parse found, and the commit point. Nothing is stored
-// until Save, so abandoning here leaves no record.
-function ParsedSummary({
+// The review pass and the commit point. Nothing is stored until Save, so
+// abandoning here leaves no record.
+function ParsedReview({
   draft,
+  setDraft,
   onSaved,
   setError,
   onDiscard,
 }: {
   draft: Draft;
+  setDraft: (d: Draft) => void;
   onSaved: (r: StoredResume) => void;
   setError: (s: string) => void;
   onDiscard: () => void;
@@ -222,26 +225,22 @@ function ParsedSummary({
 
   return (
     <Panel>
-      <SectionTitle hint={draft.file.name}>Parsed</SectionTitle>
-      <p className="font-display text-lg font-bold text-ink">
-        {draft.data.basics.name || "(no name found)"}
-      </p>
-      <p className="mt-0.5 text-xs text-ink-soft">
-        {[draft.data.basics.email, draft.data.basics.phone, draft.data.basics.location]
-          .filter(Boolean)
-          .join(" · ") || "(no contact details found)"}
-      </p>
-      <p className="mt-3 font-mono text-[11px] text-ink-faint">
-        {draft.data.experience.length} roles · {draft.data.projects.length}{" "}
-        projects · {bullets} bullets
-      </p>
-      <div className="mt-4 flex items-center gap-2">
+      <ResumeReviewTable
+        data={draft.data}
+        onChange={(data) => setDraft({ ...draft, data })}
+      />
+
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
         <Button onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save resume"}
         </Button>
         <Button variant="ghost" disabled={saving} onClick={onDiscard}>
           Discard
         </Button>
+        <span className="ml-auto font-mono text-[10px] text-ink-faint">
+          {draft.file.name} · {draft.data.experience.length} roles ·{" "}
+          {draft.data.projects.length} projects · {bullets} bullets
+        </span>
       </div>
     </Panel>
   );
