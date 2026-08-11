@@ -18,6 +18,66 @@ import type { CutSuggestion } from "@/lib/resume/schema";
 import type { FitEstimate } from "@/lib/resume/fit";
 import type { SkillAddition } from "@/components/ResumeSkillsToAdd";
 
+// A browser cannot write to a path an app chooses — that boundary is
+// deliberate, and no amount of code gets around it. What it CAN do, in Chrome
+// and Edge, is open the OS save dialog and remember the folder you last used
+// for this site, so the second export defaults to your resumes folder instead
+// of Downloads. Firefox and Safari have no such API, so they fall back to an
+// ordinary download.
+interface SaveFilePickerWindow {
+  showSaveFilePicker?: (opts: {
+    suggestedName?: string;
+    startIn?: string;
+    id?: string;
+    types?: { description: string; accept: Record<string, string[]> }[];
+  }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: Blob) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
+
+async function saveBlob(blob: Blob, filename: string): Promise<void> {
+  const picker = (window as unknown as SaveFilePickerWindow).showSaveFilePicker;
+  if (picker) {
+    try {
+      const handle = await picker({
+        suggestedName: filename,
+        // A stable id is what makes the browser reopen in the same folder.
+        id: "earlybird-resume",
+        types: [
+          {
+            description: "Word document",
+            accept: {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                [".docx"],
+            },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      // AbortError means the user closed the dialog — that is a decision, not a
+      // failure, so don't fall through and download it anyway behind their back.
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      // Anything else (a permissions policy, a sandboxed iframe): fall back.
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // Export screen: what will be applied, and the download.
 //
 // The file is built server-side from the stored .docx and streamed back, so the
@@ -143,15 +203,7 @@ export function ResumeExport({
         setNotes(note.split("; ").filter(Boolean));
       }
 
-      // Trigger the save dialog from an object URL, then release it.
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, filename);
       setDone(filename);
     } catch {
       setError("Couldn't reach the server.");
@@ -262,6 +314,13 @@ export function ResumeExport({
       {notes.map((n, i) => (
         <WarningNote key={i}>{n}</WarningNote>
       ))}
+
+      <p className="text-[11px] leading-relaxed text-ink-faint">
+        Need a PDF? Open the downloaded file and use Word&apos;s File → Save As →
+        PDF. EarlyBird doesn&apos;t convert it server-side on purpose: that needs
+        LibreOffice, which renders .docx slightly differently from Word, so the
+        PDF could quietly not match the document you just checked.
+      </p>
 
       {done && !error && (
         <p className="rounded-xl border border-leaf-deep bg-leaf-soft px-4 py-3 text-xs leading-relaxed text-leaf">
