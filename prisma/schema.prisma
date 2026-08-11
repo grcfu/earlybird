@@ -230,6 +230,7 @@ model User {
   sessions          Session[]
   preferences       NotificationPreference[]
   sentNotifications SentNotification[]
+  resume            Resume?
 }
 
 // Auth.js: a linked OAuth account (Google) for a User.
@@ -314,4 +315,36 @@ model SentNotification {
 
   @@unique([userId, listingId])
   @@index([listingId])
+}
+
+// The user's base resume for the Resume Tailor tab: the structured JSON that
+// Gemini extracted, plus the original .docx it came from.
+//
+// Both halves are load-bearing and neither substitutes for the other. `data` is
+// what Gemini reasons over when tailoring to a job description. `docx` is what
+// the export actually edits — we reopen the user's own file and swap bullet
+// text inside it, so their fonts, margins and spacing survive verbatim instead
+// of being re-rendered from the JSON into something that merely looks similar.
+//
+// One base resume per user (hence @unique on userId). Tailoring NEVER writes
+// here: an analyze run builds an in-memory working copy, and export streams a
+// modified byte-copy of `docx`. The stored record only changes on an explicit
+// re-import from the Import screen.
+model Resume {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Structured resume; shape is ResumeData in src/lib/resume/schema.ts. Stored
+  // as Json rather than relational tables because it is read and written whole,
+  // never queried field-by-field, and the shape follows the Gemini schema.
+  data Json
+
+  // The uploaded file, byte-for-byte. Resumes are one or two pages (tens of KB),
+  // comfortably inside Postgres bytea and Vercel's 4.5 MB request body cap.
+  docx     Bytes
+  filename String // original upload name, for display only
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
