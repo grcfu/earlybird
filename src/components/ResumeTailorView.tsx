@@ -11,6 +11,11 @@ import {
 } from "@/components/ResumeUi";
 import { ResumeImport, type Draft } from "@/components/ResumeImport";
 import { ResumeTailor } from "@/components/ResumeTailor";
+import {
+  CoverageReport,
+  HonestGaps,
+  SkillsToSurface,
+} from "@/components/ResumeCoverage";
 
 // The Resume Tailor container: owns the stored resume and switches between the
 // three screens. Import writes to the server; Tailor and Export only ever read,
@@ -136,6 +141,8 @@ export function ResumeTailorView() {
   const [jd, setJd] = useState("");
   const [company, setCompany] = useState("");
   const [analysis, setAnalysis] = useState<TailorAnalysis | null>(null);
+  // Which suggested skills to push to the front of their list on export.
+  const [surfaced, setSurfaced] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -202,8 +209,25 @@ export function ResumeTailorView() {
           company={company}
           setCompany={setCompany}
           analysis={analysis}
-          setAnalysis={setAnalysis}
-        />
+          setAnalysis={(a) => {
+            setAnalysis(a);
+            // A fresh analysis proposes a different set of skills, so carrying
+            // ticks across would leave selections attached to nothing.
+            setSurfaced(new Set());
+          }}
+        >
+          {analysis && (
+            <>
+              <CoverageReport analysis={analysis} />
+              <SkillsToSurface
+                analysis={analysis}
+                selected={surfaced}
+                setSelected={setSurfaced}
+              />
+              <HonestGaps analysis={analysis} />
+            </>
+          )}
+        </ResumeTailor>
       )}
 
       {screen === "export" && resume && (
