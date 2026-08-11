@@ -5,6 +5,7 @@ import type { ResumeData, TailorAnalysis } from "@/lib/resume/schema";
 import { allBulletIds } from "@/lib/resume/schema";
 import {
   Panel,
+  Button,
   SkeletonBlock,
   ErrorNote,
   SectionTitle,
@@ -81,7 +82,13 @@ function ScreenNav({
 }
 
 // A short "here's what's stored" card, so the tab opens on something concrete.
-export function StoredResumeCard({ resume }: { resume: StoredResume }) {
+export function StoredResumeCard({
+  resume,
+  onForget,
+}: {
+  resume: StoredResume;
+  onForget: () => void;
+}) {
   const { data } = resume;
   const bullets = allBulletIds(data).length;
   const saved = new Date(resume.updatedAt);
@@ -122,6 +129,14 @@ export function StoredResumeCard({ resume }: { resume: StoredResume }) {
           </div>
         ))}
       </dl>
+      <div className="mt-4 border-t border-line pt-3">
+        <Button variant="danger" onClick={onForget}>
+          Forget this resume
+        </Button>
+        <span className="ml-2 font-mono text-[10px] text-ink-faint">
+          Deletes the stored file and its parsed contents.
+        </span>
+      </div>
     </Panel>
   );
 }
@@ -167,6 +182,32 @@ export function ResumeTailorView() {
     }
   }, []);
 
+  // Drop the stored resume and every trace of the tailoring session with it:
+  // leaving an analysis on screen that points at bullets no longer stored would
+  // export nothing and explain nothing.
+  const forget = useCallback(async () => {
+    if (!window.confirm("Delete your stored resume and the original .docx?")) return;
+    setError("");
+    try {
+      const res = await fetch("/api/resume", { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok || !body.ok) {
+        setError(body.error ?? "Couldn't delete.");
+        return;
+      }
+      setResume(null);
+      setDraft(null);
+      setAnalysis(null);
+      setAccepted(new Set());
+      setSurfaced(new Set());
+      setJd("");
+      setCompany("");
+      setScreen("import");
+    } catch {
+      setError("Couldn't reach the server.");
+    }
+  }, []);
+
   useEffect(() => {
     // Hydrate once after mount. Same shape as ApplicationsView: the fetch sets
     // state, which the rule flags, but there is no server-rendered copy of this
@@ -194,7 +235,9 @@ export function ResumeTailorView() {
 
       {screen === "import" && (
         <div className="space-y-4">
-          {resume && !draft && <StoredResumeCard resume={resume} />}
+          {resume && !draft && (
+            <StoredResumeCard resume={resume} onForget={forget} />
+          )}
           <ResumeImport
             resume={resume}
             draft={draft}
