@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Top-level switch between the two feeds. Rendered on both the internships
-// (/) and hackathons (/hackathons) screens; highlights the active one.
+// Top-level switch between the app's screens. Rendered on each of them;
+// highlights the active one.
 const TABS = [
   { href: "/", label: "Internships", icon: "🎯" },
   { href: "/hackathons", label: "Hackathons", icon: "⚡" },
   { href: "/applications", label: "Applications", icon: "📮" },
+  { href: "/resume", label: "Resume", icon: "📄" },
 ];
 
 export function TabNav() {
