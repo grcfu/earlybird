@@ -124,7 +124,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: `${orphans.length} bullet${orphans.length === 1 ? "" : "s"} don't match this .docx. Re-import the file instead of editing bullet ids.`,
+        error:
+          orphans.length === 1
+            ? "1 bullet doesn't match this .docx. Re-import the file instead of editing bullet ids."
+            : `${orphans.length} bullets don't match this .docx. Re-import the file instead of editing bullet ids.`,
       },
       { status: 400 },
     );

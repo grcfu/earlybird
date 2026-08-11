@@ -9,6 +9,7 @@ import {
   ErrorNote,
   SectionTitle,
 } from "@/components/ResumeUi";
+import { ResumeImport, type Draft } from "@/components/ResumeImport";
 
 // The Resume Tailor container: owns the stored resume and switches between the
 // three screens. Import writes to the server; Tailor and Export only ever read,
@@ -122,6 +123,9 @@ export function ResumeTailorView() {
   const [resume, setResume] = useState<StoredResume | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // An uncommitted parse. Held here rather than inside the Import screen so
+  // switching sub-tabs mid-review doesn't silently throw the work away.
+  const [draft, setDraft] = useState<Draft | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,24 +170,20 @@ export function ResumeTailorView() {
         </div>
       )}
 
-      {screen === "import" &&
-        (resume ? (
-          <StoredResumeCard resume={resume} />
-        ) : (
-          <Panel className="text-center">
-            <div className="mb-3 text-3xl" aria-hidden>
-              📄
-            </div>
-            <h2 className="font-display text-xl font-bold text-ink">
-              No resume yet
-            </h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
-              Upload your base resume as a .docx. It gets read once, and every
-              tailored copy is generated from that same file so your formatting
-              is preserved exactly.
-            </p>
-          </Panel>
-        ))}
+      {screen === "import" && (
+        <div className="space-y-4">
+          {resume && !draft && <StoredResumeCard resume={resume} />}
+          <ResumeImport
+            resume={resume}
+            draft={draft}
+            setDraft={setDraft}
+            onSaved={(r) => {
+              setResume(r);
+              setDraft(null);
+            }}
+          />
+        </div>
+      )}
 
       {screen === "tailor" && resume && (
         <Panel>
