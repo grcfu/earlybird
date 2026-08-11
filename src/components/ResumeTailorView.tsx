@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ResumeData } from "@/lib/resume/schema";
+import type { ResumeData, TailorAnalysis } from "@/lib/resume/schema";
 import { allBulletIds } from "@/lib/resume/schema";
 import {
   Panel,
@@ -10,6 +10,7 @@ import {
   SectionTitle,
 } from "@/components/ResumeUi";
 import { ResumeImport, type Draft } from "@/components/ResumeImport";
+import { ResumeTailor } from "@/components/ResumeTailor";
 
 // The Resume Tailor container: owns the stored resume and switches between the
 // three screens. Import writes to the server; Tailor and Export only ever read,
@@ -127,6 +128,15 @@ export function ResumeTailorView() {
   // switching sub-tabs mid-review doesn't silently throw the work away.
   const [draft, setDraft] = useState<Draft | null>(null);
 
+  // The tailoring session. This is the in-memory working copy the spec calls
+  // for: it lives here, not in the database, so the stored base resume is
+  // untouched by tailoring and Export can read the approvals without a
+  // round trip. It is also why this state sits in the parent rather than in
+  // the Tailor screen — switching to Export must not discard it.
+  const [jd, setJd] = useState("");
+  const [company, setCompany] = useState("");
+  const [analysis, setAnalysis] = useState<TailorAnalysis | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -186,11 +196,14 @@ export function ResumeTailorView() {
       )}
 
       {screen === "tailor" && resume && (
-        <Panel>
-          <SectionTitle hint="Paste a job description to see targeted edits.">
-            Tailor
-          </SectionTitle>
-        </Panel>
+        <ResumeTailor
+          jd={jd}
+          setJd={setJd}
+          company={company}
+          setCompany={setCompany}
+          analysis={analysis}
+          setAnalysis={setAnalysis}
+        />
       )}
 
       {screen === "export" && resume && (
