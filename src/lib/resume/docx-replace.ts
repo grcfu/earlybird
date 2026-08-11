@@ -7,6 +7,7 @@ import {
   readDocumentXml,
 } from "@/lib/resume/docx";
 import { alignTokens, tokenize } from "@/lib/resume/diff";
+import { tightenSpacing, shrinkBodyFont } from "@/lib/resume/fit-apply";
 
 // Writing tailored bullets back into the user's own .docx.
 //
@@ -34,6 +35,8 @@ export interface ReplaceResult {
   // not counted — there is nothing to lose there).
   flattened: string[];
   inserted: number;
+  // What the fit-to-one-page levers did, or why they declined.
+  fitNotes: string[];
 }
 
 interface Run {
@@ -192,6 +195,16 @@ export interface DocxEdits {
   // Brand-new bullets, cloned from an existing bullet paragraph so they inherit
   // its list formatting, and inserted directly after it.
   insertAfter?: { id: string; texts: string[] };
+  // Fit-to-one-page levers, applied after the text edits so they act on the
+  // final content. Each is optional and each can decline; whatever happened is
+  // reported back in ReplaceResult.fitNotes.
+  fit?: {
+    // Scale factor for paragraph spacing, 0-1. Omit to leave spacing alone.
+    tightenSpacing?: number;
+    // Step the body font down by this many HALF-points, never below the floor.
+    shrinkBodyBy?: number;
+    floorHalfPoints?: number;
+  };
 }
 
 /**
@@ -260,6 +273,24 @@ export function applyDocxEdits(
     out = out.slice(0, p.start) + p.xml + out.slice(p.end);
   }
 
+  // Fit levers run last, on the finished content — tightening spacing before
+  // the new bullets exist would measure the wrong document.
+  const fitNotes: string[] = [];
+  if (edits.fit?.tightenSpacing !== undefined) {
+    const r = tightenSpacing(out, edits.fit.tightenSpacing);
+    out = r.xml;
+    fitNotes.push(r.note);
+  }
+  if (edits.fit?.shrinkBodyBy) {
+    const r = shrinkBodyFont(
+      out,
+      edits.fit.shrinkBodyBy,
+      edits.fit.floorHalfPoints ?? 20,
+    );
+    out = r.xml;
+    fitNotes.push(r.note);
+  }
+
   const zip = new PizZip(docx);
   zip.file(DOCUMENT_PATH, out);
   return {
@@ -268,5 +299,6 @@ export function applyDocxEdits(
     skipped,
     flattened,
     inserted,
+    fitNotes,
   };
 }

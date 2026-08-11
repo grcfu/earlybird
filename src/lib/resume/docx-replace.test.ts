@@ -246,3 +246,60 @@ test("a three-run sentence keeps all three runs when all three keep words", () =
   assert.ok(xml.includes("<w:b/>"));
   assert.deepEqual(out.flattened, []);
 });
+
+// --- fit-to-one-page levers -------------------------------------------------
+
+test("fit levers apply to the exported copy and are reported", () => {
+  const src = buildDocx([
+    { runs: [{ text: "HEADING", bold: true }], sz: 28 },
+    { bullet: true, runs: [{ text: "Body bullet one." }], sz: 22 },
+    { bullet: true, runs: [{ text: "Body bullet two." }], sz: 22 },
+    { bullet: true, runs: [{ text: "Body bullet three." }], sz: 22 },
+  ]);
+  const out = applyDocxEdits(src, {
+    replace: new Map([["p1", "Body bullet one, reworded."]]),
+    fit: { shrinkBodyBy: 1, floorHalfPoints: 20 },
+  });
+  const xml = readDocumentXml(out.buffer);
+  assert.ok(xml.includes('w:val="21"'), "body should be 10.5pt");
+  assert.ok(xml.includes('w:val="28"'), "heading keeps 14pt");
+  assert.ok(out.fitNotes.some((n) => /10\.5pt/.test(n)), out.fitNotes.join("; "));
+  // The text edit still landed.
+  assert.equal(textOf(out.buffer, "p1"), "Body bullet one, reworded.");
+});
+
+test("fit levers run after insertion, so new bullets are shrunk too", () => {
+  // Shrinking before the new bullet exists would leave it at the old size.
+  const src = buildDocx([
+    { bullet: true, runs: [{ text: "One." }], sz: 22 },
+    { bullet: true, runs: [{ text: "Two." }], sz: 22 },
+    { bullet: true, runs: [{ text: "Three." }], sz: 22 },
+  ]);
+  const out = applyDocxEdits(src, {
+    replace: new Map(),
+    insertAfter: { id: "p2", texts: ["A brand new bullet."] },
+    fit: { shrinkBodyBy: 1, floorHalfPoints: 20 },
+  });
+  const xml = readDocumentXml(out.buffer);
+  const p = extractParagraphs(xml).find((q) => q.text === "A brand new bullet.")!;
+  assert.ok(
+    xml.slice(p.start, p.end).includes('w:val="21"'),
+    "the inserted bullet must be shrunk with the rest",
+  );
+});
+
+test("declining a lever is reported rather than silently skipped", () => {
+  const src = buildDocx([{ runs: [{ text: "a" }], sz: 20 }, { runs: [{ text: "b" }], sz: 20 }]);
+  const out = applyDocxEdits(src, {
+    replace: new Map(),
+    fit: { shrinkBodyBy: 1, floorHalfPoints: 20 },
+  });
+  assert.ok(out.fitNotes.some((n) => /floor/.test(n)), out.fitNotes.join("; "));
+});
+
+test("no fit option means no fit notes and no formatting change", () => {
+  const src = buildDocx([{ bullet: true, runs: [{ text: "One." }], sz: 22 }]);
+  const out = applyDocxEdits(src, { replace: new Map([["p0", "Two."]]) });
+  assert.deepEqual(out.fitNotes, []);
+  assert.ok(readDocumentXml(out.buffer).includes('w:val="22"'));
+});
