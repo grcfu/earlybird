@@ -3,7 +3,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { readDocx } from "@/lib/resume/docx";
 import { applyDocxEdits } from "@/lib/resume/docx-replace";
-import { surfaceSkillsInDocx } from "@/lib/resume/skills";
+import { surfaceSkillsInDocx, applySkillAdditions } from "@/lib/resume/skills";
+import { bodyCharsPerLine } from "@/lib/resume/fit";
+import { readDocumentXml } from "@/lib/resume/docx";
 import { exportFilename } from "@/lib/resume/company";
 import { coerceResumeData, bulletTextById } from "@/lib/resume/schema";
 import { encodeHeaderValue, asciiFilename } from "@/lib/resume/http-headers";
@@ -19,6 +21,10 @@ interface ExportBody {
   additions?: unknown;
   // Skills ticked on the Tailor screen.
   surfaced?: unknown;
+  // Skills the user asserted are true and asked to add to a skills line.
+  skillAdds?: unknown;
+  // Keywords from the posting, so a swap never drops something it asked for.
+  jdKeywords?: unknown;
   // Bullet ids the user chose to drop to fit one page.
   dropIds?: unknown;
   // Step the body font down by 0.5pt, never below 10pt.
@@ -72,6 +78,19 @@ export async function POST(req: NextRequest) {
   const additions = asStrings(body.additions);
   const surfaced = asStrings(body.surfaced);
   const dropIds = asStrings(body.dropIds);
+  const jdKeywords = asStrings(body.jdKeywords);
+  const skillAdds = Array.isArray(body.skillAdds)
+    ? body.skillAdds
+        .map((a) => {
+          const o = (a ?? {}) as Record<string, unknown>;
+          return {
+            paragraphId: typeof o.paragraphId === "string" ? o.paragraphId : "",
+            label: typeof o.label === "string" ? o.label : "",
+            skill: typeof o.skill === "string" ? o.skill.trim() : "",
+          };
+        })
+        .filter((a) => a.paragraphId && a.label && a.skill)
+    : [];
   const shrinkBody = body.shrinkBody === true;
 
   const row = await prisma.resume.findUnique({
@@ -116,6 +135,17 @@ export async function POST(req: NextRequest) {
     // exists it wins — it is the thing the user explicitly approved.
     if (!replace.has(id)) replace.set(id, text);
   }
+
+  // Asserted skill additions, recomputed from the document rather than trusted
+  // from the client's preview.
+  const skillResult = applySkillAdditions(
+    paragraphs,
+    data,
+    skillAdds,
+    jdKeywords,
+    bodyCharsPerLine(readDocumentXml(source)),
+  );
+  for (const [id, text] of skillResult.edits) replace.set(id, text);
 
   // Dropping a bullet is expressed as replacing it with empty text: the
   // paragraph collapses and Word reflows around it. Applied after the edits so
@@ -162,6 +192,16 @@ export async function POST(req: NextRequest) {
   }
   if (dropped.length > 0) {
     notes.push(`${dropped.length} bullet(s) removed to fit one page`);
+  }
+  if (skillResult.dropped.length > 0) {
+    notes.push(
+      `swapped out of the skills line to keep it on one line: ${skillResult.dropped.join(", ")}`,
+    );
+  }
+  if (skillResult.wrapped.length > 0) {
+    notes.push(
+      `the skills line now runs onto a second line (${skillResult.wrapped.join(", ")}) — everything else on it is wanted by the posting`,
+    );
   }
   for (const n of result.fitNotes) notes.push(n);
   if (additions.length > 0 && !insertAfter) {

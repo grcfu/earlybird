@@ -16,6 +16,7 @@ import {
 import type { StoredResume } from "@/components/ResumeTailorView";
 import type { CutSuggestion } from "@/lib/resume/schema";
 import type { FitEstimate } from "@/lib/resume/fit";
+import type { SkillAddition } from "@/components/ResumeSkillsToAdd";
 
 // Export screen: what will be applied, and the download.
 //
@@ -30,6 +31,7 @@ export function ResumeExport({
   company,
   surfaced,
   jd,
+  skillAdds,
 }: {
   resume: StoredResume;
   analysis: TailorAnalysis | null;
@@ -39,6 +41,7 @@ export function ResumeExport({
   // Passed through to the fit check so a recommended cut is judged against the
   // posting rather than in the abstract.
   jd: string;
+  skillAdds: SkillAddition[];
 }) {
   const [downloading, setDownloading] = useState(false);
   // Page-fit state. Checking is opt-in per export because it costs a Gemini
@@ -77,7 +80,13 @@ export function ResumeExport({
       const res = await fetch("/api/resume/fit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jd, edits, additions }),
+        body: JSON.stringify({
+          jd,
+          edits,
+          additions,
+          skillAdds,
+          jdKeywords: analysis?.jd_keywords ?? [],
+        }),
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
@@ -93,7 +102,7 @@ export function ResumeExport({
     } finally {
       setChecking(false);
     }
-  }, [jd, edits, additions]);
+  }, [jd, edits, additions, skillAdds, analysis]);
 
   const download = useCallback(async () => {
     setDownloading(true);
@@ -109,6 +118,8 @@ export function ResumeExport({
           edits,
           additions,
           surfaced: [...surfaced],
+          skillAdds,
+          jdKeywords: analysis?.jd_keywords ?? [],
           dropIds: [...dropIds],
           shrinkBody,
         }),
@@ -147,7 +158,7 @@ export function ResumeExport({
     } finally {
       setDownloading(false);
     }
-  }, [company, edits, additions, surfaced, dropIds, shrinkBody, filename]);
+  }, [company, edits, additions, surfaced, skillAdds, analysis, dropIds, shrinkBody, filename]);
 
   return (
     <div className="space-y-4">
@@ -160,7 +171,7 @@ export function ResumeExport({
           {[
             ["Rewrites", edits.length],
             ["New bullets", additions.length],
-            ["Skills moved", surfaced.size],
+            ["Skills moved", surfaced.size + skillAdds.length],
             ["Placeholders", unfilled.length],
           ].map(([label, n]) => (
             <div

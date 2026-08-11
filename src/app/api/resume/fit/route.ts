@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { readDocumentXml } from "@/lib/resume/docx";
-import { estimateFit, bodyHalfPoints } from "@/lib/resume/fit";
+import { readDocumentXml, extractParagraphs } from "@/lib/resume/docx";
+import { applySkillAdditions } from "@/lib/resume/skills";
+import { estimateFit, bodyHalfPoints, bodyCharsPerLine } from "@/lib/resume/fit";
 import { generateJson, GeminiError } from "@/lib/resume/gemini";
 import {
   CUT_RESPONSE_SCHEMA,
@@ -33,6 +34,8 @@ interface FitBody {
   jd?: unknown;
   edits?: unknown;
   additions?: unknown;
+  skillAdds?: unknown;
+  jdKeywords?: unknown;
 }
 
 function asEdits(v: unknown): { bulletId: string; text: string }[] {
@@ -103,6 +106,37 @@ export async function POST(req: NextRequest) {
   const additions = Array.isArray(body.additions)
     ? body.additions.filter((s): s is string => typeof s === "string" && !!s.trim())
     : [];
+
+  // A skills addition can wrap that line onto a second one, which is a real
+  // line against the page budget — so it has to be in the estimate, not just in
+  // the export.
+  const skillAdds = Array.isArray(body.skillAdds)
+    ? body.skillAdds
+        .map((a) => {
+          const o = (a ?? {}) as Record<string, unknown>;
+          return {
+            paragraphId: typeof o.paragraphId === "string" ? o.paragraphId : "",
+            label: typeof o.label === "string" ? o.label : "",
+            skill: typeof o.skill === "string" ? o.skill.trim() : "",
+          };
+        })
+        .filter((a) => a.paragraphId && a.label && a.skill)
+    : [];
+  const jdKeywords = Array.isArray(body.jdKeywords)
+    ? body.jdKeywords.filter((s): s is string => typeof s === "string")
+    : [];
+  if (skillAdds.length > 0) {
+    const skillEdits = applySkillAdditions(
+      extractParagraphs(documentXml),
+      data,
+      skillAdds,
+      jdKeywords,
+      bodyCharsPerLine(documentXml),
+    );
+    for (const [id, text] of skillEdits.edits) {
+      if (!replace.has(id)) replace.set(id, text);
+    }
+  }
 
   const estimate = estimateFit({ documentXml, docx, replace, additions });
 

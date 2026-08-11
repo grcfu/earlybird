@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { readDocx } from "@/lib/resume/docx";
+import { readDocx, readDocumentXml } from "@/lib/resume/docx";
+import { bodyCharsPerLine } from "@/lib/resume/fit";
+import { findSkillsLines } from "@/lib/resume/skills";
 import { coerceResumeData, allBulletIds } from "@/lib/resume/schema";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -30,16 +32,37 @@ export async function GET() {
 
   const row = await prisma.resume.findUnique({
     where: { userId: uid },
-    select: { data: true, filename: true, updatedAt: true },
+    select: { data: true, filename: true, updatedAt: true, docx: true },
   });
   if (!row) return NextResponse.json({ ok: true, resume: null });
+
+  const data = coerceResumeData(row.data);
+
+  // Layout facts the Tailor screen needs to preview a skills swap without a
+  // round trip: which paragraphs are skills lists, and how many characters fit
+  // on one line. Derived here because they come from the .docx, which the
+  // client never sees.
+  let layout: {
+    charsPerLine: number;
+    skillsLines: ReturnType<typeof findSkillsLines>;
+  } | null = null;
+  try {
+    const xml = readDocumentXml(Buffer.from(row.docx));
+    layout = {
+      charsPerLine: bodyCharsPerLine(xml),
+      skillsLines: findSkillsLines(readDocx(Buffer.from(row.docx)).paragraphs, data),
+    };
+  } catch {
+    // A resume we can't re-read still lists fine; only the swap preview is lost.
+  }
 
   return NextResponse.json({
     ok: true,
     resume: {
-      data: coerceResumeData(row.data),
+      data,
       filename: row.filename,
       updatedAt: row.updatedAt.toISOString(),
+      layout,
     },
   });
 }

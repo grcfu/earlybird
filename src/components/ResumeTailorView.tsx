@@ -18,6 +18,8 @@ import {
   SkillsToSurface,
 } from "@/components/ResumeCoverage";
 import { BulletReview } from "@/components/ResumeBulletReview";
+import { SkillsToAdd, type SkillAddition } from "@/components/ResumeSkillsToAdd";
+import type { SkillsLine } from "@/lib/resume/skills";
 import { ResumeExport } from "@/components/ResumeExport";
 
 // The Resume Tailor container: owns the stored resume and switches between the
@@ -30,6 +32,13 @@ export interface StoredResume {
   data: ResumeData;
   filename: string;
   updatedAt: string;
+  // Layout facts derived from the .docx server-side, so the Tailor screen can
+  // preview a skills swap without a round trip. Null when the stored file
+  // couldn't be re-read; only the preview is lost.
+  layout: {
+    charsPerLine: number;
+    skillsLines: SkillsLine[];
+  } | null;
 }
 
 const SCREENS: { key: Screen; label: string; icon: string }[] = [
@@ -163,6 +172,8 @@ export function ResumeTailorView() {
   // Approved edits, by suggestion key. Nothing starts accepted: a tailored
   // resume is a claim about yourself, so each change has to be an act.
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
+  // Skills the user asserts are true and wants added to the skills line.
+  const [skillAdds, setSkillAdds] = useState<SkillAddition[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -199,6 +210,7 @@ export function ResumeTailorView() {
       setDraft(null);
       setAnalysis(null);
       setAccepted(new Set());
+      setSkillAdds([]);
       setSurfaced(new Set());
       setJd("");
       setCompany("");
@@ -263,6 +275,7 @@ export function ResumeTailorView() {
             // ticks across would leave selections attached to nothing.
             setSurfaced(new Set());
             setAccepted(new Set());
+            setSkillAdds([]);
           }}
         >
           {analysis && (
@@ -273,6 +286,15 @@ export function ResumeTailorView() {
                 selected={surfaced}
                 setSelected={setSurfaced}
               />
+              {resume.layout && resume.layout.skillsLines.length > 0 && (
+                <SkillsToAdd
+                  analysis={analysis}
+                  lines={resume.layout.skillsLines}
+                  charsPerLine={resume.layout.charsPerLine}
+                  additions={skillAdds}
+                  setAdditions={setSkillAdds}
+                />
+              )}
               <HonestGaps analysis={analysis} />
               <BulletReview
                 analysis={analysis}
@@ -292,6 +314,7 @@ export function ResumeTailorView() {
           company={company}
           surfaced={surfaced}
           jd={jd}
+          skillAdds={skillAdds}
         />
       )}
     </div>
