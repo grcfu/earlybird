@@ -8612,6 +8612,12 @@ const BOARDS: WorkdayCompany[] = [
     host: "genmills.wd1.myworkdayjobs.com",
     site: "GMI_External_Careers",
   },
+  {
+    company: "Trinity Health",
+    token: "trinityhealth",
+    host: "trinityhealth.wd1.myworkdayjobs.com",
+    site: "Jobs",
+  },
 ];
 
 interface WdPosting {
