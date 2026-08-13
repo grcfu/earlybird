@@ -469,6 +469,7 @@ const BOARDS: AtsCompany[] = [
   { company: "McKinney", token: "jobsmckinneycom" },
   { company: "Jumio", token: "jumio" },
   { company: "Juvare", token: "juvare" },
+  { company: "Kao Corporation", token: "kao" },
   { company: "Kapitus", token: "kapitus" },
   { company: "Kargo", token: "kargo" },
   { company: "Kensington", token: "kensingtontours" },
