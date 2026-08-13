@@ -1963,10 +1963,18 @@ const BOARDS: WorkdayCompany[] = [
     site: "asurioncareers_us",
   },
   {
+    // ATTCollege, not ATTGeneral. General is AT&T's main board and it answers
+    // with ~1300 live reqs, but campus hiring is a separate site: all 1297
+    // titles were pulled on 2026-08-13 and not one is an intern or co-op, so
+    // the board had returned zero listings for its whole life here while still
+    // costing five paged requests every ingest run. College is empty today
+    // (AT&T opens Summer reqs in the autumn) and so contributes nothing yet —
+    // but it is the site the intern reqs will land on, and an empty board costs
+    // one request, not five.
     company: "AT&T",
     token: "att",
     host: "att.wd1.myworkdayjobs.com",
-    site: "ATTGeneral",
+    site: "ATTCollege",
   },
   {
     company: "Athena Health",
