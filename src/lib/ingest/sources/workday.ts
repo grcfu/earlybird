@@ -8692,6 +8692,21 @@ const BOARDS: WorkdayCompany[] = [
     host: "iff.wd5.myworkdayjobs.com",
     site: "IFF_Careers",
   },
+  {
+    // External, not broadbean_external — the latter is a job-feed mirror of the
+    // same reqs, and both sites answer, so taking either one at random would
+    // eventually double-list.
+    //
+    // Carried knowing it shows nothing today: both of Galderma's live intern
+    // reqs are in Toronto, and the feed is US-only (listings.ts filters on
+    // country IS NULL OR country = 'US'), so they are ingested and then hidden.
+    // Kept because the board itself is correct and Galderma hires in Texas —
+    // when a US req appears it lands here with no further work.
+    company: "Galderma",
+    token: "galderma",
+    host: "galderma.wd3.myworkdayjobs.com",
+    site: "External",
+  },
 ];
 
 interface WdPosting {
