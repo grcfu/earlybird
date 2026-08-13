@@ -8618,6 +8618,12 @@ const BOARDS: WorkdayCompany[] = [
     host: "trinityhealth.wd1.myworkdayjobs.com",
     site: "Jobs",
   },
+  {
+    company: "Trane Technologies",
+    token: "tranetechnologies",
+    host: "tranetechnologies.wd12.myworkdayjobs.com",
+    site: "Trane_Technologies_Careers",
+  },
 ];
 
 interface WdPosting {
