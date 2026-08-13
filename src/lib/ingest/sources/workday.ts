@@ -8674,6 +8674,24 @@ const BOARDS: WorkdayCompany[] = [
     host: "saia.wd1.myworkdayjobs.com",
     site: "SaiaCareers",
   },
+
+  // Same probe, pointed at beauty / personal care / fragrance on 2026-08-13,
+  // after L'Oreal turned out to be unreachable: it runs on Avature, which we
+  // have no source for. Most of that sector went the same way — Estee Lauder,
+  // Coty, Shiseido, Sephora, LVMH, Kering and Ulta are all on ATSs we don't
+  // speak — so this is the whole yield of a 90-company sweep, not a sample.
+  //
+  // Two near-misses are worth recording, because both looked like clean hits
+  // until the board was asked who it belonged to: Workday tenant "rb" is the
+  // Federal Reserve System (already carried below), not Reckitt Benckiser, and
+  // Greenhouse board "inter" is Banco Inter, a Brazilian bank, not Inter
+  // Parfums. A token that merely looks like the company is not the company.
+  {
+    company: "IFF",
+    token: "iff",
+    host: "iff.wd5.myworkdayjobs.com",
+    site: "IFF_Careers",
+  },
 ];
 
 interface WdPosting {
