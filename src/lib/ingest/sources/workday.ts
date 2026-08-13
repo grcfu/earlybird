@@ -8624,6 +8624,12 @@ const BOARDS: WorkdayCompany[] = [
     host: "tranetechnologies.wd12.myworkdayjobs.com",
     site: "Trane_Technologies_Careers",
   },
+  {
+    company: "Catalent",
+    token: "catalent",
+    host: "catalent.wd1.myworkdayjobs.com",
+    site: "External",
+  },
 ];
 
 interface WdPosting {
