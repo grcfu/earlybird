@@ -8660,6 +8660,12 @@ const BOARDS: WorkdayCompany[] = [
     host: "parexel.wd1.myworkdayjobs.com",
     site: "Parexel_External_Careers",
   },
+  {
+    company: "Saia",
+    token: "saia",
+    host: "saia.wd1.myworkdayjobs.com",
+    site: "SaiaCareers",
+  },
 ];
 
 interface WdPosting {
