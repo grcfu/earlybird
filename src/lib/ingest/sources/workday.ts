@@ -8592,6 +8592,26 @@ const BOARDS: WorkdayCompany[] = [
     host: "zoom.wd5.myworkdayjobs.com",
     site: "zoom",
   },
+
+  // Added 2026-08-13: large US employers that no source covered yet. Discovered
+  // rather than guessed — a tenant's /robots.txt lists its site paths, so the
+  // board comes from the ATS itself instead of a hopeful spelling of the site
+  // name. Then the AT&T screen: POST the board once and keep it only if a title
+  // actually passes isInternship(). AT&T is why that second step exists — its
+  // ATTGeneral board answers 200 with 1294 live reqs and not one internship
+  // among them, because campus hiring sits on a separate ATTCollege site.
+  //
+  // Screened the same way as the batches above: deduped on host (a display name
+  // is too weak — "Micron Technology", "The Mosaic Company" and "Fifth Third"
+  // all turned out to be boards already carried under a shorter name), and
+  // dropped where the only site on offer is regional or per-brand rather than
+  // the employer's own board (Kimberly-Clark's Arbex, Capri's JimmyChooCareers).
+  {
+    company: "General Mills",
+    token: "genmills",
+    host: "genmills.wd1.myworkdayjobs.com",
+    site: "GMI_External_Careers",
+  },
 ];
 
 interface WdPosting {
