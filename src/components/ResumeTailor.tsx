@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TailorAnalysis } from "@/lib/resume/schema";
 import { guessCompany } from "@/lib/resume/company";
+import { fetchWithTimeout, RequestTimeoutError } from "@/lib/resume/fetch";
 import {
   Panel,
   Button,
@@ -56,7 +57,7 @@ export function ResumeTailor({
     setError("");
     setAnalysis(null);
     try {
-      const res = await fetch("/api/resume/analyze", {
+      const res = await fetchWithTimeout("/api/resume/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jd, company }),
@@ -69,8 +70,16 @@ export function ResumeTailor({
       const next = body.analysis as TailorAnalysis;
       setAnalysis(next);
       if (!touched.current && next.company) setCompany(next.company);
-    } catch {
-      setError("Couldn't reach the server.");
+    } catch (err) {
+      // Worth separating: a timeout means the paste is still here and Analyze
+      // is worth pressing again, which "couldn't reach the server" does not
+      // convey. The old wording was also never reachable when the machine
+      // slept — the promise simply never settled.
+      setError(
+        err instanceof RequestTimeoutError
+          ? "That took too long — the analysis didn't come back. Your job description is still here; press Analyze to try again."
+          : "Couldn't reach the server.",
+      );
     } finally {
       setAnalyzing(false);
     }

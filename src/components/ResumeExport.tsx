@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { TailorAnalysis } from "@/lib/resume/schema";
 import { exportFilename } from "@/lib/resume/company";
 import { placeholdersIn } from "@/lib/resume/diff";
+import { fetchWithTimeout, RequestTimeoutError } from "@/lib/resume/fetch";
 import { suggestionKey } from "@/components/ResumeBulletReview";
 import {
   Panel,
@@ -137,7 +138,7 @@ export function ResumeExport({
     setChecking(true);
     setError("");
     try {
-      const res = await fetch("/api/resume/fit", {
+      const res = await fetchWithTimeout("/api/resume/fit", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -157,8 +158,12 @@ export function ResumeExport({
       setCuts((body.cuts ?? []) as CutSuggestion[]);
       setFitInfo({ canShrink: !!body.canShrink, bodyPt: body.bodyPt, shrunkPt: body.shrunkPt });
       if (body.cutError) setNotes([body.cutError]);
-    } catch {
-      setError("Couldn't reach the server.");
+    } catch (err) {
+      setError(
+        err instanceof RequestTimeoutError
+          ? "That took too long — the page-fit check didn't come back. Press it again to retry."
+          : "Couldn't reach the server.",
+      );
     } finally {
       setChecking(false);
     }

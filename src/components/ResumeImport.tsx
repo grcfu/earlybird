@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { ResumeData } from "@/lib/resume/schema";
 import { allBulletIds } from "@/lib/resume/schema";
+import { fetchWithTimeout, RequestTimeoutError } from "@/lib/resume/fetch";
 import {
   Panel,
   Button,
@@ -120,7 +121,7 @@ export function ResumeImport({
       try {
         const form = new FormData();
         form.append("file", file);
-        const res = await fetch("/api/resume/parse", {
+        const res = await fetchWithTimeout("/api/resume/parse", {
           method: "POST",
           body: form,
         });
@@ -134,8 +135,12 @@ export function ResumeImport({
           data: body.data as ResumeData,
           warnings: (body.warnings ?? []) as string[],
         });
-      } catch {
-        setError("Couldn't reach the server.");
+      } catch (err) {
+        setError(
+          err instanceof RequestTimeoutError
+            ? "That took too long — the import didn't come back. Drop the file again to retry."
+            : "Couldn't reach the server.",
+        );
       } finally {
         setParsing(false);
       }
