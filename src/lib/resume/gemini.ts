@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 // The one place the Gemini key is read. Only ever imported by /api/resume/*
 // route handlers, so the key stays server-side and never reaches the bundle.
@@ -14,6 +14,11 @@ const DEFAULT_MODEL = "gemini-3.6-flash";
 // Generous, because these are thinking models working through a whole resume.
 // Still bounded so a hung upstream call fails on our terms instead of burning
 // the route's maxDuration and returning a platform timeout page.
+//
+// Careful: this is not only a client-side abort. The SDK also turns it into an
+// `X-Server-Timeout` header, so Google itself kills the generation at this mark
+// and answers 504 DEADLINE_EXCEEDED. Raising it past the route's maxDuration
+// buys nothing; the way to keep a slow call under the mark is thinkingLevel.
 const TIMEOUT_MS = 55_000;
 
 // Read env per call, never at module scope: Next inlines module-scope env at
@@ -21,6 +26,10 @@ const TIMEOUT_MS = 55_000;
 export function geminiModel(): string {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
 }
+
+// Re-exported so route handlers can name a level without importing the SDK
+// themselves — this file stays the only seam onto it.
+export { ThinkingLevel };
 
 export function hasGeminiKey(): boolean {
   return !!process.env.GEMINI_API_KEY?.trim();
@@ -61,6 +70,7 @@ export async function generateJson<T>({
   systemInstruction,
   schema,
   coerce,
+  thinkingLevel,
 }: {
   prompt: string;
   systemInstruction?: string;
@@ -69,6 +79,9 @@ export async function generateJson<T>({
   // SDK's mutable Schema interface without a cast at every call site.
   schema: unknown;
   coerce: (value: unknown) => T;
+  // Cap the model's thinking when a call is long enough to risk TIMEOUT_MS.
+  // Omit it to leave the model on its default budget.
+  thinkingLevel?: ThinkingLevel;
 }): Promise<T> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
@@ -91,6 +104,7 @@ export async function generateJson<T>({
         responseMimeType: "application/json",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- const-literal schema vs the SDK's mutable Schema type
         responseSchema: schema as any,
+        ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}),
         httpOptions: { timeout: TIMEOUT_MS },
       },
     });
@@ -111,7 +125,7 @@ export async function generateJson<T>({
     if (/api key|permission|401|403/i.test(msg)) {
       throw new GeminiError("Gemini rejected the API key.", 502);
     }
-    if (/abort|timeout|timed out/i.test(msg)) {
+    if (/abort|timeout|timed out|deadline/i.test(msg)) {
       throw new GeminiError(
         "Gemini took too long to respond. Try again.",
         504,

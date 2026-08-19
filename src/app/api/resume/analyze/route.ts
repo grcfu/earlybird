@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { generateJson, GeminiError } from "@/lib/resume/gemini";
+import { generateJson, GeminiError, ThinkingLevel } from "@/lib/resume/gemini";
 import { reserveGeminiCall, quotaMessage } from "@/lib/resume/quota";
 import {
   ANALYSIS_RESPONSE_SCHEMA,
@@ -169,6 +169,11 @@ export async function POST(req: NextRequest) {
       // Suggestions naming a bullet this resume doesn't have are dropped here,
       // where they can still be counted, rather than failing silently later.
       coerce: (v) => coerceAnalysis(v, new Set(originals.keys())),
+      // The heaviest call in the feature — a whole resume against a whole ad —
+      // and on a default thinking budget it ran past the 55s upstream deadline
+      // and came back 504. This is extraction and matching, not deep reasoning,
+      // so a low budget is what the work actually needs.
+      thinkingLevel: ThinkingLevel.LOW,
     });
   } catch (err) {
     if (err instanceof GeminiError) {
