@@ -688,6 +688,7 @@ const BOARDS: AtsCompany[] = [
   // board probed against the live API and kept only on a 200 with at least
   // one open internship posting. Same screen as the 08-10 batch: one board
   // per employer, and nothing already covered here or by another source.
+  { company: "Dedalus Labs", token: "dedalus-labs" },
   { company: "Odys Aviation", token: "odys-aviation" },
 ];
 
