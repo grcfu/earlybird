@@ -1018,6 +1018,7 @@ const BOARDS: AtsCompany[] = [
   { company: "Faraday Future", token: "faradayfuture" },
   { company: "HP IQ", token: "hpiq" },
   { company: "K2 Space", token: "k2spacecorporation" },
+  { company: "Xantium", token: "xantium" },
 ];
 
 interface GhJob {
