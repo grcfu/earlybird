@@ -344,6 +344,7 @@ const BOARDS: AtsCompany[] = [
   // per employer, and nothing already covered here or by another source.
   { company: "Dynamic Catholic", token: "dynamiccatholic" },
   { company: "Elk Valley Resources", token: "evr" },
+  { company: "Western Aircraft", token: "westair" },
 ];
 
 interface LeverJob {
