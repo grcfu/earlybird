@@ -691,6 +691,7 @@ const BOARDS: AtsCompany[] = [
   { company: "Armadin", token: "armadin" },
   { company: "Dedalus Labs", token: "dedalus-labs" },
   { company: "Maximor AI", token: "maximor" },
+  { company: "Oceanus Marine Technologies", token: "oceanus" },
   { company: "Odys Aviation", token: "odys-aviation" },
   { company: "Pluralis Research", token: "pluralis-research" },
   { company: "Qualified Health", token: "qualified-health-pbc" },
