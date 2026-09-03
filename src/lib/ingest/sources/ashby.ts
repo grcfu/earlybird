@@ -684,6 +684,11 @@ const BOARDS: AtsCompany[] = [
   { company: "interface.ai", token: "interface-ai" },
   { company: "Teya", token: "teya" },
   { company: "Thumbtack", token: "thumbtack" },
+  // Mined 2026-09-03 from the aggregator feeds' apply-URLs, then each
+  // board probed against the live API and kept only on a 200 with at least
+  // one open internship posting. Same screen as the 08-10 batch: one board
+  // per employer, and nothing already covered here or by another source.
+  { company: "Odys Aviation", token: "odys-aviation" },
 ];
 
 interface AshbyJob {
