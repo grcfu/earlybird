@@ -1015,6 +1015,7 @@ const BOARDS: AtsCompany[] = [
   // per employer, and nothing already covered here or by another source.
   { company: "Compeer Financial", token: "compeerfinancial" },
   { company: "Dev Technology Group", token: "devtechnology" },
+  { company: "Faraday Future", token: "faradayfuture" },
   { company: "HP IQ", token: "hpiq" },
   { company: "K2 Space", token: "k2spacecorporation" },
 ];
