@@ -1014,6 +1014,7 @@ const BOARDS: AtsCompany[] = [
   // one open internship posting. Same screen as the 08-10 batch: one board
   // per employer, and nothing already covered here or by another source.
   { company: "Compeer Financial", token: "compeerfinancial" },
+  { company: "HP IQ", token: "hpiq" },
   { company: "K2 Space", token: "k2spacecorporation" },
 ];
 
