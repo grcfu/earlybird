@@ -1009,6 +1009,11 @@ const BOARDS: AtsCompany[] = [
   { company: "Lucid Software", token: "lucidsoftware" },
   { company: "Verifone", token: "verifone" },
   { company: "WelbeHealth", token: "welbehealth" },
+  // Mined 2026-09-03 from the aggregator feeds' apply-URLs, then each
+  // board probed against the live API and kept only on a 200 with at least
+  // one open internship posting. Same screen as the 08-10 batch: one board
+  // per employer, and nothing already covered here or by another source.
+  { company: "Compeer Financial", token: "compeerfinancial" },
 ];
 
 interface GhJob {
