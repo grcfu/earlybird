@@ -690,6 +690,7 @@ const BOARDS: AtsCompany[] = [
   // per employer, and nothing already covered here or by another source.
   { company: "Armadin", token: "armadin" },
   { company: "Dedalus Labs", token: "dedalus-labs" },
+  { company: "Deft AI", token: "deft-ai" },
   { company: "GrayMatter Robotics", token: "graymatter-robotics" },
   { company: "Maximor AI", token: "maximor" },
   { company: "Oceanus Marine Technologies", token: "oceanus" },
