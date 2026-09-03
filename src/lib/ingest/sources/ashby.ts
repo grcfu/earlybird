@@ -689,6 +689,7 @@ const BOARDS: AtsCompany[] = [
   // one open internship posting. Same screen as the 08-10 batch: one board
   // per employer, and nothing already covered here or by another source.
   { company: "Dedalus Labs", token: "dedalus-labs" },
+  { company: "Maximor AI", token: "maximor" },
   { company: "Odys Aviation", token: "odys-aviation" },
 ];
 
