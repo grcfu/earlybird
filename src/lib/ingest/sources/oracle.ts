@@ -29,6 +29,12 @@ const BOARDS: OracleCompany[] = [
   // tenant host + site id verbatim), then each board probed against the live
   // API and kept only on a 200 with at least one open internship posting.
   {
+    company: "Cummins",
+    token: "cummins",
+    host: "fa-espx-saasfaprod1.fa.ocs.oraclecloud.com",
+    site: "CX_1",
+  },
+  {
     company: "Emerson Electric",
     token: "emersonelectric",
     host: "hdjq.fa.us2.oraclecloud.com",
