@@ -71,6 +71,12 @@ const BOARDS: OracleCompany[] = [
     site: "CX_1",
   },
   {
+    company: "Honeywell",
+    token: "honeywell",
+    host: "ibqbjb.fa.ocs.oraclecloud.com",
+    site: "Honeywell",
+  },
+  {
     company: "Nokia",
     token: "nokia",
     host: "fa-evmr-saasfaprod1.fa.ocs.oraclecloud.com",
