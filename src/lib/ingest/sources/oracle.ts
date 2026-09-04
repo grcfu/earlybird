@@ -25,6 +25,15 @@ const BOARDS: OracleCompany[] = [
     host: "egug.fa.us2.oraclecloud.com",
     site: "CX_1",
   },
+  // Mined 2026-09-04 from the aggregator feeds' apply-URLs (they embed the
+  // tenant host + site id verbatim), then each board probed against the live
+  // API and kept only on a 200 with at least one open internship posting.
+  {
+    company: "Emerson Electric",
+    token: "emersonelectric",
+    host: "hdjq.fa.us2.oraclecloud.com",
+    site: "CX_1",
+  },
 ];
 
 interface OrcReq {
