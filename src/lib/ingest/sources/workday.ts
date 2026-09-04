@@ -8707,6 +8707,15 @@ const BOARDS: WorkdayCompany[] = [
     host: "galderma.wd3.myworkdayjobs.com",
     site: "External",
   },
+  // Mined 2026-09-04 from the aggregator feeds' apply-URLs (they embed the
+  // tenant host + site id verbatim), then each board probed against the live
+  // API and kept only on a 200 with at least one open internship posting.
+  {
+    company: "Hewlett Packard Enterprise",
+    token: "hpe",
+    host: "hpe.wd5.myworkdayjobs.com",
+    site: "acjobsite",
+  },
 ];
 
 interface WdPosting {
