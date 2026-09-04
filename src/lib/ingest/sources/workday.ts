@@ -8711,6 +8711,12 @@ const BOARDS: WorkdayCompany[] = [
   // tenant host + site id verbatim), then each board probed against the live
   // API and kept only on a 200 with at least one open internship posting.
   {
+    company: "DuPont",
+    token: "dupont",
+    host: "dupont.wd5.myworkdayjobs.com",
+    site: "jobs",
+  },
+  {
     company: "Hewlett Packard Enterprise",
     token: "hpe",
     host: "hpe.wd5.myworkdayjobs.com",
