@@ -58,6 +58,12 @@ const BOARDS: OracleCompany[] = [
     host: "edbz.fa.us2.oraclecloud.com",
     site: "CX",
   },
+  {
+    company: "WTW",
+    token: "wtw",
+    host: "eedu.fa.em3.oraclecloud.com",
+    site: "CX_1003",
+  },
 ];
 
 interface OrcReq {
