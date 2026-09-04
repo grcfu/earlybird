@@ -53,6 +53,12 @@ const BOARDS: OracleCompany[] = [
     site: "CX_1",
   },
   {
+    company: "Stantec",
+    token: "stantec",
+    host: "hdhl.fa.us6.oraclecloud.com",
+    site: "CX_1",
+  },
+  {
     company: "Texas Instruments",
     token: "texasinstruments",
     host: "edbz.fa.us2.oraclecloud.com",
