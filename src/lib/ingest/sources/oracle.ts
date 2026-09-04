@@ -77,6 +77,12 @@ const BOARDS: OracleCompany[] = [
     site: "CX",
   },
   {
+    company: "Williams-Sonoma",
+    token: "williamssonoma",
+    host: "ehac.fa.us6.oraclecloud.com",
+    site: "CX_1",
+  },
+  {
     company: "WTW",
     token: "wtw",
     host: "eedu.fa.em3.oraclecloud.com",
