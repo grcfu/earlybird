@@ -157,6 +157,12 @@ const BOARDS: OracleCompany[] = [
     host: "ejia.fa.us6.oraclecloud.com",
     site: "CX_1001",
   },
+  {
+    company: "WSP",
+    token: "wsp",
+    host: "emit.fa.ca3.oraclecloud.com",
+    site: "CX_2001",
+  },
 ];
 
 interface OrcReq {
