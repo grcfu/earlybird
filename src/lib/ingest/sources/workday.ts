@@ -8722,6 +8722,16 @@ const BOARDS: WorkdayCompany[] = [
     host: "hpe.wd5.myworkdayjobs.com",
     site: "acjobsite",
   },
+  // Big-employer boards missing from the registry, found 2026-09-06 by
+  // diffing a list of major US employers against every source's company
+  // names, then probing each tenant's search endpoint. Kept only on a 200
+  // whose results include a real internship title.
+  {
+    company: "Truist",
+    token: "truist",
+    host: "truist.wd1.myworkdayjobs.com",
+    site: "Careers",
+  },
 ];
 
 interface WdPosting {
