@@ -217,6 +217,11 @@ const BOARDS: AtsCompany[] = [
   // employer, and nothing already covered here or by another source.
   { company: "Alto-Shaam", token: "alto-shaam" },
   { company: "SquareTrade", token: "squaretrade1" },
+  // Mined 2026-09-05 from the aggregator feeds' apply-URLs, then each
+  // board probed against the live API and kept only on a 200 with at least
+  // one open internship posting. Same screen as the 08-10 batch: one board
+  // per employer, and nothing already covered here or by another source.
+  { company: "Syngenta", token: "SyngentaGroup" },
 ];
 
 interface SrPosting {
