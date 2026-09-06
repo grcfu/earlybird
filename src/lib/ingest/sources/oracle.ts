@@ -139,6 +139,12 @@ const BOARDS: OracleCompany[] = [
     host: "fa-exty-saasfaprod1.fa.ocs.oraclecloud.com",
     site: "CX_1",
   },
+  {
+    company: "Kroll",
+    token: "kroll",
+    host: "hcxs.fa.us2.oraclecloud.com",
+    site: "CX_1",
+  },
 ];
 
 interface OrcReq {
