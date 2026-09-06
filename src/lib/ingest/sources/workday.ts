@@ -8733,6 +8733,12 @@ const BOARDS: WorkdayCompany[] = [
     site: "HNBcareers",
   },
   {
+    company: "Illinois Tool Works",
+    token: "itw",
+    host: "itw.wd5.myworkdayjobs.com",
+    site: "External",
+  },
+  {
     company: "Regions Financial",
     token: "regions",
     host: "regions.wd5.myworkdayjobs.com",
