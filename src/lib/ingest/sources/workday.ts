@@ -8727,6 +8727,12 @@ const BOARDS: WorkdayCompany[] = [
   // names, then probing each tenant's search endpoint. Kept only on a 200
   // whose results include a real internship title.
   {
+    company: "Anheuser-Busch",
+    token: "abinbev",
+    host: "abinbev.wd1.myworkdayjobs.com",
+    site: "USA",
+  },
+  {
     company: "Hitachi",
     token: "hitachi",
     host: "hitachi.wd1.myworkdayjobs.com",
