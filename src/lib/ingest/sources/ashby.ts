@@ -702,6 +702,7 @@ const BOARDS: AtsCompany[] = [
   // one open internship posting. Same screen as the 09-03 batch: one board
   // per employer, and nothing already covered here or by another source.
   { company: "Niantic Spatial", token: "niantic-spatial" },
+  { company: "Riveron", token: "riveron" },
 ];
 
 interface AshbyJob {
