@@ -346,6 +346,11 @@ const BOARDS: AtsCompany[] = [
   { company: "Elk Valley Resources", token: "evr" },
   { company: "Penta Group", token: "pentagrp" },
   { company: "Western Aircraft", token: "westair" },
+  // Mined 2026-09-05 from the aggregator feeds' apply-URLs, then each
+  // board probed against the live API and kept only on a 200 with at least
+  // one open internship posting. Same screen as the 09-03 batch: one board
+  // per employer, and nothing already covered here or by another source.
+  { company: "Machina Labs", token: "MachinaLabs" },
 ];
 
 interface LeverJob {
