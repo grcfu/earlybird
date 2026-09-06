@@ -124,6 +124,15 @@ const BOARDS: OracleCompany[] = [
     host: "eedu.fa.em3.oraclecloud.com",
     site: "CX_1003",
   },
+  // Mined 2026-09-05 from the aggregator feeds' apply-URLs, same screen as the
+  // 09-04 batch: each tenant host + site id probed against the live API and
+  // kept only on a 200 with at least one open internship posting.
+  {
+    company: "Arcadis",
+    token: "arcadis",
+    host: "ebcs.fa.em2.oraclecloud.com",
+    site: "CX_1",
+  },
 ];
 
 interface OrcReq {
