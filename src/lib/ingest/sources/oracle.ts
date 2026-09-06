@@ -151,6 +151,12 @@ const BOARDS: OracleCompany[] = [
     host: "ebxs.fa.us2.oraclecloud.com",
     site: "CX_2",
   },
+  {
+    company: "S&C Electric Company",
+    token: "scelectric",
+    host: "ejia.fa.us6.oraclecloud.com",
+    site: "CX_1001",
+  },
 ];
 
 interface OrcReq {
