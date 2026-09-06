@@ -8759,7 +8759,13 @@ async function fetchCompany(c: AtsCompany): Promise<AtsJob[]> {
     try {
       raw = (await fetchJson(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // Accept-Language is not optional: a minority of tenants (Truist,
+        // GEICO, Huntington and friends) answer a search without it with a
+        // 500, every time, while the same request carrying it returns 200.
+        headers: {
+          "Content-Type": "application/json",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
         body: JSON.stringify({
           appliedFacets: {},
           limit: PAGE,
