@@ -8727,6 +8727,12 @@ const BOARDS: WorkdayCompany[] = [
   // names, then probing each tenant's search endpoint. Kept only on a 200
   // whose results include a real internship title.
   {
+    company: "Regions Financial",
+    token: "regions",
+    host: "regions.wd5.myworkdayjobs.com",
+    site: "regions_careers",
+  },
+  {
     company: "Truist",
     token: "truist",
     host: "truist.wd1.myworkdayjobs.com",
