@@ -708,6 +708,7 @@ const BOARDS: AtsCompany[] = [
   // open internship posting, one board per employer, and nothing already
   // covered here or by another source.
   { company: "Ambrook", token: "ambrook" },
+  { company: "Contoro", token: "contoro" },
 ];
 
 interface AshbyJob {
