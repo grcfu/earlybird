@@ -1030,6 +1030,7 @@ const BOARDS: AtsCompany[] = [
   // open internship posting, one board per employer, and nothing already
   // covered here or by another source.
   { company: "Albedo", token: "albedo" },
+  { company: "FGS Global", token: "fgsglobal" },
   { company: "Skillz", token: "skillzinc" },
   { company: "Syska Hennessy Group", token: "syskahennessy" },
 ];
