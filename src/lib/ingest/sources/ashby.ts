@@ -709,6 +709,7 @@ const BOARDS: AtsCompany[] = [
   // covered here or by another source.
   { company: "Ambrook", token: "ambrook" },
   { company: "Contoro", token: "contoro" },
+  { company: "Primer", token: "primer" },
 ];
 
 interface AshbyJob {
