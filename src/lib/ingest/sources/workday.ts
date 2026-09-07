@@ -8727,6 +8727,12 @@ const BOARDS: WorkdayCompany[] = [
     site: "USA",
   },
   {
+    company: "CIBC",
+    token: "cibc",
+    host: "cibc.wd3.myworkdayjobs.com",
+    site: "campus",
+  },
+  {
     company: "Hitachi",
     token: "hitachi",
     host: "hitachi.wd1.myworkdayjobs.com",
