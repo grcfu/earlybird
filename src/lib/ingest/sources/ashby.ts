@@ -709,6 +709,7 @@ const BOARDS: AtsCompany[] = [
   // covered here or by another source.
   { company: "Ambrook", token: "ambrook" },
   { company: "Contoro", token: "contoro" },
+  { company: "Pivot Robotics", token: "pivotrobotics" },
   { company: "Primer", token: "primer" },
 ];
 
