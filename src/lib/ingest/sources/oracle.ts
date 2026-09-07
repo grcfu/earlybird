@@ -163,6 +163,16 @@ const BOARDS: OracleCompany[] = [
     host: "emit.fa.ca3.oraclecloud.com",
     site: "CX_2001",
   },
+  // Mined 2026-09-06 from the aggregator feeds plus the career-site redirects
+  // of large employers (jobs.<company>.com often lands on the ORC tenant
+  // itself), each probed against the live API and kept only on a 200 with at
+  // least one open internship posting.
+  {
+    company: "American Bureau of Shipping",
+    token: "abs",
+    host: "hbbq.fa.us2.oraclecloud.com",
+    site: "CX_1",
+  },
 ];
 
 interface OrcReq {
