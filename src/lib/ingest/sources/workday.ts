@@ -8739,6 +8739,12 @@ const BOARDS: WorkdayCompany[] = [
     site: "CommerceJobs",
   },
   {
+    company: "DIRECTV",
+    token: "directv",
+    host: "directv.wd1.myworkdayjobs.com",
+    site: "careers",
+  },
+  {
     company: "Hitachi",
     token: "hitachi",
     host: "hitachi.wd1.myworkdayjobs.com",
