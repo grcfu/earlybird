@@ -1025,6 +1025,11 @@ const BOARDS: AtsCompany[] = [
   // one open internship posting. Same screen as the 09-03 batch: one board
   // per employer, and nothing already covered here or by another source.
   { company: "Brave", token: "brave" },
+  // Mined 2026-09-06 from the aggregator feeds' apply-URLs and re-probed
+  // 2026-09-07 against the live API; kept only on a 200 with at least one
+  // open internship posting, one board per employer, and nothing already
+  // covered here or by another source.
+  { company: "Albedo", token: "albedo" },
 ];
 
 interface GhJob {
