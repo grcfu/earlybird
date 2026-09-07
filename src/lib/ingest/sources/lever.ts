@@ -356,6 +356,7 @@ const BOARDS: AtsCompany[] = [
   // 2026-09-07 against the live API; kept only on a 200 with at least one
   // open internship posting, one board per employer, and nothing already
   // covered here or by another source.
+  { company: "Nomagic", token: "Nomagic" },
   { company: "Tutor Intelligence", token: "tutorintelligence" },
 ];
 
