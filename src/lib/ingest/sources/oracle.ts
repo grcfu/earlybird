@@ -180,6 +180,15 @@ const BOARDS: OracleCompany[] = [
     site: "CX_5001",
   },
   {
+    // Dell fronts its ORC tenant on its own domain, so the host carries no
+    // oraclecloud.com suffix — the API path underneath is the standard one.
+    // It left Workday behind: dell.wd1.myworkdayjobs.com/External now 422s.
+    company: "Dell Technologies",
+    token: "dell",
+    host: "enterpriseplatform.dell.com",
+    site: "CX_1",
+  },
+  {
     company: "Fortinet",
     token: "fortinet",
     host: "edel.fa.us2.oraclecloud.com",

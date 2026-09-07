@@ -104,12 +104,6 @@ const BOARDS: WorkdayCompany[] = [
     site: "disneycareer",
   },
   {
-    company: "Dell",
-    token: "dell",
-    host: "dell.wd1.myworkdayjobs.com",
-    site: "External",
-  },
-  {
     company: "CrowdStrike",
     token: "crowdstrike",
     host: "crowdstrike.wd5.myworkdayjobs.com",
