@@ -703,6 +703,11 @@ const BOARDS: AtsCompany[] = [
   // per employer, and nothing already covered here or by another source.
   { company: "Niantic Spatial", token: "niantic-spatial" },
   { company: "Riveron", token: "riveron" },
+  // Mined 2026-09-06 from the aggregator feeds' apply-URLs and re-probed
+  // 2026-09-07 against the live API; kept only on a 200 with at least one
+  // open internship posting, one board per employer, and nothing already
+  // covered here or by another source.
+  { company: "Ambrook", token: "ambrook" },
 ];
 
 interface AshbyJob {
