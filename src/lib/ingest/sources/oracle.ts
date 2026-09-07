@@ -179,6 +179,12 @@ const BOARDS: OracleCompany[] = [
     host: "edxn.fa.us2.oraclecloud.com",
     site: "CX_5001",
   },
+  {
+    company: "Fortinet",
+    token: "fortinet",
+    host: "edel.fa.us2.oraclecloud.com",
+    site: "CX_2001",
+  },
 ];
 
 interface OrcReq {
