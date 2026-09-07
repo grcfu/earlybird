@@ -1031,6 +1031,7 @@ const BOARDS: AtsCompany[] = [
   // covered here or by another source.
   { company: "Albedo", token: "albedo" },
   { company: "Skillz", token: "skillzinc" },
+  { company: "Syska Hennessy Group", token: "syskahennessy" },
 ];
 
 interface GhJob {
