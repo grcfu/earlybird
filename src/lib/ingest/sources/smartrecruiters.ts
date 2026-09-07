@@ -227,6 +227,7 @@ const BOARDS: AtsCompany[] = [
   // open internship posting, one board per employer, and nothing already
   // covered here or by another source.
   { company: "Acumatica", token: "Acumatica" },
+  { company: "Loram", token: "Loram1" },
 ];
 
 interface SrPosting {
