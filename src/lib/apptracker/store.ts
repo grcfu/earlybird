@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { AppStage } from "@/generated/prisma/client";
 import type { Classification } from "@/lib/apptracker/classify";
 import {
+  STAGE_ORDER,
   STAGE_RANK,
   toStageKey,
   stageFromTimeline,
@@ -512,8 +513,15 @@ export async function updateApplication(
     if (edit.stage !== cur.stage) {
       // A correction, so unlike ingest it may move backwards. It's also logged
       // on the timeline, dated today, so the export has a date for the stage.
+      // Correcting downwards also drops stages you'd added by hand above the new
+      // one — they're what's being corrected, and would otherwise win back the
+      // stage the next time the timeline is recomputed.
       const now = new Date();
+      const above = STAGE_ORDER.filter((st) => STAGE_RANK[st] > STAGE_RANK[edit.stage!]);
       await prisma.$transaction([
+        prisma.applicationEmail.deleteMany({
+          where: { applicationId: appId, manual: true, stage: { in: above as AppStage[] } },
+        }),
         prisma.trackedApplication.update({
           where: { id: appId },
           data: { stage: edit.stage as AppStage, eventDate: now, stageSetAt: now },
@@ -598,8 +606,16 @@ export async function deleteStageEvent(
 
   const row = await prisma.trackedApplication.findUnique({ where: { id: ev.applicationId } });
   if (!row || row.stage !== ev.stage) return true;
+  // Same trust rule as ingest: once the stage was set by hand, emails dated on
+  // or before that are the ones the user overruled, so only hand-added stages
+  // and later mail count.
   const rest = await prisma.applicationEmail.findMany({
-    where: { applicationId: row.id },
+    where: {
+      applicationId: row.id,
+      ...(row.stageSetAt
+        ? { OR: [{ manual: true }, { eventDate: { gt: row.stageSetAt } }] }
+        : {}),
+    },
     select: { stage: true, eventDate: true },
   });
   const best = stageFromTimeline(
