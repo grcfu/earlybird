@@ -62,6 +62,8 @@ export function ApplicationsView({
   const [loadingEmails, setLoadingEmails] = useState<string | null>(null);
   const [justDeleted, setJustDeleted] = useState<{ id: string; company: string } | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
+  // Inline company/role edit — one row at a time.
+  const [editing, setEditing] = useState<{ id: string; company: string; role: string } | null>(null);
 
   const fetchApps = useCallback(async (k: string) => {
     setLoading(true);
@@ -191,6 +193,64 @@ export function ApplicationsView({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, id, action: "referral", referral }),
     });
+  };
+
+  // Drop an application's cached timeline so the next expand refetches it.
+  const forgetEmails = (id: string) =>
+    setEmailsById((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+
+  // POST one of the applications actions, returning the parsed reply.
+  const post = async (body: Record<string, unknown>) => {
+    const res = await fetch("/api/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, ...body }),
+    });
+    return res.json().catch(() => ({ ok: false }));
+  };
+
+  // Hand corrections. Optimistic, like referral; a company change refetches
+  // since renaming into an employer that's already tracked merges the two rows.
+  const updateApp = async (
+    id: string,
+    patch: { company?: string; role?: string; stage?: AppStageKey },
+  ) => {
+    if (!key) return;
+    const now = new Date().toISOString();
+    setApps((prev) =>
+      prev.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              ...patch,
+              ...(patch.company !== undefined ? { companyLocked: true } : {}),
+              ...(patch.role !== undefined ? { roleLocked: true } : {}),
+              ...(patch.stage !== undefined ? { stageSetAt: now, eventDate: now } : {}),
+              updatedAt: now,
+            }
+          : a,
+      ),
+    );
+    forgetEmails(id);
+    await post({ id, action: "update", ...patch });
+    fetchApps(key);
+  };
+
+  const saveEdit = () => {
+    if (!editing) return;
+    const app = apps.find((a) => a.id === editing.id);
+    const company = editing.company.trim();
+    const role = editing.role.trim();
+    setEditing(null);
+    if (!app || !company) return;
+    const patch: { company?: string; role?: string } = {};
+    if (company !== app.company) patch.company = company;
+    if (role !== app.role) patch.role = role;
+    if (Object.keys(patch).length) updateApp(app.id, patch);
   };
 
   // Restore from Trash → back to All.
@@ -673,35 +733,117 @@ export function ApplicationsView({
                   className="pop overflow-hidden rounded-xl border border-line bg-surface shadow-pop"
                 >
                   <div className="flex items-center gap-3 px-3.5 py-2.5">
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(a.id)}
-                      aria-expanded={open}
-                      className="min-w-0 flex-1 text-left"
-                      title="Show the emails behind this application"
-                    >
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        <span className="text-ink-faint">{open ? "▾" : "▸"}</span>
-                        <span className="truncate text-[15px] font-bold text-ink">
-                          {a.company}
-                        </span>
-                        <span
-                          className={`rounded-md px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider ${STAGE_CLASS[a.stage]}`}
-                        >
-                          {STAGE_LABEL[a.stage]}
-                        </span>
-                      </div>
-                      {a.role && (
-                        <div className="mt-0.5 truncate pl-5 font-mono text-[12px] text-ink-soft">
-                          {a.role}
+                    {editing?.id === a.id ? (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          saveEdit();
+                        }}
+                        onKeyDown={(e) => e.key === "Escape" && setEditing(null)}
+                        className="flex min-w-0 flex-1 flex-col gap-1.5"
+                      >
+                        <input
+                          autoFocus
+                          value={editing.company}
+                          onChange={(e) => setEditing({ ...editing, company: e.target.value })}
+                          placeholder="Company"
+                          aria-label="Company"
+                          className="min-w-0 rounded-md border border-line bg-canvas px-2 py-1 text-[15px] font-bold text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+                        />
+                        <input
+                          value={editing.role}
+                          onChange={(e) => setEditing({ ...editing, role: e.target.value })}
+                          placeholder="Role (optional)"
+                          aria-label="Role"
+                          className="min-w-0 rounded-md border border-line bg-canvas px-2 py-1 font-mono text-[12px] text-ink-soft focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="submit"
+                            disabled={!editing.company.trim()}
+                            className="pop rounded-md bg-accent px-3 py-1 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditing(null)}
+                            className="rounded-md px-2 py-1 font-mono text-[11px] text-ink-faint hover:text-ink"
+                          >
+                            Cancel
+                          </button>
+                          <span className="font-mono text-[10px] text-ink-faint">
+                            your edits stick — new emails won&apos;t rename it
+                          </span>
                         </div>
-                      )}
-                      <div className="mt-1 pl-5 font-mono text-[11px] text-ink-faint">
-                        {a.appliedAt ? `applied ${fmtDate(a.appliedAt)}` : ""}
-                        {a.stage === "REJECTED" || a.stage === "OFFER"
-                          ? ` · ${STAGE_LABEL[a.stage].toLowerCase()} ${fmtDate(a.eventDate)}`
-                          : ""}
+                      </form>
+                    ) : (
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(a.id)}
+                          aria-expanded={open}
+                          className="flex min-w-0 items-center gap-2.5 text-left"
+                          title="Show the stages and emails behind this application"
+                        >
+                          <span className="text-ink-faint">{open ? "▾" : "▸"}</span>
+                          <span className="truncate text-[15px] font-bold text-ink">
+                            {a.company}
+                          </span>
+                        </button>
+                        {/* Stage — a dropdown, for when the email got it wrong */}
+                        <select
+                          value={a.stage}
+                          onChange={(e) => updateApp(a.id, { stage: e.target.value as AppStageKey })}
+                          aria-label={`Stage for ${a.company}`}
+                          title="Change the stage"
+                          className={`cursor-pointer appearance-none rounded-md border-0 px-2 py-[1px] font-mono text-[10px] uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-accent-soft ${STAGE_CLASS[a.stage]}`}
+                        >
+                          {STAGE_ORDER.map((st) => (
+                            <option key={st} value={st} className="bg-surface text-ink">
+                              {STAGE_LABEL[st]}
+                            </option>
+                          ))}
+                        </select>
+                        {(a.stageSetAt || a.companyLocked || a.roleLocked) && (
+                          <span
+                            className="font-mono text-[10px] text-ink-faint"
+                            title="You corrected this by hand — emails won't overwrite it"
+                          >
+                            ✎ edited
+                          </span>
+                        )}
                       </div>
+                      <div
+                        onClick={() => toggleExpand(a.id)}
+                        className="cursor-pointer"
+                      >
+                        {a.role && (
+                          <div className="mt-0.5 truncate pl-5 font-mono text-[12px] text-ink-soft">
+                            {a.role}
+                          </div>
+                        )}
+                        <div className="mt-1 pl-5 font-mono text-[11px] text-ink-faint">
+                          {a.appliedAt ? `applied ${fmtDate(a.appliedAt)}` : ""}
+                          {a.stage === "REJECTED" || a.stage === "OFFER"
+                            ? ` · ${STAGE_LABEL[a.stage].toLowerCase()} ${fmtDate(a.eventDate)}`
+                            : ""}
+                        </div>
+                      </div>
+                    </div>
+                    )}
+                    <button
+                      onClick={() =>
+                        editing?.id === a.id
+                          ? setEditing(null)
+                          : setEditing({ id: a.id, company: a.company, role: a.role })
+                      }
+                      title="Edit company and role"
+                      aria-label={`Edit ${a.company}`}
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line bg-canvas text-xs text-ink-faint hover:border-accent hover:text-ink"
+                    >
+                      ✎
                     </button>
                     {/* Referral — the one thing no email can tell us */}
                     <div
