@@ -353,8 +353,8 @@ export function Feed({
   useEffect(() => {
     document.title =
       incoming.length > 0
-        ? `(${incoming.length}) new roles — EarlyBird`
-        : "EarlyBird — fresh internships, first light";
+        ? `(${incoming.length}) EarlyBird`
+        : "EarlyBird";
   }, [incoming.length]);
 
   const showIncoming = useCallback(() => {

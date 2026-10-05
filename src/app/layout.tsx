@@ -25,7 +25,7 @@ const mono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EarlyBird — fresh internships, first light",
+  title: "EarlyBird",
   description:
     "The newest SWE / ML / data / PM internship postings, surfaced within hours of going live.",
 };
