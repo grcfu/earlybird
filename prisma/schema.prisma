@@ -381,3 +381,17 @@ model AiUsage {
   @@unique([userId, day])
   @@index([day])
 }
+
+// "Emails read as this name are really that company." Saved when the user
+// renames an application away from a name that isn't the same employer — a
+// recruiter's name the classifier took for the company, say — so the next email
+// from them files under the right application instead of forking a new one.
+model CompanyAlias {
+  id        String   @id @default(cuid())
+  ownerKey  String
+  alias     String // companyKey() of the misread name
+  company   String // the name to file it under
+  createdAt DateTime @default(now())
+
+  @@unique([ownerKey, alias])
+}

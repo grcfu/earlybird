@@ -16,11 +16,14 @@ import {
   generateTrackerKey,
 } from "@/lib/apptracker/key";
 import { buildAppsScript } from "@/lib/apptracker/appsScript";
+import { sameCompany } from "@/lib/apptracker/normalize";
+import { CompanySuggest } from "@/components/CompanySuggest";
 import {
   cycleOf,
   cyclesPresent,
   currentCycle,
   cycleLabel,
+  sameCycle,
 } from "@/lib/apptracker/cycle";
 
 // When you last exported. Drives both the nudge and, more importantly, WHAT a
@@ -45,7 +48,7 @@ function todayInput(): string {
 }
 
 const INPUT_CLASS =
-  "min-w-0 rounded-md border border-line bg-canvas px-2 py-1 font-mono text-[12px] text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft";
+  "min-w-0 rounded-md border border-line bg-canvas px-2 py-1 font-mono text-[12px] normal-case tracking-normal text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft";
 
 type Filter = AppStageKey | "all";
 // Which recruiting cycle is on screen — a year, or every cycle at once.
@@ -360,6 +363,28 @@ export function ApplicationsView({
   const liveApps = apps.filter((a) => !a.deletedAt);
   const trashApps = apps.filter((a) => a.deletedAt);
 
+  // The application a name would fold into: same employer, same cycle — the
+  // exact test the server merges on (isSameApplication in store.ts), so what the
+  // form promises is what happens. Live rows first; a trashed match comes back.
+  const mergeTargetFor = (
+    company: string,
+    incoming: { role: string; eventDate: string },
+    selfId?: string,
+  ) =>
+    [...liveApps, ...trashApps].find(
+      (o) =>
+        o.id !== selfId &&
+        sameCompany(o.company, company) &&
+        sameCycle(
+          {
+            role: o.role,
+            appliedAt: o.appliedAt ? o.appliedAt.slice(0, 10) : null,
+            eventDate: o.eventDate.slice(0, 10),
+          },
+          { role: incoming.role, eventDate: incoming.eventDate.slice(0, 10) },
+        ),
+    ) ?? null;
+
   // Cycles you've actually applied in, newest first.
   const cycles = cyclesPresent(liveApps);
   const thisCycle = currentCycle();
@@ -481,6 +506,11 @@ export function ApplicationsView({
   const visible = filter === "all" ? activeApps : activeApps.filter((a) => a.stage === filter);
 
   const script = key ? buildAppsScript(key, endpoint) : "";
+
+  const newTarget =
+    newApp && newApp.company.trim()
+      ? mergeTargetFor(newApp.company.trim(), { role: newApp.role, eventDate: newApp.date })
+      : null;
 
   const FILTERS: { key: Filter; label: string }[] = [
     { key: "all", label: "All" },
@@ -617,10 +647,11 @@ export function ApplicationsView({
         >
           <label className="flex min-w-[10rem] flex-1 flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
             Company
-            <input
+            <CompanySuggest
               autoFocus
               value={newApp.company}
-              onChange={(e) => setNewApp({ ...newApp, company: e.target.value })}
+              onChange={(v) => setNewApp({ ...newApp, company: v })}
+              options={liveApps}
               className={INPUT_CLASS}
             />
           </label>
@@ -661,8 +692,15 @@ export function ApplicationsView({
             disabled={!newApp.company.trim()}
             className="pop rounded-md bg-accent px-3.5 py-1.5 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
           >
-            Add
+            {newTarget ? "Add to existing" : "Add"}
           </button>
+          {newTarget && (
+            <p className="w-full font-mono text-[11px] text-accent-ink">
+              ↳ You already track <b>{newTarget.company}</b> ({STAGE_LABEL[newTarget.stage]}
+              {newTarget.appliedAt ? `, applied ${fmtDate(newTarget.appliedAt)}` : ""}) this
+              cycle — this adds the stage to that application instead of making a second one.
+            </p>
+          )}
         </form>
       )}
 
@@ -902,13 +940,13 @@ export function ApplicationsView({
                         onKeyDown={(e) => e.key === "Escape" && setEditing(null)}
                         className="flex min-w-0 flex-1 flex-col gap-1.5"
                       >
-                        <input
+                        <CompanySuggest
                           autoFocus
                           value={editing.company}
-                          onChange={(e) => setEditing({ ...editing, company: e.target.value })}
+                          onChange={(v) => setEditing({ ...editing, company: v })}
+                          options={liveApps.filter((o) => o.id !== a.id)}
                           placeholder="Company"
-                          aria-label="Company"
-                          className="min-w-0 rounded-md border border-line bg-canvas px-2 py-1 text-[15px] font-bold text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+                          className="rounded-md border border-line bg-canvas px-2 py-1 text-[15px] font-bold text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
                         />
                         <input
                           value={editing.role}
@@ -917,13 +955,25 @@ export function ApplicationsView({
                           aria-label="Role"
                           className="min-w-0 rounded-md border border-line bg-canvas px-2 py-1 font-mono text-[12px] text-ink-soft focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
                         />
+                        <RenameNotice
+                          from={a.company}
+                          to={editing.company.trim()}
+                          target={
+                            editing.company.trim() && editing.company.trim() !== a.company
+                              ? mergeTargetFor(editing.company.trim(), a, a.id)
+                              : null
+                          }
+                        />
                         <div className="flex items-center gap-2">
                           <button
                             type="submit"
                             disabled={!editing.company.trim()}
                             className="pop rounded-md bg-accent px-3 py-1 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
                           >
-                            Save
+                            {editing.company.trim() !== a.company &&
+                            mergeTargetFor(editing.company.trim(), a, a.id)
+                              ? "Merge"
+                              : "Save"}
                           </button>
                           <button
                             type="button"
@@ -1240,5 +1290,39 @@ export function ApplicationsView({
         </div>
       )}
     </div>
+  );
+}
+
+// What a rename will do, said before it happens: fold into an application you
+// already track (a merge — the two become one), or just relabel this one. Either
+// way, when the old name isn't the same employer, future mail read as it is
+// filed under the new name.
+function RenameNotice({
+  from,
+  to,
+  target,
+}: {
+  from: string;
+  to: string;
+  target: ApplicationRow | null;
+}) {
+  if (!to || to === from) return null;
+  const remembers = !sameCompany(from, to);
+  if (target) {
+    return (
+      <p className="rounded-md border border-accent/40 bg-accent-soft px-2 py-1.5 font-mono text-[11px] leading-relaxed text-accent-ink">
+        ↳ <b>Merges</b> into your existing <b>{target.company}</b> application (
+        {STAGE_LABEL[target.stage]}
+        {target.appliedAt ? `, applied ${fmtDate(target.appliedAt)}` : ""}) — the two
+        become one, emails and stages combined.
+        {remembers && <> Future emails read as “{from}” will go there too.</>}
+      </p>
+    );
+  }
+  if (!remembers) return null;
+  return (
+    <p className="font-mono text-[10px] text-ink-faint">
+      Future emails read as “{from}” will be filed under “{to}”.
+    </p>
   );
 }

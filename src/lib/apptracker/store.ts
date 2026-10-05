@@ -290,9 +290,14 @@ export async function recordApplication(
   const role = c.role ?? "";
   const eventDate = new Date(c.eventDate);
   const subject = email.subject || "";
+  // A name the user has already corrected once ("Sarah Chen" → Rippling) files
+  // under the correction instead of forking a new application.
+  const alias = await prisma.companyAlias.findUnique({
+    where: { ownerKey_alias: { ownerKey, alias: companyKey(c.company) } },
+  });
 
   const { applicationId, company, stage, created } = await upsertByCompany(ownerKey, {
-    company: c.company,
+    company: alias?.company ?? c.company,
     role,
     stage: stageKey,
     eventDate,
@@ -491,6 +496,7 @@ export async function updateApplication(
       where: { id: appId },
       data: { company: edit.company, companyLocked: true },
     });
+    await rememberAlias(ownerKey, row.company, edit.company);
   }
 
   if (edit.role !== undefined) {
@@ -532,6 +538,38 @@ export async function updateApplication(
   }
 
   return appId;
+}
+
+// After a rename, remember "mail read as `from` belongs to `to`" — but only when
+// they're different employers. "Stripe" → "Stripe, Inc." is a tidy-up the
+// matcher already understands; "Sarah Chen" → "Rippling" is a misread worth
+// remembering. Older fixes that pointed at `from` follow it to `to`, and a
+// name the user has now given a company of its own stops being an alias.
+async function rememberAlias(ownerKey: string, from: string, to: string) {
+  const ops = [
+    prisma.companyAlias.deleteMany({ where: { ownerKey, alias: companyKey(to) } }),
+  ];
+  if (companyKey(from) && !sameCompany(from, to)) {
+    const chained = (
+      await prisma.companyAlias.findMany({ where: { ownerKey } })
+    ).filter((a) => sameCompany(a.company, from));
+    ops.push(
+      prisma.companyAlias.updateMany({
+        where: { id: { in: chained.map((a) => a.id) } },
+        data: { company: to },
+      }),
+    );
+    await prisma.$transaction([
+      ...ops,
+      prisma.companyAlias.upsert({
+        where: { ownerKey_alias: { ownerKey, alias: companyKey(from) } },
+        create: { ownerKey, alias: companyKey(from), company: to },
+        update: { company: to },
+      }),
+    ]);
+    return;
+  }
+  await prisma.$transaction(ops);
 }
 
 // A hand-added timeline entry. msgHash is unique per entry so it never collides
