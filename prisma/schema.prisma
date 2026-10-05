@@ -157,6 +157,13 @@ model TrackedApplication {
   // false until you say otherwise, since most applications have no referral.
   referral Boolean @default(false)
 
+  // Hand corrections, pinned so a later email (or a backfill replay) can't undo
+  // them. companyLocked/roleLocked: ingest keeps the user's text. stageSetAt:
+  // when the user last set the stage; emails dated on or before it can't move it.
+  companyLocked Boolean   @default(false)
+  roleLocked    Boolean   @default(false)
+  stageSetAt    DateTime?
+
   // Which recruiting cycle this application belongs to, as the summer year it
   // targets (2027 = Summer 2027). Persisted rather than derived so that applying
   // to the same company again next season is a separate application instead of
@@ -191,6 +198,10 @@ model ApplicationEmail {
   stage         AppStage // stage this email was classified as
   eventDate     DateTime // the email's event date (parsed/forwarded)
   msgHash       String // sha256(subject|body|eventDate) — dedupes re-ingests
+  // A stage the user added by hand (an email that was never caught). No subject
+  // or body; msgHash is "manual:<id>" so it never collides with email dedupe.
+  manual        Boolean  @default(false)
+  note          String?
   createdAt     DateTime @default(now())
 
   application TrackedApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
