@@ -7,6 +7,7 @@ import {
   STAGE_ORDER,
   STAGE_LABEL,
   STAGE_CLASS,
+  stageDates,
   type AppStageKey,
 } from "@/lib/apptracker/stages";
 import {
@@ -26,6 +27,9 @@ import {
 // copy contains: everything since this instant, rather than the whole table
 // again. Per-browser, like the tracker key when signed out.
 const EXPORT_KEY = "earlybird:apps:lastExport";
+// When the export gained its per-stage date columns. A sheet built from a copy
+// before this has the old header, so "copy changed" rows wouldn't line up.
+const COLUMNS_CHANGED_AT = "2026-10-05T00:00:00Z";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(iso: string): string {
@@ -394,10 +398,16 @@ export function ApplicationsView({
     "Applied",
     "Last update",
     "Source",
+    // Per-stage dates, appended so the columns above keep their positions in a
+    // sheet that already has them.
+    "Assessment",
+    "Interview",
+    "Outcome date",
   ];
   const exportRows = (list: ApplicationRow[]) =>
     list.map((a) => {
       const y = cycleOf(a);
+      const dates = stageDates(a.stage, a.timeline);
       return [
         a.company,
         a.role,
@@ -409,6 +419,11 @@ export function ApplicationsView({
         a.appliedAt ? a.appliedAt.slice(0, 10) : "",
         a.eventDate.slice(0, 10),
         a.source,
+        dates.ASSESSMENT?.slice(0, 10) ?? "",
+        dates.INTERVIEW?.slice(0, 10) ?? "",
+        // The outcome's date is the row's own stage date — a hand-set Offer has
+        // no email behind it, and a corrected one shouldn't show the old date.
+        a.stage === "OFFER" || a.stage === "REJECTED" ? a.eventDate.slice(0, 10) : "",
       ];
     });
 
@@ -545,10 +560,19 @@ export function ApplicationsView({
         )}
         {activeApps.length > 0 && (
           <div className="ml-auto flex items-center gap-2">
-            {lastExport && (
-              <span className="font-mono text-[10px] text-ink-faint">
-                exported {fmtDate(lastExport)}
+            {lastExport && lastExport < COLUMNS_CHANGED_AT ? (
+              <span
+                className="font-mono text-[10px] text-accent-ink"
+                title="The export now has Assessment / Interview / Outcome date columns — do one Copy all so your sheet's header matches"
+              >
+                new columns · copy all once
               </span>
+            ) : (
+              lastExport && (
+                <span className="font-mono text-[10px] text-ink-faint">
+                  exported {fmtDate(lastExport)}
+                </span>
+              )
             )}
             {lastExport && unexported.length > 0 && (
               <button
