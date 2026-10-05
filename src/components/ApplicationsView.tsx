@@ -33,6 +33,16 @@ function fmtDate(iso: string): string {
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }
 
+// Today as YYYY-MM-DD in local time — the default for a date input.
+function todayInput(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+const INPUT_CLASS =
+  "min-w-0 rounded-md border border-line bg-canvas px-2 py-1 font-mono text-[12px] text-ink focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft";
+
 type Filter = AppStageKey | "all";
 // Which recruiting cycle is on screen — a year, or every cycle at once.
 type CycleFilter = number | "all";
@@ -64,6 +74,19 @@ export function ApplicationsView({
   const [trashOpen, setTrashOpen] = useState(false);
   // Inline company/role edit — one row at a time.
   const [editing, setEditing] = useState<{ id: string; company: string; role: string } | null>(null);
+  // "+ Add stage" form in an expanded row, and the "+ Application" form.
+  const [stageDraft, setStageDraft] = useState<{
+    id: string;
+    stage: AppStageKey;
+    date: string;
+    note: string;
+  } | null>(null);
+  const [newApp, setNewApp] = useState<{
+    company: string;
+    role: string;
+    stage: AppStageKey;
+    date: string;
+  } | null>(null);
 
   const fetchApps = useCallback(async (k: string) => {
     setLoading(true);
@@ -235,9 +258,8 @@ export function ApplicationsView({
           : a,
       ),
     );
-    forgetEmails(id);
     await post({ id, action: "update", ...patch });
-    fetchApps(key);
+    await refreshApp(id);
   };
 
   const saveEdit = () => {
@@ -267,6 +289,22 @@ export function ApplicationsView({
     });
   };
 
+  const loadEmails = async (id: string) => {
+    if (!key) return;
+    setLoadingEmails(id);
+    try {
+      const res = await fetch(
+        `/api/applications/emails?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}`,
+      );
+      const data = await res.json();
+      if (data.ok) setEmailsById((prev) => ({ ...prev, [id]: data.emails }));
+    } catch {
+      /* transient */
+    } finally {
+      setLoadingEmails(null);
+    }
+  };
+
   // Expand a row → lazy-load its full email history (cached after first fetch).
   const toggleExpand = async (id: string) => {
     if (expandedId === id) {
@@ -274,20 +312,44 @@ export function ApplicationsView({
       return;
     }
     setExpandedId(id);
-    if (!emailsById[id] && key) {
-      setLoadingEmails(id);
-      try {
-        const res = await fetch(
-          `/api/applications/emails?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}`,
-        );
-        const data = await res.json();
-        if (data.ok) setEmailsById((prev) => ({ ...prev, [id]: data.emails }));
-      } catch {
-        /* transient */
-      } finally {
-        setLoadingEmails(null);
-      }
-    }
+    if (!emailsById[id]) await loadEmails(id);
+  };
+
+  // After a change to an application: refetch the list, and its timeline too if
+  // it's the one open on screen.
+  const refreshApp = async (id: string) => {
+    if (!key) return;
+    forgetEmails(id);
+    await fetchApps(key);
+    if (expandedId === id) await loadEmails(id);
+  };
+
+  // Log a stage the tracker missed.
+  const addStage = async () => {
+    if (!stageDraft) return;
+    const { id, stage, date, note } = stageDraft;
+    setStageDraft(null);
+    await post({ id, action: "addStage", stage, date, note });
+    await refreshApp(id);
+  };
+
+  // Remove a stage you added by hand.
+  const deleteStage = async (appId: string, eventId: string) => {
+    setEmailsById((prev) => ({
+      ...prev,
+      [appId]: (prev[appId] ?? []).filter((e) => e.id !== eventId),
+    }));
+    await post({ action: "deleteStage", eventId });
+    await refreshApp(appId);
+  };
+
+  // Add an application that never got tracked.
+  const createApp = async () => {
+    if (!newApp || !newApp.company.trim() || !key) return;
+    const draft = newApp;
+    setNewApp(null);
+    await post({ action: "create", ...draft });
+    await fetchApps(key);
   };
 
   // Split live applications from Trash (soft-deleted).
@@ -468,6 +530,19 @@ export function ApplicationsView({
             {loading ? "⟳ …" : "⟳ Refresh"}
           </button>
         )}
+        {key && (
+          <button
+            onClick={() =>
+              setNewApp((d) =>
+                d ? null : { company: "", role: "", stage: "APPLIED", date: todayInput() },
+              )
+            }
+            title="Add an application the email tracking missed"
+            className="pop rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-soft shadow-pop-sm hover:text-ink"
+          >
+            {newApp ? "✕ Cancel" : "+ Application"}
+          </button>
+        )}
         {activeApps.length > 0 && (
           <div className="ml-auto flex items-center gap-2">
             {lastExport && (
@@ -505,6 +580,67 @@ export function ApplicationsView({
           </div>
         )}
       </div>
+
+      {/* Add an application the tracker never caught */}
+      {newApp && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            createApp();
+          }}
+          onKeyDown={(e) => e.key === "Escape" && setNewApp(null)}
+          className="pop mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-line bg-surface p-3 shadow-pop"
+        >
+          <label className="flex min-w-[10rem] flex-1 flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            Company
+            <input
+              autoFocus
+              value={newApp.company}
+              onChange={(e) => setNewApp({ ...newApp, company: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </label>
+          <label className="flex min-w-[10rem] flex-1 flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            Role
+            <input
+              value={newApp.role}
+              onChange={(e) => setNewApp({ ...newApp, role: e.target.value })}
+              placeholder="optional"
+              className={INPUT_CLASS}
+            />
+          </label>
+          <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            Stage
+            <select
+              value={newApp.stage}
+              onChange={(e) => setNewApp({ ...newApp, stage: e.target.value as AppStageKey })}
+              className={INPUT_CLASS}
+            >
+              {STAGE_ORDER.map((st) => (
+                <option key={st} value={st}>
+                  {STAGE_LABEL[st]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            Date
+            <input
+              type="date"
+              value={newApp.date}
+              onChange={(e) => setNewApp({ ...newApp, date: e.target.value })}
+              className={INPUT_CLASS}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!newApp.company.trim()}
+            className="pop rounded-md bg-accent px-3.5 py-1.5 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
+          >
+            Add
+          </button>
+        </form>
+      )}
 
       {/* Setup panel */}
       {setupOpen && (
@@ -892,6 +1028,84 @@ export function ApplicationsView({
                   {/* Expanded: the full email history for this application */}
                   {open && (
                     <div className="border-t border-line bg-canvas px-3.5 py-3">
+                      {/* Stage timeline, oldest first, plus a way to add a missed one */}
+                      <div className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[11px] text-ink-soft">
+                        {[...a.timeline]
+                          .sort((x, y) => x.date.localeCompare(y.date))
+                          .map((t, i) => (
+                            <span key={i} className="flex items-center gap-1.5">
+                              {i > 0 && <span className="text-ink-faint">→</span>}
+                              <span>
+                                {STAGE_LABEL[t.stage]}{" "}
+                                <span className="text-ink-faint">{fmtDate(t.date)}</span>
+                              </span>
+                            </span>
+                          ))}
+                        {stageDraft?.id !== a.id && (
+                          <button
+                            onClick={() =>
+                              setStageDraft({ id: a.id, stage: "ASSESSMENT", date: todayInput(), note: "" })
+                            }
+                            title="Log a stage the email tracking missed"
+                            className={`rounded-md border border-dashed border-line px-2 py-[1px] text-ink-faint hover:border-accent hover:text-ink ${a.timeline.length ? "ml-1" : ""}`}
+                          >
+                            + Add stage
+                          </button>
+                        )}
+                      </div>
+                      {stageDraft?.id === a.id && (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            addStage();
+                          }}
+                          onKeyDown={(e) => e.key === "Escape" && setStageDraft(null)}
+                          className="mb-3 flex flex-wrap items-center gap-2"
+                        >
+                          <select
+                            value={stageDraft.stage}
+                            onChange={(e) =>
+                              setStageDraft({ ...stageDraft, stage: e.target.value as AppStageKey })
+                            }
+                            aria-label="Stage"
+                            className={INPUT_CLASS}
+                          >
+                            {STAGE_ORDER.map((st) => (
+                              <option key={st} value={st}>
+                                {STAGE_LABEL[st]}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="date"
+                            value={stageDraft.date}
+                            onChange={(e) => setStageDraft({ ...stageDraft, date: e.target.value })}
+                            aria-label="Date"
+                            className={INPUT_CLASS}
+                          />
+                          <input
+                            value={stageDraft.note}
+                            onChange={(e) => setStageDraft({ ...stageDraft, note: e.target.value })}
+                            placeholder="note (optional) — e.g. HackerRank OA"
+                            aria-label="Note"
+                            className={`${INPUT_CLASS} flex-1`}
+                          />
+                          <button
+                            type="submit"
+                            disabled={!stageDraft.date}
+                            className="pop rounded-md bg-accent px-3 py-1 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-50"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setStageDraft(null)}
+                            className="rounded-md px-2 py-1 font-mono text-[11px] text-ink-faint hover:text-ink"
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      )}
                       {loadingEmails === a.id ? (
                         <p className="font-mono text-[11px] text-ink-faint">loading emails…</p>
                       ) : emails && emails.length > 0 ? (
@@ -907,20 +1121,37 @@ export function ApplicationsView({
                                 <span className="font-mono text-[11px] text-ink-soft">
                                   {fmtDate(em.eventDate)}
                                 </span>
+                                {em.manual && (
+                                  <>
+                                    <span className="font-mono text-[10px] text-ink-faint">
+                                      added by you{em.note ? ` · ${em.note}` : ""}
+                                    </span>
+                                    <button
+                                      onClick={() => deleteStage(a.id, em.id)}
+                                      title="Remove this stage"
+                                      aria-label="Remove this stage"
+                                      className="ml-auto grid h-5 w-5 place-items-center rounded text-[10px] text-ink-faint hover:text-danger"
+                                    >
+                                      ✕
+                                    </button>
+                                  </>
+                                )}
                                 {em.fromAddr && (
                                   <span className="truncate font-mono text-[10px] text-ink-faint">
                                     {em.fromAddr}
                                   </span>
                                 )}
                               </div>
-                              {em.subject && (
+                              {!em.manual && em.subject && (
                                 <div className="mt-1 font-mono text-[12px] font-semibold text-ink">
                                   {em.subject}
                                 </div>
                               )}
-                              <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-surface p-2 font-mono text-[11px] leading-relaxed text-ink-soft">
-                                {em.body || "(no body stored)"}
-                              </pre>
+                              {!em.manual && (
+                                <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-surface p-2 font-mono text-[11px] leading-relaxed text-ink-soft">
+                                  {em.body || "(no body stored)"}
+                                </pre>
+                              )}
                             </div>
                           ))}
                         </div>
