@@ -66,6 +66,8 @@ export function ApplicationsView({
   const [apps, setApps] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const [cycle, setCycle] = useState<CycleFilter>("all");
   const [setupOpen, setSetupOpen] = useState(false);
   const [copied, setCopied] = useState<"" | "key" | "script" | "sheets" | "sheets-all">("");
@@ -411,17 +413,23 @@ export function ApplicationsView({
     await fetchApps(key);
   };
 
-  // ⌘Z / Ctrl+Z undoes the toast's edit — unless you're typing, where it should
-  // undo text instead. The ref keeps one listener calling the latest `undo`.
+  // Page shortcuts, ignored while typing: "/" focuses search, and ⌘Z / Ctrl+Z
+  // undoes the toast's edit (in a text box it should undo text instead). The
+  // ref keeps one listener calling the latest `undo`.
   const undoRef = useRef(undo);
   useEffect(() => {
     undoRef.current = undo;
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.key.toLowerCase() !== "z") return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.key.toLowerCase() !== "z") return;
       e.preventDefault();
       undoRef.current();
     };
@@ -574,9 +582,22 @@ export function ApplicationsView({
     });
   };
 
+  // Search narrows the list (and the stage counts with it) by every word typed,
+  // in any order, across company, role, stage and the latest email's subject —
+  // "stripe interview" finds Stripe at the interview stage. Export ignores it:
+  // a search is for finding a row, not for choosing what goes in the sheet.
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const searched = terms.length
+    ? activeApps.filter((a) => {
+        const hay = [a.company, a.role, STAGE_LABEL[a.stage], a.lastSubject ?? ""]
+          .join(" ")
+          .toLowerCase();
+        return terms.every((t) => hay.includes(t));
+      })
+    : activeApps;
   const countIn = (f: Filter) =>
-    f === "all" ? activeApps.length : activeApps.filter((a) => a.stage === f).length;
-  const visible = filter === "all" ? activeApps : activeApps.filter((a) => a.stage === filter);
+    f === "all" ? searched.length : searched.filter((a) => a.stage === f).length;
+  const visible = filter === "all" ? searched : searched.filter((a) => a.stage === filter);
 
   const script = key ? buildAppsScript(key, endpoint) : "";
 
@@ -947,6 +968,41 @@ export function ApplicationsView({
         </div>
       ) : (
         <>
+          {/* Search — "/" jumps here from anywhere on the page */}
+          <div className="relative mb-2">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-faint">
+              ⌕
+            </span>
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setQuery("");
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="Search company, role, stage…"
+              aria-label="Search applications"
+              className="w-full rounded-lg border border-line bg-surface py-2 pl-8 pr-16 text-sm text-ink placeholder:text-ink-faint focus:border-accent-bright focus:outline-none focus:ring-2 focus:ring-accent-soft"
+            />
+            {query ? (
+              <button
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-0.5 font-mono text-[11px] text-ink-faint hover:text-ink"
+              >
+                ✕ clear
+              </button>
+            ) : (
+              <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1.5 font-mono text-[10px] text-ink-faint sm:block">
+                /
+              </kbd>
+            )}
+          </div>
+
           <div className="mb-3 flex flex-wrap gap-1 rounded-lg border border-line bg-mist p-1">
             {FILTERS.map((f) => {
               const active = filter === f.key;
@@ -969,6 +1025,14 @@ export function ApplicationsView({
               );
             })}
           </div>
+
+          {visible.length === 0 && (
+            <p className="rounded-xl border border-dashed border-line bg-surface px-4 py-8 text-center font-mono text-xs text-ink-soft">
+              {terms.length
+                ? `No applications match “${query.trim()}”${filter === "all" ? "" : ` in ${STAGE_LABEL[filter]}`}${cycle === "all" ? "" : ` for ${cycleLabel(cycle)}`}.`
+                : `No applications at this stage.`}
+            </p>
+          )}
 
           <div className="flex flex-col gap-2">
             {visible.map((a) => {
