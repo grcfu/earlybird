@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApplicationRow, ApplicationEmailRow } from "@/lib/apptracker/store";
 import {
@@ -77,7 +77,14 @@ export function ApplicationsView({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [emailsById, setEmailsById] = useState<Record<string, ApplicationEmailRow[]>>({});
   const [loadingEmails, setLoadingEmails] = useState<string | null>(null);
-  const [justDeleted, setJustDeleted] = useState<{ id: string; company: string } | null>(null);
+  // The undo toast (bottom-left) for the most recent edit. `plan` is what the
+  // server returned for reversing it; posting it back undoes the edit.
+  const [toast, setToast] = useState<{
+    label: string;
+    plan: unknown;
+    status: "ready" | "undoing" | "undone" | "failed";
+  } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
   // Inline company/role edit — one row at a time.
   const [editing, setEditing] = useState<{ id: string; company: string; role: string } | null>(null);
@@ -198,6 +205,19 @@ export function ApplicationsView({
     });
   };
 
+  // Show the undo toast for an edit the server just made. Stays a few seconds,
+  // longer while the pointer is on it; a newer edit replaces it.
+  const TOAST_MS = 8000;
+  const armToastTimer = (ms = TOAST_MS) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
+  };
+  const offerUndo = (label: string, reply: { ok?: boolean; undo?: unknown }) => {
+    if (!reply?.ok || !reply.undo) return;
+    setToast({ label, plan: reply.undo, status: "ready" });
+    armToastTimer();
+  };
+
   // Soft delete → moves to Trash; offers Undo. Optimistically flips deletedAt.
   const remove = async (id: string) => {
     if (!key) return;
@@ -206,23 +226,24 @@ export function ApplicationsView({
       prev.map((a) => (a.id === id ? { ...a, deletedAt: new Date().toISOString() } : a)),
     );
     if (expandedId === id) setExpandedId(null);
-    if (app) setJustDeleted({ id, company: app.company });
-    await fetch(
+    const res = await fetch(
       `/api/applications?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}`,
       { method: "DELETE" },
     );
+    offerUndo(`Moved ${app?.company ?? "it"} to Trash`, await res.json().catch(() => ({})));
   };
 
   // Referral yes/no — the one field no email can tell us, so it's set by hand.
   // Optimistic: the toggle flips immediately and the write follows.
   const setReferral = async (id: string, referral: boolean) => {
     if (!key) return;
+    const app = apps.find((a) => a.id === id);
+    if (app?.referral === referral) return;
     setApps((prev) => prev.map((a) => (a.id === id ? { ...a, referral } : a)));
-    await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, id, action: "referral", referral }),
-    });
+    offerUndo(
+      `Referral ${referral ? "on" : "off"} for ${app?.company ?? "it"}`,
+      await post({ id, action: "referral", referral }),
+    );
   };
 
   // Drop an application's cached timeline so the next expand refetches it.
@@ -265,7 +286,15 @@ export function ApplicationsView({
           : a,
       ),
     );
-    await post({ id, action: "update", ...patch });
+    const app = apps.find((a) => a.id === id);
+    const name = app?.company ?? "it";
+    const label =
+      patch.stage !== undefined
+        ? `${name} → ${STAGE_LABEL[patch.stage]}`
+        : patch.company !== undefined
+          ? `${mergeTargetFor(patch.company, app ?? { role: "", eventDate: now }, id) ? "Merged" : "Renamed"} ${name} → ${patch.company}`
+          : `Updated ${name}`;
+    offerUndo(label, await post({ id, action: "update", ...patch }));
     await refreshApp(id);
   };
 
@@ -285,16 +314,26 @@ export function ApplicationsView({
   // Restore from Trash → back to All.
   const restore = async (id: string) => {
     if (!key) return;
+    const app = apps.find((a) => a.id === id);
     setApps((prev) =>
       prev.map((a) => (a.id === id ? { ...a, deletedAt: null } : a)),
     );
-    if (justDeleted?.id === id) setJustDeleted(null);
-    await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, id, action: "restore" }),
-    });
+    offerUndo(`Restored ${app?.company ?? "it"}`, await post({ id, action: "restore" }));
   };
+
+  // Reverse the edit the toast is showing.
+  const undo = async () => {
+    if (!key || !toast || toast.status !== "ready") return;
+    setToast({ ...toast, status: "undoing" });
+    const reply = await post({ action: "undo", undo: toast.plan });
+    setToast({ ...toast, status: reply.ok ? "undone" : "failed" });
+    armToastTimer(reply.ok ? 2500 : 5000);
+    // An undo can touch several rows (un-merging, say), so refetch everything.
+    setEmailsById({});
+    await fetchApps(key);
+    if (expandedId) await loadEmails(expandedId);
+  };
+
 
   const loadEmails = async (id: string) => {
     if (!key) return;
@@ -336,17 +375,26 @@ export function ApplicationsView({
     if (!stageDraft) return;
     const { id, stage, date, note } = stageDraft;
     setStageDraft(null);
-    await post({ id, action: "addStage", stage, date, note });
+    const app = apps.find((a) => a.id === id);
+    offerUndo(
+      `Added ${STAGE_LABEL[stage]} to ${app?.company ?? "it"}`,
+      await post({ id, action: "addStage", stage, date, note }),
+    );
     await refreshApp(id);
   };
 
   // Remove a stage you added by hand.
   const deleteStage = async (appId: string, eventId: string) => {
+    const ev = emailsById[appId]?.find((e) => e.id === eventId);
+    const app = apps.find((a) => a.id === appId);
     setEmailsById((prev) => ({
       ...prev,
       [appId]: (prev[appId] ?? []).filter((e) => e.id !== eventId),
     }));
-    await post({ action: "deleteStage", eventId });
+    offerUndo(
+      `Removed ${ev ? STAGE_LABEL[ev.stage] : "stage"} from ${app?.company ?? "it"}`,
+      await post({ action: "deleteStage", eventId }),
+    );
     await refreshApp(appId);
   };
 
@@ -355,9 +403,34 @@ export function ApplicationsView({
     if (!newApp || !newApp.company.trim() || !key) return;
     const draft = newApp;
     setNewApp(null);
-    await post({ action: "create", ...draft });
+    const target = mergeTargetFor(draft.company.trim(), { role: draft.role, eventDate: draft.date });
+    offerUndo(
+      target ? `Added ${STAGE_LABEL[draft.stage]} to ${target.company}` : `Added ${draft.company.trim()}`,
+      await post({ action: "create", ...draft }),
+    );
     await fetchApps(key);
   };
+
+  // ⌘Z / Ctrl+Z undoes the toast's edit — unless you're typing, where it should
+  // undo text instead. The ref keeps one listener calling the latest `undo`.
+  const undoRef = useRef(undo);
+  useEffect(() => {
+    undoRef.current = undo;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.key.toLowerCase() !== "z") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      undoRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   // Split live applications from Trash (soft-deleted).
   const liveApps = apps.filter((a) => !a.deletedAt);
@@ -860,30 +933,6 @@ export function ApplicationsView({
         </div>
       )}
 
-      {/* Undo banner — after a delete, until dismissed or another action */}
-      {justDeleted && (
-        <div className="pop mb-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-mist px-4 py-2">
-          <span className="font-mono text-[12px] text-ink-soft">
-            🗑 Moved <span className="text-ink">{justDeleted.company}</span> to Trash.
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => restore(justDeleted.id)}
-              className="pop rounded-md bg-accent px-3 py-1 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep"
-            >
-              Undo
-            </button>
-            <button
-              onClick={() => setJustDeleted(null)}
-              aria-label="Dismiss"
-              className="grid h-6 w-6 place-items-center rounded-md text-ink-faint hover:text-ink"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Empty / list */}
       {activeApps.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
@@ -1287,6 +1336,41 @@ export function ApplicationsView({
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* Undo toast — bottom-left, after any edit */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          onMouseEnter={() => toastTimer.current && clearTimeout(toastTimer.current)}
+          onMouseLeave={() => armToastTimer(toast.status === "ready" ? 4000 : 1500)}
+          className="pop fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl border border-line bg-surface px-4 py-2.5 shadow-pop"
+        >
+          <span className="min-w-0 truncate font-mono text-[12px] text-ink-soft">
+            {toast.status === "undone"
+              ? "↩ Undone"
+              : toast.status === "failed"
+                ? "Couldn't undo — it changed since. Refresh and fix it by hand."
+                : toast.label}
+          </span>
+          {(toast.status === "ready" || toast.status === "undoing") && (
+            <button
+              onClick={undo}
+              disabled={toast.status === "undoing"}
+              title="Undo (⌘Z / Ctrl+Z)"
+              className="pop shrink-0 rounded-md bg-accent px-3 py-1 font-mono text-[11px] font-semibold text-canvas shadow-pop-sm hover:bg-accent-deep disabled:opacity-60"
+            >
+              {toast.status === "undoing" ? "…" : "Undo"}
+            </button>
+          )}
+          <button
+            onClick={() => setToast(null)}
+            aria-label="Dismiss"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-ink-faint hover:text-ink"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
