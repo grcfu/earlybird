@@ -2,7 +2,13 @@ import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { AppStage } from "@/generated/prisma/client";
 import type { Classification } from "@/lib/apptracker/classify";
-import { STAGE_RANK, toStageKey, type AppStageKey } from "@/lib/apptracker/stages";
+import {
+  STAGE_RANK,
+  toStageKey,
+  stageFromTimeline,
+  type AppStageKey,
+  type StageEvent,
+} from "@/lib/apptracker/stages";
 import {
   normalizeCompany,
   companyKey,
@@ -25,6 +31,10 @@ export interface ApplicationRow {
   deletedAt: string | null; // set when in Trash
   cycle: number; // summer year this application targets; 0 = unknown
   referral: boolean; // set by hand — no email says it
+  companyLocked: boolean; // company was typed by the user; ingest keeps it
+  roleLocked: boolean; // role was typed by the user; ingest keeps it
+  stageSetAt: string | null; // when the user last set the stage by hand
+  timeline: StageEvent[]; // every stage seen (emails + hand-added), oldest first
 }
 
 // One stored email in an application's history.
@@ -35,6 +45,8 @@ export interface ApplicationEmailRow {
   fromAddr: string | null;
   stage: AppStageKey;
   eventDate: string;
+  manual: boolean; // a stage the user added by hand, not an email
+  note: string | null;
 }
 
 // The raw email fields we persist (beyond what the classifier extracts).
@@ -135,9 +147,18 @@ async function upsertByCompany(
   });
   const holderRank = rankOf(holder.stage as AppStageKey);
   const inputRank = rankOf(input.stage);
+  // A stage the user set by hand outranks any email dated on or before the edit
+  // — otherwise a backfill replaying old mail would quietly undo the correction.
+  // Mail that arrives after it still advances the stage as usual.
+  const stageSetAt = matches.reduce<Date | null>(
+    (a, r) => (r.stageSetAt && (!a || r.stageSetAt > a) ? r.stageSetAt : a),
+    null,
+  );
+  const pinned = stageSetAt != null && input.eventDate <= stageSetAt;
   const advance =
-    inputRank > holderRank ||
-    (inputRank === holderRank && input.eventDate > holder.eventDate);
+    !pinned &&
+    (inputRank > holderRank ||
+      (inputRank === holderRank && input.eventDate > holder.eventDate));
   const finalStage: AppStageKey = advance
     ? input.stage
     : (holder.stage as AppStageKey);
@@ -149,7 +170,12 @@ async function upsertByCompany(
   ];
   const appliedAt = applieds.reduce((a, b) => (b < a ? b : a), applieds[0]);
 
+  // A name or role the user typed is kept verbatim; the heuristics below only
+  // choose among machine-read values.
+  const lockedCompany = matches.find((r) => r.companyLocked)?.company;
+  const lockedRole = matches.find((r) => r.roleLocked)?.role;
   const finalRole =
+    lockedRole ??
     [...matches.map((r) => r.role), input.role]
       .filter((x) => x.length > 0)
       .sort((a, b) => b.length - a.length)[0] ?? "";
@@ -169,6 +195,7 @@ async function upsertByCompany(
   // Recruitment") doesn't count as extra words and win on this rule.
   const wordsIn = (n: string) => normalizeCompany(n).split(" ").filter(Boolean).length;
   const finalCompany =
+    lockedCompany ??
     names
       .filter((n) => companyKey(n) === companyKey(shortest))
       .sort((a, b) => wordsIn(b) - wordsIn(a) || a.length - b.length)[0] ??
@@ -209,6 +236,9 @@ async function upsertByCompany(
         deletedAt: anyActive ? null : survivor.deletedAt,
         cycle: finalCycle,
         referral,
+        companyLocked: lockedCompany != null,
+        roleLocked: lockedRole != null,
+        stageSetAt,
       },
     }),
   );
@@ -306,8 +336,18 @@ export async function recompanyApplication(
   id: string,
   company: string,
 ): Promise<"renamed" | "merged" | "missing"> {
+  return (await moveToCompany(ownerKey, id, company)).how;
+}
+
+// recompanyApplication, also reporting which row the application ended up on —
+// a merge folds it into another row, and a hand rename needs to pin that one.
+async function moveToCompany(
+  ownerKey: string,
+  id: string,
+  company: string,
+): Promise<{ how: "renamed" | "merged" | "missing"; applicationId: string }> {
   const row = await prisma.trackedApplication.findFirst({ where: { id, ownerKey } });
-  if (!row) return "missing";
+  if (!row) return { how: "missing", applicationId: id };
 
   const others = await prisma.trackedApplication.findMany({
     where: { ownerKey, id: { not: id } },
@@ -315,7 +355,7 @@ export async function recompanyApplication(
   const input = { company, role: row.role, eventDate: row.eventDate };
   if (!others.some((r) => isSameApplication(r, input))) {
     await prisma.trackedApplication.update({ where: { id }, data: { company } });
-    return "renamed";
+    return { how: "renamed", applicationId: id };
   }
 
   const { applicationId } = await upsertByCompany(ownerKey, {
@@ -333,7 +373,7 @@ export async function recompanyApplication(
     }),
     prisma.trackedApplication.deleteMany({ where: { id, ownerKey } }),
   ]);
-  return "merged";
+  return { how: "merged", applicationId };
 }
 
 // Re-apply the current merge rules to rows that are already stored.
@@ -380,10 +420,23 @@ export async function remergeApplications(
 export async function listApplications(
   ownerKey: string,
 ): Promise<ApplicationRow[]> {
-  const rows = await prisma.trackedApplication.findMany({
-    where: { ownerKey },
-    orderBy: [{ eventDate: "desc" }, { updatedAt: "desc" }],
-  });
+  const [rows, events] = await Promise.all([
+    prisma.trackedApplication.findMany({
+      where: { ownerKey },
+      orderBy: [{ eventDate: "desc" }, { updatedAt: "desc" }],
+    }),
+    prisma.applicationEmail.findMany({
+      where: { ownerKey },
+      select: { applicationId: true, stage: true, eventDate: true },
+      orderBy: { eventDate: "asc" },
+    }),
+  ]);
+  const timelines = new Map<string, StageEvent[]>();
+  for (const e of events) {
+    const list = timelines.get(e.applicationId) ?? [];
+    list.push({ stage: e.stage as AppStageKey, date: e.eventDate.toISOString() });
+    timelines.set(e.applicationId, list);
+  }
   return rows.map((r) => ({
     id: r.id,
     company: r.company,
@@ -397,6 +450,10 @@ export async function listApplications(
     deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
     cycle: r.cycle,
     referral: r.referral,
+    companyLocked: r.companyLocked,
+    roleLocked: r.roleLocked,
+    stageSetAt: r.stageSetAt ? r.stageSetAt.toISOString() : null,
+    timeline: timelines.get(r.id) ?? [],
   }));
 }
 
@@ -411,6 +468,182 @@ export async function setReferral(
     data: { referral },
   });
   return res.count > 0;
+}
+
+// Hand-correct an application's company, role and/or stage. Each edit is pinned
+// (see upsertByCompany) so later ingest doesn't revert it. Returns the id the
+// application lives on afterwards — renaming into an employer that already has a
+// row merges the two — or null when it isn't the caller's.
+export async function updateApplication(
+  ownerKey: string,
+  id: string,
+  edit: { company?: string; role?: string; stage?: AppStageKey },
+): Promise<string | null> {
+  const row = await prisma.trackedApplication.findFirst({ where: { id, ownerKey } });
+  if (!row) return null;
+  let appId = id;
+
+  if (edit.company !== undefined && edit.company !== row.company) {
+    appId = (await moveToCompany(ownerKey, id, edit.company)).applicationId;
+    // Pin after the move: a merge picks among names, and the user's wins.
+    await prisma.trackedApplication.update({
+      where: { id: appId },
+      data: { company: edit.company, companyLocked: true },
+    });
+  }
+
+  if (edit.role !== undefined) {
+    const cur = await prisma.trackedApplication.findUniqueOrThrow({ where: { id: appId } });
+    // The role can name the year outright, so it may move the cycle.
+    const cycle =
+      applicationCycle(
+        edit.role,
+        cur.appliedAt ? isoDay(cur.appliedAt) : null,
+        isoDay(cur.eventDate),
+      )?.year ?? cur.cycle;
+    await prisma.trackedApplication.update({
+      where: { id: appId },
+      data: { role: edit.role, roleLocked: true, cycle },
+    });
+  }
+
+  if (edit.stage !== undefined) {
+    const cur = await prisma.trackedApplication.findUniqueOrThrow({ where: { id: appId } });
+    if (edit.stage !== cur.stage) {
+      // A correction, so unlike ingest it may move backwards. It's also logged
+      // on the timeline, dated today, so the export has a date for the stage.
+      const now = new Date();
+      await prisma.$transaction([
+        prisma.trackedApplication.update({
+          where: { id: appId },
+          data: { stage: edit.stage as AppStage, eventDate: now, stageSetAt: now },
+        }),
+        manualEvent(ownerKey, appId, edit.stage, now, null),
+      ]);
+    }
+  }
+
+  return appId;
+}
+
+// A hand-added timeline entry. msgHash is unique per entry so it never collides
+// with (or dedupes against) a real email.
+function manualEvent(
+  ownerKey: string,
+  applicationId: string,
+  stage: AppStageKey,
+  date: Date,
+  note: string | null,
+) {
+  return prisma.applicationEmail.create({
+    data: {
+      applicationId,
+      ownerKey,
+      subject: "",
+      body: "",
+      stage: stage as AppStage,
+      eventDate: date,
+      msgHash: `manual:${createHash("sha256").update(`${applicationId}\0${Date.now()}\0${Math.random()}`).digest("hex").slice(0, 24)}`,
+      manual: true,
+      note,
+    },
+  });
+}
+
+// Add a stage the tracker missed — the OA email that never got labeled, say —
+// with the date it happened. The stage advances if this is now the furthest one
+// (same rank rule as ingest); an earlier APPLIED moves appliedAt back.
+export async function addStageEvent(
+  ownerKey: string,
+  id: string,
+  ev: { stage: AppStageKey; date: Date; note?: string | null },
+): Promise<boolean> {
+  const row = await prisma.trackedApplication.findFirst({ where: { id, ownerKey } });
+  if (!row) return false;
+  const best = stageFromTimeline([
+    { stage: row.stage as AppStageKey, date: row.eventDate.toISOString() },
+    { stage: ev.stage, date: ev.date.toISOString() },
+  ])!;
+  const appliedAt =
+    ev.stage === "APPLIED" && (!row.appliedAt || ev.date < row.appliedAt)
+      ? ev.date
+      : row.appliedAt;
+  await prisma.$transaction([
+    manualEvent(ownerKey, id, ev.stage, ev.date, ev.note?.trim() || null),
+    prisma.trackedApplication.update({
+      where: { id },
+      data: {
+        stage: best.stage as AppStage,
+        eventDate: new Date(best.date),
+        appliedAt,
+        stageSetAt: new Date(),
+      },
+    }),
+  ]);
+  return true;
+}
+
+// Remove a hand-added stage (emails can't be removed this way). When it was the
+// stage the application is at, the stage falls back to what the rest of the
+// timeline adds up to.
+export async function deleteStageEvent(
+  ownerKey: string,
+  eventId: string,
+): Promise<boolean> {
+  const ev = await prisma.applicationEmail.findFirst({
+    where: { id: eventId, ownerKey, manual: true },
+  });
+  if (!ev) return false;
+  await prisma.applicationEmail.delete({ where: { id: eventId } });
+
+  const row = await prisma.trackedApplication.findUnique({ where: { id: ev.applicationId } });
+  if (!row || row.stage !== ev.stage) return true;
+  const rest = await prisma.applicationEmail.findMany({
+    where: { applicationId: row.id },
+    select: { stage: true, eventDate: true },
+  });
+  const best = stageFromTimeline(
+    rest.map((e) => ({ stage: e.stage as AppStageKey, date: e.eventDate.toISOString() })),
+  );
+  // Nothing left on the timeline (a row that predates stored emails): keep the
+  // stage as is rather than inventing one.
+  if (best) {
+    await prisma.trackedApplication.update({
+      where: { id: row.id },
+      data: { stage: best.stage as AppStage, eventDate: new Date(best.date) },
+    });
+  }
+  return true;
+}
+
+// Add an application the tracker never caught. It goes through the same upsert
+// as email and feed marks, so if the company is already tracked this cycle it
+// merges into that row instead of duplicating it. What was typed is pinned.
+export async function createManualApplication(
+  ownerKey: string,
+  input: { company: string; role: string; stage: AppStageKey; date: Date },
+): Promise<string> {
+  const { applicationId } = await upsertByCompany(ownerKey, {
+    company: input.company,
+    role: input.role,
+    stage: input.stage,
+    eventDate: input.date,
+    subject: null,
+    source: "manual",
+  });
+  await prisma.$transaction([
+    prisma.trackedApplication.update({
+      where: { id: applicationId },
+      data: {
+        company: input.company,
+        companyLocked: true,
+        ...(input.role ? { role: input.role, roleLocked: true } : {}),
+        deletedAt: null,
+      },
+    }),
+    manualEvent(ownerKey, applicationId, input.stage, input.date, null),
+  ]);
+  return applicationId;
 }
 
 // The full stored email history for one application (owner-scoped).
@@ -429,6 +662,8 @@ export async function listApplicationEmails(
     fromAddr: r.fromAddr,
     stage: r.stage as AppStageKey,
     eventDate: r.eventDate.toISOString(),
+    manual: r.manual,
+    note: r.note,
   }));
 }
 

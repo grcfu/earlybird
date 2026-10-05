@@ -34,8 +34,9 @@ const ONLY_COMPANY = process.argv
 
 async function main() {
   const apps = await prisma.trackedApplication.findMany({
-    where: ONLY_COMPANY ? { company: ONLY_COMPANY } : {},
-    include: { emails: { orderBy: { eventDate: "desc" } } },
+    // A name the user typed in is theirs — a re-read never overrides it.
+    where: { companyLocked: false, ...(ONLY_COMPANY ? { company: ONLY_COMPANY } : {}) },
+    include: { emails: { where: { manual: false }, orderBy: { eventDate: "desc" } } },
   });
 
   let renamed = 0;
