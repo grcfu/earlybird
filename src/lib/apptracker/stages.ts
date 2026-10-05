@@ -51,3 +51,45 @@ export function toStageKey(s: string | null | undefined): AppStageKey | null {
   const up = s.toUpperCase();
   return (STAGE_ORDER as string[]).includes(up) ? (up as AppStageKey) : null;
 }
+
+// One stage on an application's timeline: an email that was classified, or a
+// stage the user added by hand.
+export interface StageEvent {
+  stage: AppStageKey;
+  date: string; // ISO
+}
+
+// The stage a set of timeline events adds up to: the furthest one by rank, ties
+// going to the later date — the same rule ingest uses to advance a row, so a
+// stage recomputed from the timeline agrees with one built up email by email.
+// Null for an empty timeline.
+export function stageFromTimeline(events: StageEvent[]): StageEvent | null {
+  let best: StageEvent | null = null;
+  for (const e of events) {
+    if (
+      !best ||
+      STAGE_RANK[e.stage] > STAGE_RANK[best.stage] ||
+      (STAGE_RANK[e.stage] === STAGE_RANK[best.stage] && e.date > best.date)
+    ) {
+      best = e;
+    }
+  }
+  return best;
+}
+
+// The first date each stage was reached, for the export's per-stage columns.
+// Only stages at or below the application's current rank count: when a stage was
+// corrected downwards (a "your interview" email that was really a newsletter),
+// the stale event shouldn't still fill an Interview column.
+export function stageDates(
+  current: AppStageKey,
+  events: StageEvent[],
+): Partial<Record<AppStageKey, string>> {
+  const out: Partial<Record<AppStageKey, string>> = {};
+  for (const e of events) {
+    if (STAGE_RANK[e.stage] > STAGE_RANK[current]) continue;
+    const seen = out[e.stage];
+    if (!seen || e.date < seen) out[e.stage] = e.date;
+  }
+  return out;
+}
